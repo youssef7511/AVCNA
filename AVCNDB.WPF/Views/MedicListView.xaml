@@ -93,7 +93,7 @@
                             Margin="0,0,8,0"
                             ToolTip="Importer depuis Excel">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Kind="MicrosoftExcel" Width="18" Height="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Import" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
@@ -113,7 +113,7 @@
                     <Button Command="{Binding ExportPdfCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             ToolTip="Exporter en PDF">
-                        <materialDesign:PackIcon Kind="FilePdf" Width="20" Height="20"/>
+                        <materialDesign:PackIcon Kind="FilePdfBox" Width="20" Height="20"/>
                     </Button>
                 </StackPanel>
             </Grid>

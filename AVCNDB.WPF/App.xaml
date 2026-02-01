@@ -1,7 +1,9 @@
 <Application x:Class="AVCNDB.WPF.App"
-xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:views="clr-namespace:AVCNDB.WPF.Views">
     
     <Application.Resources>
         <ResourceDictionary>
@@ -17,6 +19,51 @@ xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes">
                 <ResourceDictionary Source="Styles/TextStyles.xaml" />
                 <ResourceDictionary Source="Styles/CardStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+            <!-- ViewModel to View DataTemplates -->
+            <DataTemplate DataType="{x:Type vm:HomeViewModel}">
+                <views:HomeView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:MedicListViewModel}">
+                <views:MedicListView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:MedicDetailViewModel}">
+                <views:MedicDetailView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:MedicEditViewModel}">
+                <views:MedicEditView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:DciListViewModel}">
+                <views:DciListView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:FamiliesListViewModel}">
+                <views:FamiliesListView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:LabosListViewModel}">
+                <views:LabosListView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:InteractionsViewModel}">
+                <views:InteractionsView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:StockViewModel}">
+                <views:StockView />
+            </DataTemplate>
+            
+            <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+                <views:SettingsView />
+            </DataTemplate>
+            
         </ResourceDictionary>
     </Application.Resources>
     

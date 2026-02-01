@@ -73,21 +73,27 @@ public partial class App : Application
         var connectionString = configuration.GetConnectionString("DefaultConnection");
         var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
         
-        services.AddDbContext<AppDbContext>(options =>
+        // Use DbContextFactory for thread-safe DbContext creation
+        services.AddDbContextFactory<AppDbContext>(options =>
             options.UseMySql(connectionString, serverVersion));
+        
+        // Also register DbContext for cases where scoped access is needed
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseMySql(connectionString, serverVersion), 
+            ServiceLifetime.Transient);
 
         // ============================================
         // REPOSITORIES
         // ============================================
-        services.AddScoped<IRepository<Medic>, Repository<Medic>>();
-        services.AddScoped<IRepository<Dci>, Repository<Dci>>();
-        services.AddScoped<IRepository<Labos>, Repository<Labos>>();
-        services.AddScoped<IRepository<Families>, Repository<Families>>();
-        services.AddScoped<IRepository<Interact>, Repository<Interact>>();
-        services.AddScoped<IRepository<Stock>, Repository<Stock>>();
-        services.AddScoped<IRepository<Formes>, Repository<Formes>>();
-        services.AddScoped<IRepository<Voies>, Repository<Voies>>();
-        services.AddScoped<IRepository<Presents>, Repository<Presents>>();
+        services.AddTransient<IRepository<Medic>, Repository<Medic>>();
+        services.AddTransient<IRepository<Dci>, Repository<Dci>>();
+        services.AddTransient<IRepository<Labos>, Repository<Labos>>();
+        services.AddTransient<IRepository<Families>, Repository<Families>>();
+        services.AddTransient<IRepository<Interact>, Repository<Interact>>();
+        services.AddTransient<IRepository<Stock>, Repository<Stock>>();
+        services.AddTransient<IRepository<Formes>, Repository<Formes>>();
+        services.AddTransient<IRepository<Voies>, Repository<Voies>>();
+        services.AddTransient<IRepository<Presents>, Repository<Presents>>();
 
         // ============================================
         // SERVICES
@@ -96,9 +102,9 @@ public partial class App : Application
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IValidationService, ValidationService>();
-        services.AddScoped<IExcelService, ExcelService>();
-        services.AddScoped<IPdfService, PdfService>();
-        services.AddScoped<IStockService, StockService>();
+        services.AddTransient<IExcelService, ExcelService>();
+        services.AddTransient<IPdfService, PdfService>();
+        services.AddTransient<IStockService, StockService>();
 
         // ============================================
         // VIEWMODELS

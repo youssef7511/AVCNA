@@ -61,7 +61,14 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task LoadAlertsAsync()
     {
-        AlertsCount = await _stockService.GetTotalAlertsCountAsync();
+        try
+        {
+            AlertsCount = await _stockService.GetTotalAlertsCountAsync();
+        }
+        catch
+        {
+            AlertsCount = 0;
+        }
     }
 
     [RelayCommand]

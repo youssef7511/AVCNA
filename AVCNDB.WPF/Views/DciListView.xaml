@@ -59,7 +59,7 @@
                     <Button Command="{Binding ExportExcelCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             ToolTip="Exporter en Excel">
-                        <materialDesign:PackIcon Kind="FileExcel" Width="20" Height="20"/>
+                        <materialDesign:PackIcon Kind="MicrosoftExcel" Width="20" Height="20"/>
                     </Button>
                 </StackPanel>
             </Grid>

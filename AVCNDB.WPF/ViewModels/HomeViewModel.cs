@@ -47,31 +47,37 @@ public partial class HomeViewModel : ViewModelBase
         _stockService = stockService;
         _navigationService = navigationService;
 
-        _ = LoadDashboardDataAsync();
+        // Ne pas charger automatiquement les données - la base peut ne pas être disponible
+        // L'utilisateur peut rafraîchir manuellement
     }
 
     private async Task LoadDashboardDataAsync()
     {
         await ExecuteAsync(async () =>
         {
-            // Charger les statistiques en parallèle
-            var medicTask = _medicRepository.CountAsync();
-            var dciTask = _dciRepository.CountAsync();
-            var laboTask = _laboRepository.CountAsync();
-            var stockAlertsTask = _stockService.GetLowStockAlertsAsync();
-            var expiryAlertsTask = _stockService.GetExpiryAlertsAsync();
+            try
+            {
+                // Charger les statistiques séquentiellement pour éviter les problèmes de concurrence DbContext
+                TotalMedics = await _medicRepository.CountAsync();
+                TotalDcis = await _dciRepository.CountAsync();
+                TotalLabos = await _laboRepository.CountAsync();
+                
+                var stockAlerts = (await _stockService.GetLowStockAlertsAsync()).ToList();
+                StockAlertsCount = stockAlerts.Count;
+                RecentAlerts = stockAlerts.Take(5);
 
-            await Task.WhenAll(medicTask, dciTask, laboTask, stockAlertsTask, expiryAlertsTask);
-
-            TotalMedics = await medicTask;
-            TotalDcis = await dciTask;
-            TotalLabos = await laboTask;
-            
-            var stockAlerts = (await stockAlertsTask).ToList();
-            StockAlertsCount = stockAlerts.Count;
-            RecentAlerts = stockAlerts.Take(5);
-
-            ExpiryAlertsCount = (await expiryAlertsTask).Count();
+                ExpiryAlertsCount = (await _stockService.GetExpiryAlertsAsync()).Count();
+            }
+            catch (Exception)
+            {
+                // Base de données non disponible - afficher des valeurs par défaut
+                TotalMedics = 0;
+                TotalDcis = 0;
+                TotalLabos = 0;
+                StockAlertsCount = 0;
+                ExpiryAlertsCount = 0;
+                RecentAlerts = Enumerable.Empty<StockAlertItem>();
+            }
         }, "Chargement du tableau de bord...");
     }
 

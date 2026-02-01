@@ -186,7 +186,7 @@
                                 ToolTip="Exporter en PDF"
                                 IsEnabled="{Binding HasResults}">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FilePdf" Width="18" Height="18" VerticalAlignment="Center"/>
+                                <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" VerticalAlignment="Center"/>
                                 <TextBlock Text="Export PDF" Margin="8,0,0,0" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
