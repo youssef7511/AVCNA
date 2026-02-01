@@ -1,0 +1,281 @@
+<UserControl x:Class="AVCNDB.WPF.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:HomeViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel>
+            <!-- Titre de bienvenue -->
+            <TextBlock Text="Tableau de bord" 
+                       Style="{StaticResource TitleH1Style}"
+                       Margin="0,0,0,24"/>
+
+            <!-- Cartes de statistiques -->
+            <UniformGrid Columns="4" Margin="0,0,0,24">
+                <!-- Total Médicaments -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                            <Border Background="{StaticResource PrimaryBrush}" 
+                                    CornerRadius="8" 
+                                    Padding="12">
+                                <materialDesign:PackIcon Kind="Pill" 
+                                                         Width="28" Height="28" 
+                                                         Foreground="White"/>
+                            </Border>
+                        </StackPanel>
+                        
+                        <TextBlock Grid.Row="1" 
+                                   Text="{Binding TotalMedics, StringFormat=N0}"
+                                   FontSize="36" 
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryDarkBrush}"
+                                   Margin="0,12,0,0"/>
+                        
+                        <TextBlock Grid.Row="2" 
+                                   Text="Médicaments"
+                                   Style="{StaticResource SubtitleStyle}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Total DCI -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Border Background="{StaticResource SecondaryBrush}" 
+                                CornerRadius="8" 
+                                Padding="12">
+                            <materialDesign:PackIcon Kind="Flask" 
+                                                     Width="28" Height="28" 
+                                                     Foreground="White"/>
+                        </Border>
+                        
+                        <TextBlock Grid.Row="1" 
+                                   Text="{Binding TotalDcis, StringFormat=N0}"
+                                   FontSize="36" 
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource SecondaryDarkBrush}"
+                                   Margin="0,12,0,0"/>
+                        
+                        <TextBlock Grid.Row="2" 
+                                   Text="Substances Actives (DCI)"
+                                   Style="{StaticResource SubtitleStyle}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Total Labos -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Border Background="{StaticResource AccentBrush}" 
+                                CornerRadius="8" 
+                                Padding="12">
+                            <materialDesign:PackIcon Kind="Factory" 
+                                                     Width="28" Height="28" 
+                                                     Foreground="White"/>
+                        </Border>
+                        
+                        <TextBlock Grid.Row="1" 
+                                   Text="{Binding TotalLabos, StringFormat=N0}"
+                                   FontSize="36" 
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,12,0,0"/>
+                        
+                        <TextBlock Grid.Row="2" 
+                                   Text="Laboratoires"
+                                   Style="{StaticResource SubtitleStyle}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Alertes Stock -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="8">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <Border Background="{StaticResource ErrorBrush}" 
+                                CornerRadius="8" 
+                                Padding="12">
+                            <materialDesign:PackIcon Kind="AlertCircle" 
+                                                     Width="28" Height="28" 
+                                                     Foreground="White"/>
+                        </Border>
+                        
+                        <TextBlock Grid.Row="1" 
+                                   Text="{Binding StockAlertsCount}"
+                                   FontSize="36" 
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource ErrorBrush}"
+                                   Margin="0,12,0,0"/>
+                        
+                        <TextBlock Grid.Row="2" 
+                                   Text="Alertes de stock"
+                                   Style="{StaticResource SubtitleStyle}"/>
+                    </Grid>
+                </Border>
+            </UniformGrid>
+
+            <!-- Section Alertes -->
+            <Grid Margin="0,0,0,24">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Alertes Stock Bas -->
+                <Border Grid.Column="0" Style="{StaticResource BaseCardStyle}" Margin="8">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <materialDesign:PackIcon Kind="PackageVariantClosedAlert" 
+                                                     Width="24" Height="24" 
+                                                     Foreground="{StaticResource ErrorBrush}"
+                                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="Stock bas" 
+                                       Style="{StaticResource TitleH3Style}"
+                                       Margin="12,0,0,0"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <ItemsControl ItemsSource="{Binding RecentAlerts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderLightBrush}"
+                                            BorderThickness="0,0,0,1"
+                                            Padding="0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <TextBlock Grid.Column="0" 
+                                                       Text="{Binding MedicName}"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <TextBlock Text="{Binding CurrentStock}"
+                                                           Foreground="{StaticResource ErrorBrush}"
+                                                           FontWeight="Bold"/>
+                                                <TextBlock Text=" / "
+                                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding MinStock}"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Button Content="Voir tout"
+                                Command="{Binding NavigateToStockCommand}"
+                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Foreground="{StaticResource PrimaryBrush}"
+                                HorizontalAlignment="Right"
+                                Margin="0,12,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Raccourcis rapides -->
+                <Border Grid.Column="1" Style="{StaticResource BaseCardStyle}" Margin="8">
+                    <StackPanel>
+                        <TextBlock Text="Accès rapide" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,16"/>
+
+                        <Button Command="{Binding NavigateToMedicsCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                HorizontalContentAlignment="Left"
+                                Margin="0,4"
+                                Padding="16,12">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Pill" 
+                                                         Width="20" Height="20"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Rechercher un médicament" 
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding NavigateToDcisCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                HorizontalContentAlignment="Left"
+                                Margin="0,4"
+                                Padding="16,12">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Flask" 
+                                                         Width="20" Height="20"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Consulter les DCI" 
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding NavigateToLabosCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                HorizontalContentAlignment="Left"
+                                Margin="0,4"
+                                Padding="16,12">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Factory" 
+                                                         Width="20" Height="20"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Liste des laboratoires" 
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding NavigateToStockCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                HorizontalContentAlignment="Left"
+                                Margin="0,4"
+                                Padding="16,12">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="PackageVariantClosed" 
+                                                         Width="20" Height="20"
+                                                         VerticalAlignment="Center"/>
+                                <TextBlock Text="Gestion du stock" 
+                                           Margin="12,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Indicateur de chargement -->
+            <ProgressBar IsIndeterminate="True"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}"
+                         Margin="0,16"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

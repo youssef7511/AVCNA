@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Settings xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings">
+  <Setting Name="Theme" Type="System.String" Scope="User">
+    <Value Profile="(Default)">Light</Value>
+  </Setting>
+  <Setting Name="PrimaryColor" Type="System.String" Scope="User">
+    <Value Profile="(Default)">#1976D2</Value>
+  </Setting>
+  <Setting Name="DatabaseServer" Type="System.String" Scope="User">
+    <Value Profile="(Default)">localhost</Value>
+  </Setting>
+  <Setting Name="DatabasePort" Type="System.String" Scope="User">
+    <Value Profile="(Default)">50000</Value>
+  </Setting>
+  <Setting Name="DatabaseName" Type="System.String" Scope="User">
+    <Value Profile="(Default)">MEDICDB</Value>
+  </Setting>
+  <Setting Name="DatabaseUser" Type="System.String" Scope="User">
+    <Value Profile="(Default)">root</Value>
+  </Setting>
+  <Setting Name="StockAlertThreshold" Type="System.Int32" Scope="User">
+    <Value Profile="(Default)">10</Value>
+  </Setting>
+  <Setting Name="ExpiryAlertDays" Type="System.Int32" Scope="User">
+    <Value Profile="(Default)">30</Value>
+  </Setting>
+  <Setting Name="LastWindowWidth" Type="System.Double" Scope="User">
+    <Value Profile="(Default)">1400</Value>
+  </Setting>
+  <Setting Name="LastWindowHeight" Type="System.Double" Scope="User">
+    <Value Profile="(Default)">800</Value>
+  </Setting>
+  <Setting Name="IsMenuExpanded" Type="System.Boolean" Scope="User">
+    <Value Profile="(Default)">True</Value>
+  </Setting>
+</Settings>

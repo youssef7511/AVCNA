@@ -1,0 +1,464 @@
+<UserControl x:Class="AVCNDB.WPF.Views.MedicEditView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MedicEditViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================
+             EN-TÊTE
+        ============================================ -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Style="{StaticResource TitleH2Style}">
+                        <TextBlock.Text>
+                            <Binding Path="IsNewMedic" Converter="{StaticResource BoolToVis}" ConverterParameter="Nouveau médicament|Modifier le médicament"/>
+                        </TextBlock.Text>
+                    </TextBlock>
+                    <TextBlock Text="{Binding Medic.Itemname, TargetNullValue='Saisir les informations du médicament'}"
+                               Style="{StaticResource SubtitleStyle}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Message d'erreur -->
+                <Border Grid.Column="1"
+                        Background="{StaticResource ErrorLightBrush}"
+                        CornerRadius="4"
+                        Padding="12,8"
+                        Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{StaticResource ErrorDarkBrush}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             FORMULAIRE
+        ============================================ -->
+        <ScrollViewer Grid.Row="1" 
+                      VerticalScrollBarVisibility="Auto" 
+                      Padding="24">
+            <StackPanel MaxWidth="1200">
+
+                <!-- Section Identification -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="🔖 Identification" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Nom du médicament -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,16,16">
+                                <TextBox Text="{Binding Medic.Itemname, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Nom du médicament *"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+
+                            <!-- Code-barre -->
+                            <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,16">
+                                <TextBox Text="{Binding Medic.Barcode, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Code-barre (EAN-13)"
+                                         MaxLength="13"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+
+                            <!-- AMM -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
+                                <TextBox Text="{Binding Medic.Amm, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="N° AMM"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </StackPanel>
+
+                            <!-- Famille -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,0">
+                                <ComboBox ItemsSource="{Binding Families}"
+                                          SelectedValue="{Binding Medic.Family}"
+                                          SelectedValuePath="Familyid"
+                                          DisplayMemberPath="Familyname"
+                                          materialDesign:HintAssist.Hint="Famille"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            </StackPanel>
+
+                            <!-- Laboratoire -->
+                            <StackPanel Grid.Row="1" Grid.Column="2">
+                                <ComboBox ItemsSource="{Binding Labos}"
+                                          SelectedValue="{Binding Medic.Labo}"
+                                          SelectedValuePath="Laboid"
+                                          DisplayMemberPath="Laboname"
+                                          materialDesign:HintAssist.Hint="Laboratoire"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section Composition (DCI) -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="🧪 Composition" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- DCI 1 -->
+                            <ComboBox Grid.Row="0" Grid.Column="0"
+                                      ItemsSource="{Binding Dcis}"
+                                      SelectedValue="{Binding Medic.Dci1}"
+                                      SelectedValuePath="Dciid"
+                                      DisplayMemberPath="Dciname"
+                                      materialDesign:HintAssist.Hint="DCI Principal *"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,16"/>
+                            <TextBox Grid.Row="0" Grid.Column="1"
+                                     Text="{Binding Medic.Dosage1, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Dosage 1"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- DCI 2 -->
+                            <ComboBox Grid.Row="1" Grid.Column="0"
+                                      ItemsSource="{Binding Dcis}"
+                                      SelectedValue="{Binding Medic.Dci2}"
+                                      SelectedValuePath="Dciid"
+                                      DisplayMemberPath="Dciname"
+                                      materialDesign:HintAssist.Hint="DCI Secondaire"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,16"/>
+                            <TextBox Grid.Row="1" Grid.Column="1"
+                                     Text="{Binding Medic.Dosage2, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Dosage 2"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- DCI 3 -->
+                            <ComboBox Grid.Row="2" Grid.Column="0"
+                                      ItemsSource="{Binding Dcis}"
+                                      SelectedValue="{Binding Medic.Dci3}"
+                                      SelectedValuePath="Dciid"
+                                      DisplayMemberPath="Dciname"
+                                      materialDesign:HintAssist.Hint="DCI 3"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,16"/>
+                            <TextBox Grid.Row="2" Grid.Column="1"
+                                     Text="{Binding Medic.Dosage3, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Dosage 3"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- DCI 4 -->
+                            <ComboBox Grid.Row="3" Grid.Column="0"
+                                      ItemsSource="{Binding Dcis}"
+                                      SelectedValue="{Binding Medic.Dci4}"
+                                      SelectedValuePath="Dciid"
+                                      DisplayMemberPath="Dciname"
+                                      materialDesign:HintAssist.Hint="DCI 4"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,0"/>
+                            <TextBox Grid.Row="3" Grid.Column="1"
+                                     Text="{Binding Medic.Dosage4, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Dosage 4"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section Forme et Présentation -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="💊 Forme et Présentation" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Forme -->
+                            <ComboBox Grid.Column="0"
+                                      ItemsSource="{Binding Formes}"
+                                      SelectedValue="{Binding Medic.Forme}"
+                                      SelectedValuePath="Formeid"
+                                      DisplayMemberPath="Formename"
+                                      materialDesign:HintAssist.Hint="Forme"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,0"/>
+
+                            <!-- Présentation -->
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding Presents}"
+                                      SelectedValue="{Binding Medic.Present}"
+                                      SelectedValuePath="Presentid"
+                                      DisplayMemberPath="Presentname"
+                                      materialDesign:HintAssist.Hint="Présentation"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,0"/>
+
+                            <!-- Voie d'administration -->
+                            <ComboBox Grid.Column="2"
+                                      ItemsSource="{Binding Voies}"
+                                      SelectedValue="{Binding Medic.Voie}"
+                                      SelectedValuePath="Voieid"
+                                      DisplayMemberPath="Voiename"
+                                      materialDesign:HintAssist.Hint="Voie d'administration"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section Tarification -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="💰 Tarification" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- PFHT -->
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding Medic.Pfht, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     materialDesign:HintAssist.Hint="Prix Fab. HT"
+                                     materialDesign:TextFieldAssist.SuffixText="DH"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,12,0"/>
+
+                            <!-- PH -->
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Medic.Ph, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     materialDesign:HintAssist.Hint="Prix Hospitalier"
+                                     materialDesign:TextFieldAssist.SuffixText="DH"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,12,0"/>
+
+                            <!-- PGross -->
+                            <TextBox Grid.Column="2"
+                                     Text="{Binding Medic.Pgross, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     materialDesign:HintAssist.Hint="Prix de Gros"
+                                     materialDesign:TextFieldAssist.SuffixText="DH"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,12,0"/>
+
+                            <!-- PBR -->
+                            <TextBox Grid.Column="3"
+                                     Text="{Binding Medic.Pbr, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     materialDesign:HintAssist.Hint="Prix Base Remb."
+                                     materialDesign:TextFieldAssist.SuffixText="DH"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,12,0"/>
+
+                            <!-- PPV -->
+                            <TextBox Grid.Column="4"
+                                     Text="{Binding Medic.Ppv, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     materialDesign:HintAssist.Hint="Prix Public (PPV) *"
+                                     materialDesign:TextFieldAssist.SuffixText="DH"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     FontWeight="Bold"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section Options -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
+                    <StackPanel>
+                        <TextBlock Text="⚙️ Options" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Pédiatrique -->
+                            <CheckBox Grid.Row="0" Grid.Column="0"
+                                      IsChecked="{Binding Medic.Pediatrique}"
+                                      Content="Pédiatrique"
+                                      Style="{StaticResource MaterialDesignCheckBox}"
+                                      Margin="0,0,0,16"/>
+
+                            <!-- Générique -->
+                            <CheckBox Grid.Row="0" Grid.Column="1"
+                                      IsChecked="{Binding Medic.Generique}"
+                                      Content="Générique"
+                                      Style="{StaticResource MaterialDesignCheckBox}"
+                                      Margin="0,0,0,16"/>
+
+                            <!-- Remboursable -->
+                            <CheckBox Grid.Row="0" Grid.Column="2"
+                                      IsChecked="{Binding Medic.Remboursable}"
+                                      Content="Remboursable"
+                                      Style="{StaticResource MaterialDesignCheckBox}"
+                                      Margin="0,0,0,16"/>
+
+                            <!-- Taux de remboursement -->
+                            <TextBox Grid.Row="0" Grid.Column="3"
+                                     Text="{Binding Medic.Taux, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Taux remb. (%)"
+                                     materialDesign:TextFieldAssist.SuffixText="%"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- Tableau -->
+                            <ComboBox Grid.Row="1" Grid.Column="0"
+                                      SelectedItem="{Binding Medic.Tableau}"
+                                      materialDesign:HintAssist.Hint="Tableau (substance contrôlée)"
+                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                      Margin="0,0,16,0">
+                                <ComboBoxItem Content=""/>
+                                <ComboBoxItem Content="A"/>
+                                <ComboBoxItem Content="B"/>
+                                <ComboBoxItem Content="C"/>
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Section Notes -->
+                <Border Style="{StaticResource ElevatedCardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="📝 Notes et indications" 
+                                   Style="{StaticResource TitleH3Style}"
+                                   Margin="0,0,0,20"/>
+
+                        <TextBox Text="{Binding Medic.Indication, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Indications, notes..."
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 TextWrapping="Wrap"
+                                 AcceptsReturn="True"
+                                 MinHeight="100"
+                                 VerticalContentAlignment="Top"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ============================================
+             BARRE D'ACTIONS
+        ============================================ -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Bouton Annuler -->
+                <Button Grid.Column="0"
+                        Command="{Binding CancelCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Annuler" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Boutons de validation -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Command="{Binding SaveAndNewCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Enregistrer et nouveau" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding SaveCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="{StaticResource SuccessBrush}"
+                            Foreground="White"
+                            IsEnabled="{Binding CanSave}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Enregistrer" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Indicateur de chargement -->
+        <Border Grid.RowSpan="3"
+                Background="#80000000"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" 
+                             Width="200"
+                             Style="{StaticResource MaterialDesignCircularProgressBar}"/>
+                <TextBlock Text="Enregistrement en cours..."
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

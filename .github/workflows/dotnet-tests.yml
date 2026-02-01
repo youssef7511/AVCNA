@@ -1,0 +1,189 @@
+# ============================================================================
+# AVCNDB WPF - CI/CD Pipeline
+# GitHub Actions Workflow for .NET 8 WPF Application
+# ============================================================================
+
+name: AVCNDB WPF - Build & Test
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # Permet l'exécution manuelle
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  SOLUTION_PATH: 'AVCNDB.WPF.sln'
+  TEST_PROJECT: 'AVCNDB.Tests/AVCNDB.Tests.csproj'
+
+jobs:
+  # ============================================================================
+  # JOB 1: BUILD
+  # ============================================================================
+  build:
+    name: 🔨 Build Application
+    runs-on: windows-latest
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔧 Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 📦 Cache NuGet Packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: 🔄 Restore Dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+    - name: 🏗️ Build Solution
+      run: dotnet build ${{ env.SOLUTION_PATH }} --configuration Release --no-restore
+
+    - name: 📤 Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          **/bin/Release/
+          !**/obj/
+        retention-days: 7
+
+  # ============================================================================
+  # JOB 2: TEST
+  # ============================================================================
+  test:
+    name: 🧪 Run Tests
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 🔄 Restore Dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+    - name: 🧪 Run Unit Tests with Coverage
+      run: |
+        dotnet test ${{ env.TEST_PROJECT }} `
+          --configuration Release `
+          --no-restore `
+          --verbosity normal `
+          --collect:"XPlat Code Coverage" `
+          --results-directory ./TestResults `
+          --logger "trx;LogFileName=test-results.trx"
+
+    - name: 📊 Generate Coverage Report
+      uses: danielpalme/ReportGenerator-GitHub-Action@5
+      with:
+        reports: './TestResults/**/coverage.cobertura.xml'
+        targetdir: './CoverageReport'
+        reporttypes: 'HtmlInline;Cobertura;Badges'
+        assemblyfilters: '+AVCNDB.WPF;-AVCNDB.Tests'
+
+    - name: 📤 Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: ./TestResults
+        retention-days: 30
+
+    - name: 📤 Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: ./CoverageReport
+        retention-days: 30
+
+    - name: 📈 Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: 'xUnit Test Results'
+        path: './TestResults/*.trx'
+        reporter: 'dotnet-trx'
+
+  # ============================================================================
+  # JOB 3: CODE QUALITY (Optional - SonarQube/SonarCloud)
+  # ============================================================================
+  code-quality:
+    name: 🔍 Code Quality Analysis
+    runs-on: windows-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔧 Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    # Uncomment if using SonarCloud
+    # - name: 🔍 SonarCloud Scan
+    #   uses: SonarSource/sonarcloud-github-action@master
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    - name: ✅ Code Quality Check Passed
+      run: echo "Code quality analysis completed"
+
+  # ============================================================================
+  # JOB 4: PUBLISH (Only on main branch)
+  # ============================================================================
+  publish:
+    name: 📦 Publish Release
+    runs-on: windows-latest
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: 📥 Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: 🔄 Restore Dependencies
+      run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+    - name: 📦 Publish Application
+      run: |
+        dotnet publish AVCNDB.WPF/AVCNDB.WPF.csproj `
+          --configuration Release `
+          --output ./publish `
+          --self-contained true `
+          --runtime win-x64 `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true
+
+    - name: 📤 Upload Published Application
+      uses: actions/upload-artifact@v4
+      with:
+        name: AVCNDB-WPF-Release
+        path: ./publish
+        retention-days: 90

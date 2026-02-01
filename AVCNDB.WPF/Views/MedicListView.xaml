@@ -1,0 +1,357 @@
+<UserControl x:Class="AVCNDB.WPF.Views.MedicListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:MedicListViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================
+             BARRE D'OUTILS
+        ============================================ -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Recherche et filtres -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- Barre de recherche -->
+                    <TextBox Width="350"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="🔍 Rechercher par nom, DCI, code-barre..."
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,16,0">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <!-- Filtre par famille -->
+                    <ComboBox Width="200"
+                              ItemsSource="{Binding Families}"
+                              SelectedItem="{Binding SelectedFamily}"
+                              DisplayMemberPath="FamilyName"
+                              materialDesign:HintAssist.Hint="Famille"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              Margin="0,0,16,0"/>
+
+                    <!-- Filtre par laboratoire -->
+                    <ComboBox Width="200"
+                              ItemsSource="{Binding Labos}"
+                              SelectedItem="{Binding SelectedLabo}"
+                              DisplayMemberPath="Laboname"
+                              materialDesign:HintAssist.Hint="Laboratoire"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              Margin="0,0,16,0"/>
+
+                    <!-- Bouton réinitialiser -->
+                    <Button Command="{Binding ClearFiltersCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="Réinitialiser les filtres">
+                        <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Nouveau -->
+                    <Button Command="{Binding NewMedicCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            Background="{StaticResource SuccessBrush}"
+                            Foreground="White"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Nouveau" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Import Excel -->
+                    <Button Command="{Binding ImportExcelCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Importer depuis Excel">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Import" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Export Excel -->
+                    <Button Command="{Binding ExportExcelCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Exporter vers Excel">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Download" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Export PDF -->
+                    <Button Command="{Binding ExportPdfCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Exporter en PDF">
+                        <materialDesign:PackIcon Kind="FilePdf" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             LISTE DES MÉDICAMENTS
+        ============================================ -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding Medics}"
+                  SelectedItem="{Binding SelectedMedic}"
+                  Style="{StaticResource ModernDataGridStyle}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  Margin="24,16"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False">
+            
+            <DataGrid.InputBindings>
+                <MouseBinding MouseAction="LeftDoubleClick" 
+                              Command="{Binding ViewDetailCommand}"
+                              CommandParameter="{Binding SelectedMedic}"/>
+            </DataGrid.InputBindings>
+
+            <DataGrid.Columns>
+                <!-- Code-barre -->
+                <DataGridTextColumn Header="Code-barre" 
+                                    Binding="{Binding Barcode}" 
+                                    Width="120"/>
+                
+                <!-- Nom du médicament -->
+                <DataGridTemplateColumn Header="Médicament" Width="*" MinWidth="250">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="8,4">
+                                <TextBlock Text="{Binding Itemname}" 
+                                           Style="{StaticResource MedicNameStyle}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding Dci1Navigation.Dciname}" 
+                                           Style="{StaticResource DciLabelStyle}"
+                                           Visibility="{Binding Dci1Navigation, Converter={StaticResource BoolToVis}}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Dosage -->
+                <DataGridTextColumn Header="Dosage" 
+                                    Binding="{Binding Dosage1}" 
+                                    Width="100"/>
+
+                <!-- Forme -->
+                <DataGridTextColumn Header="Forme" 
+                                    Binding="{Binding FormeNavigation.Formename}" 
+                                    Width="120"/>
+
+                <!-- Laboratoire -->
+                <DataGridTextColumn Header="Laboratoire" 
+                                    Binding="{Binding LaboNavigation.Laboname}" 
+                                    Width="150"/>
+
+                <!-- Prix public -->
+                <DataGridTemplateColumn Header="Prix Public" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Ppv, StringFormat={}{0:N2} DH}" 
+                                       Style="{StaticResource PriceLabelStyle}"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,0,8,0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Statut -->
+                <DataGridTemplateColumn Header="Statut" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="4" 
+                                    Padding="8,4"
+                                    HorizontalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Pediatrique}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Generique}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource SecondaryLightBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="👶" 
+                                               Visibility="{Binding Pediatrique, Converter={StaticResource BoolToVis}}"
+                                               Margin="0,0,4,0"/>
+                                    <TextBlock Text="G" 
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource SecondaryDarkBrush}"
+                                               Visibility="{Binding Generique, Converter={StaticResource BoolToVis}}"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Actions -->
+                <DataGridTemplateColumn Header="Actions" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Command="{Binding DataContext.ViewDetailCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        ToolTip="Voir détails"
+                                        Width="32" Height="32">
+                                    <materialDesign:PackIcon Kind="Eye" Width="18" Height="18"/>
+                                </Button>
+                                
+                                <Button Command="{Binding DataContext.EditMedicCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        Foreground="{StaticResource PrimaryBrush}"
+                                        ToolTip="Modifier"
+                                        Width="32" Height="32">
+                                    <materialDesign:PackIcon Kind="Pencil" Width="18" Height="18"/>
+                                </Button>
+                                
+                                <Button Command="{Binding DataContext.DeleteMedicCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        Foreground="{StaticResource ErrorBrush}"
+                                        ToolTip="Supprimer"
+                                        Width="32" Height="32">
+                                    <materialDesign:PackIcon Kind="Delete" Width="18" Height="18"/>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Indicateur de chargement -->
+        <ProgressBar Grid.Row="1"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                     VerticalAlignment="Top"
+                     Margin="24,0"/>
+
+        <!-- ============================================
+             PAGINATION
+        ============================================ -->
+        <Border Grid.Row="2" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="24,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Infos -->
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center">
+                    <Run Text="Affichage de "/>
+                    <Run Text="{Binding StartIndex, Mode=OneWay}" FontWeight="Bold"/>
+                    <Run Text=" à "/>
+                    <Run Text="{Binding EndIndex, Mode=OneWay}" FontWeight="Bold"/>
+                    <Run Text=" sur "/>
+                    <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Bold"/>
+                    <Run Text=" médicaments"/>
+                </TextBlock>
+
+                <!-- Boutons de navigation -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Command="{Binding FirstPageCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            IsEnabled="{Binding CanGoPrevious}"
+                            ToolTip="Première page">
+                        <materialDesign:PackIcon Kind="ChevronDoubleLeft" Width="20" Height="20"/>
+                    </Button>
+                    
+                    <Button Command="{Binding PreviousPageCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            IsEnabled="{Binding CanGoPrevious}"
+                            ToolTip="Page précédente">
+                        <materialDesign:PackIcon Kind="ChevronLeft" Width="20" Height="20"/>
+                    </Button>
+
+                    <Border Background="{StaticResource PrimaryBrush}" 
+                            CornerRadius="4" 
+                            Padding="12,6"
+                            Margin="8,0">
+                        <TextBlock Foreground="White">
+                            <Run Text="Page "/>
+                            <Run Text="{Binding CurrentPage, Mode=OneWay}" FontWeight="Bold"/>
+                            <Run Text=" / "/>
+                            <Run Text="{Binding TotalPages, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Border>
+
+                    <Button Command="{Binding NextPageCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            IsEnabled="{Binding CanGoNext}"
+                            ToolTip="Page suivante">
+                        <materialDesign:PackIcon Kind="ChevronRight" Width="20" Height="20"/>
+                    </Button>
+                    
+                    <Button Command="{Binding LastPageCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            IsEnabled="{Binding CanGoNext}"
+                            ToolTip="Dernière page">
+                        <materialDesign:PackIcon Kind="ChevronDoubleRight" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Taille de page -->
+                <StackPanel Grid.Column="2" 
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+                    <TextBlock Text="Éléments par page :" 
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <ComboBox Width="80"
+                              SelectedItem="{Binding PageSize}"
+                              Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                        <ComboBoxItem Content="25"/>
+                        <ComboBoxItem Content="50"/>
+                        <ComboBoxItem Content="100"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,0 +1,58 @@
+# Binaries
+bin/
+obj/
+
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.cache
+
+# VS Code
+.vscode/
+
+# Rider
+.idea/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+build/
+bld/
+[Oo]ut/
+publish/
+
+# NuGet
+packages/
+*.nupkg
+*.nuspec
+
+# Test results
+TestResults/
+*.trx
+coverage*.xml
+coverage*.json
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+*.sln.docstates
+
+# Windows
+Desktop.ini
+
+# Settings (optional - décommenter si nécessaire)
+# appsettings.Development.json

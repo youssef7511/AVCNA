@@ -1,0 +1,330 @@
+<UserControl x:Class="AVCNDB.WPF.Views.StockView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:StockViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================
+             BARRE D'OUTILS
+        ============================================ -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Recherche -->
+                <TextBox Grid.Column="0"
+                         Width="350"
+                         HorizontalAlignment="Left"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="🔍 Rechercher un médicament..."
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Command="{Binding RefreshCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Actualiser">
+                        <materialDesign:PackIcon Kind="Refresh" Width="20" Height="20"/>
+                    </Button>
+
+                    <Button Command="{Binding ExportPdfCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Rapport PDF">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FilePdf" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Rapport" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             FILTRES ET STATISTIQUES
+        ============================================ -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="24,16"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Onglets de filtre -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <RadioButton Content="Tous"
+                                 IsChecked="{Binding ShowAll}"
+                                 Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                 Margin="0,0,16,0"/>
+                    
+                    <RadioButton IsChecked="{Binding ShowAlertsOnly}"
+                                 Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                 Margin="0,0,16,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚠️ Alertes stock" VerticalAlignment="Center"/>
+                            <Border Background="{StaticResource ErrorBrush}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    Margin="8,0,0,0">
+                                <TextBlock Text="{Binding StockAlertsCount}"
+                                           Foreground="White"
+                                           FontSize="11"
+                                           FontWeight="Bold"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+
+                    <RadioButton IsChecked="{Binding ShowExpiringOnly}"
+                                 Style="{StaticResource MaterialDesignTabRadioButtonBottom}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📅 Péremption proche" VerticalAlignment="Center"/>
+                            <Border Background="{StaticResource WarningBrush}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    Margin="8,0,0,0">
+                                <TextBlock Text="{Binding ExpiryAlertsCount}"
+                                           Foreground="White"
+                                           FontSize="11"
+                                           FontWeight="Bold"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                </StackPanel>
+
+                <!-- Statistiques rapides -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Border Background="{StaticResource SuccessLightBrush}"
+                            CornerRadius="4"
+                            Padding="12,8"
+                            Margin="0,0,12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Stock OK : "
+                                       Foreground="{StaticResource SuccessDarkBrush}"/>
+                            <TextBlock Text="{Binding StockOkCount}"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource SuccessDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource ErrorLightBrush}"
+                            CornerRadius="4"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Rupture : "
+                                       Foreground="{StaticResource ErrorDarkBrush}"/>
+                            <TextBlock Text="{Binding OutOfStockCount}"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource ErrorDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             LISTE DU STOCK
+        ============================================ -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding StockItems}"
+                  SelectedItem="{Binding SelectedStock}"
+                  Style="{StaticResource ModernDataGridStyle}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  Margin="24,16">
+            
+            <DataGrid.Columns>
+                <!-- Code-barre -->
+                <DataGridTextColumn Header="Code-barre" 
+                                    Binding="{Binding MedicNavigation.Barcode}" 
+                                    Width="120"
+                                    IsReadOnly="True"/>
+                
+                <!-- Médicament -->
+                <DataGridTemplateColumn Header="Médicament" Width="*" MinWidth="250">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="8,4">
+                                <TextBlock Text="{Binding MedicNavigation.Itemname}" 
+                                           Style="{StaticResource MedicNameStyle}"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding MedicNavigation.Dci1Navigation.Dciname}" 
+                                           Style="{StaticResource DciLabelStyle}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Quantité -->
+                <DataGridTemplateColumn Header="Quantité" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="4" 
+                                    Padding="12,6"
+                                    HorizontalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLowStock}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsOutOfStock}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock FontWeight="Bold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding Quantity}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsLowStock}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarningDarkBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsOutOfStock}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Stock min -->
+                <DataGridTextColumn Header="Stock min" 
+                                    Binding="{Binding MinQuantity}" 
+                                    Width="100"/>
+
+                <!-- Lot -->
+                <DataGridTextColumn Header="N° Lot" 
+                                    Binding="{Binding BatchNumber}" 
+                                    Width="120"/>
+
+                <!-- Date d'expiration -->
+                <DataGridTemplateColumn Header="Expiration" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding ExpirationDate, StringFormat=dd/MM/yyyy}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsExpiringSoon}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding IsExpired}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Statut -->
+                <DataGridTemplateColumn Header="Statut" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Alerte stock -->
+                                <Border CornerRadius="4" 
+                                        Padding="6,2"
+                                        Margin="0,0,4,0"
+                                        Visibility="{Binding IsLowStock, Converter={StaticResource BoolToVis}}"
+                                        Background="{StaticResource WarningLightBrush}">
+                                    <TextBlock Text="📦 Stock bas"
+                                               FontSize="10"
+                                               Foreground="{StaticResource WarningDarkBrush}"/>
+                                </Border>
+
+                                <!-- Péremption -->
+                                <Border CornerRadius="4" 
+                                        Padding="6,2"
+                                        Visibility="{Binding IsExpiringSoon, Converter={StaticResource BoolToVis}}"
+                                        Background="{StaticResource ErrorLightBrush}">
+                                    <TextBlock Text="📅 Expire bientôt"
+                                               FontSize="10"
+                                               Foreground="{StaticResource ErrorDarkBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Actions -->
+                <DataGridTemplateColumn Header="Actions" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Command="{Binding DataContext.EditStockCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        Foreground="{StaticResource PrimaryBrush}"
+                                        ToolTip="Modifier le stock"
+                                        Width="32" Height="32">
+                                    <materialDesign:PackIcon Kind="Pencil" Width="18" Height="18"/>
+                                </Button>
+                                
+                                <Button Command="{Binding DataContext.ViewHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}"
+                                        Style="{StaticResource MaterialDesignIconButton}"
+                                        ToolTip="Historique"
+                                        Width="32" Height="32">
+                                    <materialDesign:PackIcon Kind="History" Width="18" Height="18"/>
+                                </Button>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Indicateur de chargement -->
+        <ProgressBar Grid.Row="2"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                     VerticalAlignment="Top"
+                     Margin="24,0"/>
+    </Grid>
+</UserControl>
