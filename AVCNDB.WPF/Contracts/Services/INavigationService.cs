@@ -31,6 +31,12 @@ public interface INavigationService
     void NavigateTo(string pageKey, object? parameter = null);
     
     /// <summary>
+    /// Navigue vers une vue par son nom (sans ViewModel)
+    /// </summary>
+    /// <param name="viewName">Nom de la vue</param>
+    void NavigateToView(string viewName);
+    
+    /// <summary>
     /// Retourne à la page précédente
     /// </summary>
     bool GoBack();

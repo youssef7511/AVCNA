@@ -1,4 +1,5 @@
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Views;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AVCNDB.WPF.Services;
@@ -64,6 +65,26 @@ public class NavigationService : INavigationService
             }
             
             CurrentView = viewModel;
+        }
+    }
+
+    /// <summary>
+    /// Navigue vers une vue sans ViewModel (pages statiques)
+    /// </summary>
+    public void NavigateToView(string viewName)
+    {
+        object? view = viewName switch
+        {
+            "LibraryView" => new LibraryView(),
+            "MovementsView" => new MovementsView(),
+            "ToolsView" => new ToolsView(),
+            "DatabaseView" => _serviceProvider.GetService<DatabaseView>(),
+            _ => null
+        };
+
+        if (view != null)
+        {
+            CurrentView = view;
         }
     }
 

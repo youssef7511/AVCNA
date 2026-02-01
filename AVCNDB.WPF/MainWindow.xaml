@@ -93,72 +93,54 @@
                             </StackPanel>
                         </Button>
 
-                        <!-- Médicaments -->
-                        <Button Command="{Binding NavigateToMedicsCommand}" 
+                        <!-- Bibliothèque -->
+                        <Button Command="{Binding NavigateToLibraryCommand}" 
                                 Style="{StaticResource MaterialDesignFlatButton}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Pill" 
+                                <materialDesign:PackIcon Kind="BookOpenPageVariant" 
                                                          Width="24" Height="24" 
                                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="Médicaments" 
+                                <TextBlock Text="Bibliothèque" 
                                            Margin="16,0,0,0" 
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                             </StackPanel>
                         </Button>
 
-                        <!-- DCI -->
-                        <Button Command="{Binding NavigateToDciCommand}" 
+                        <!-- Base de données -->
+                        <Button Command="{Binding NavigateToDatabaseCommand}" 
                                 Style="{StaticResource MaterialDesignFlatButton}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Flask" 
+                                <materialDesign:PackIcon Kind="Database" 
                                                          Width="24" Height="24" 
                                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="DCI (Substances)" 
+                                <TextBlock Text="Base de données" 
                                            Margin="16,0,0,0" 
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                             </StackPanel>
                         </Button>
 
-                        <!-- Familles -->
-                        <Button Command="{Binding NavigateToFamiliesCommand}" 
+                        <!-- Mouvements -->
+                        <Button Command="{Binding NavigateToMovementsCommand}" 
                                 Style="{StaticResource MaterialDesignFlatButton}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FamilyTree" 
+                                <materialDesign:PackIcon Kind="SwapHorizontal" 
                                                          Width="24" Height="24" 
                                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="Familles" 
-                                           Margin="16,0,0,0" 
-                                           VerticalAlignment="Center"
-                                           Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Laboratoires -->
-                        <Button Command="{Binding NavigateToLabosCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
-                                Foreground="White" 
-                                HorizontalContentAlignment="Left"
-                                Height="48"
-                                Margin="8,2">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Factory" 
-                                                         Width="24" Height="24" 
-                                                         VerticalAlignment="Center"/>
-                                <TextBlock Text="Laboratoires" 
+                                <TextBlock Text="Mouvements" 
                                            Margin="16,0,0,0" 
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
@@ -167,50 +149,39 @@
 
                         <Separator Background="#1565C0" Margin="16,8"/>
 
-                        <!-- Interactions -->
-                        <Button Command="{Binding NavigateToInteractionsCommand}" 
+                        <!-- Paramètres -->
+                        <Button Command="{Binding NavigateToSettingsCommand}" 
                                 Style="{StaticResource MaterialDesignFlatButton}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="AlertCircle" 
+                                <materialDesign:PackIcon Kind="Cog" 
                                                          Width="24" Height="24" 
                                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="Interactions" 
+                                <TextBlock Text="Paramètres" 
                                            Margin="16,0,0,0" 
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                             </StackPanel>
                         </Button>
 
-                        <!-- Stock -->
-                        <Button Command="{Binding NavigateToStockCommand}" 
+                        <!-- Outils -->
+                        <Button Command="{Binding NavigateToToolsCommand}" 
                                 Style="{StaticResource MaterialDesignFlatButton}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="PackageVariantClosed" 
+                                <materialDesign:PackIcon Kind="Tools" 
                                                          Width="24" Height="24" 
                                                          VerticalAlignment="Center"/>
-                                <TextBlock Text="Gestion Stock" 
+                                <TextBlock Text="Outils" 
                                            Margin="16,0,0,0" 
                                            VerticalAlignment="Center"
                                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
-                                <!-- Badge alertes -->
-                                <Border Background="#F44336" 
-                                        CornerRadius="10" 
-                                        Padding="6,2"
-                                        Margin="8,0,0,0"
-                                        Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Text="{Binding AlertsCount}" 
-                                               Foreground="White" 
-                                               FontSize="10"
-                                               FontWeight="Bold"/>
-                                </Border>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -218,23 +189,6 @@
 
                 <!-- Bas du menu -->
                 <StackPanel Grid.Row="2" Margin="8,16">
-                    <!-- Paramètres -->
-                    <Button Command="{Binding NavigateToSettingsCommand}" 
-                            Style="{StaticResource MaterialDesignFlatButton}"
-                            Foreground="White" 
-                            HorizontalContentAlignment="Left"
-                            Height="48">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Cog" 
-                                                     Width="24" Height="24" 
-                                                     VerticalAlignment="Center"/>
-                            <TextBlock Text="Paramètres" 
-                                       Margin="16,0,0,0" 
-                                       VerticalAlignment="Center"
-                                       Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
-                        </StackPanel>
-                    </Button>
-
                     <!-- Toggle thème -->
                     <Button Command="{Binding ToggleThemeCommand}" 
                             Style="{StaticResource MaterialDesignFlatButton}"

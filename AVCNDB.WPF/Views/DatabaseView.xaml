@@ -1,0 +1,129 @@
+<UserControl x:Class="AVCNDB.WPF.Views.DatabaseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:views="clr-namespace:AVCNDB.WPF.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1200"
+             d:DataContext="{d:DesignInstance Type=vm:DatabaseViewModel}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête avec titre -->
+        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}">
+            <StackPanel>
+                <TextBlock Text="Base de données" 
+                           Style="{StaticResource MaterialDesignHeadline4TextBlock}"
+                           Foreground="{StaticResource PrimaryBrush}"/>
+                <TextBlock Text="Gestion des tables principales de la base pharmaceutique" 
+                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- TabControl pour les différentes tables -->
+        <TabControl Grid.Row="1" 
+                    Style="{StaticResource MaterialDesignNavigationRailTabControl}"
+                    TabStripPlacement="Top"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    materialDesign:ColorZoneAssist.Mode="PrimaryLight">
+            
+            <!-- Onglet Médicaments -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="Pill" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Médicaments" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:MedicListView DataContext="{Binding MedicListViewModel}"/>
+            </TabItem>
+
+            <!-- Onglet DCI -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="Flask" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="DCI (Substances)" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:DciListView DataContext="{Binding DciListViewModel}"/>
+            </TabItem>
+
+            <!-- Onglet Familles -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="FamilyTree" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Familles" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:FamiliesListView DataContext="{Binding FamiliesListViewModel}"/>
+            </TabItem>
+
+            <!-- Onglet Laboratoires -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="Factory" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Laboratoires" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
+            </TabItem>
+
+            <!-- Onglet Formes -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="ShapeOutline" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Formes" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid>
+                    <TextBlock Text="Page Formes - À venir..." 
+                               Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Onglet Voies -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="Directions" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Voies" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid>
+                    <TextBlock Text="Page Voies - À venir..." 
+                               Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                </Grid>
+            </TabItem>
+
+            <!-- Onglet Interactions -->
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                        <materialDesign:PackIcon Kind="AlertCircle" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Interactions" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:InteractionsView DataContext="{Binding InteractionsViewModel}"/>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

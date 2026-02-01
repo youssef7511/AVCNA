@@ -1,0 +1,51 @@
+<UserControl x:Class="AVCNDB.WPF.Views.LibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1200">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête -->
+        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}">
+            <StackPanel>
+                <TextBlock Text="Bibliothèque" 
+                           Style="{StaticResource MaterialDesignHeadline4TextBlock}"
+                           Foreground="{StaticResource PrimaryBrush}"/>
+                <TextBlock Text="Documentation et ressources pharmaceutiques" 
+                           Style="{StaticResource MaterialDesignBody2TextBlock}"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                           Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Contenu -->
+        <Grid Grid.Row="1" Margin="24">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <materialDesign:PackIcon Kind="BookOpenPageVariant" 
+                                         Width="120" Height="120" 
+                                         Foreground="{StaticResource PrimaryBrush}"
+                                         HorizontalAlignment="Center"
+                                         Opacity="0.5"/>
+                <TextBlock Text="Page Bibliothèque - À venir..." 
+                           Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                           HorizontalAlignment="Center" 
+                           Margin="0,24,0,0"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                <TextBlock Text="Cette section contiendra la documentation des médicaments,&#x0a;les fiches techniques et les ressources de référence." 
+                           Style="{StaticResource MaterialDesignBody1TextBlock}"
+                           HorizontalAlignment="Center" 
+                           TextAlignment="Center"
+                           Margin="0,8,0,0"
+                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

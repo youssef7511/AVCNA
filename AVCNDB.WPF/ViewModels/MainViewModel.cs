@@ -79,6 +79,27 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NavigateToLibrary()
+    {
+        _navigationService.NavigateToView("LibraryView");
+        CurrentPageTitle = "Bibliothèque";
+    }
+
+    [RelayCommand]
+    private void NavigateToDatabase()
+    {
+        _navigationService.NavigateTo<DatabaseViewModel>();
+        CurrentPageTitle = "Base de données";
+    }
+
+    [RelayCommand]
+    private void NavigateToMovements()
+    {
+        _navigationService.NavigateToView("MovementsView");
+        CurrentPageTitle = "Mouvements";
+    }
+
+    [RelayCommand]
     private void NavigateToMedics()
     {
         _navigationService.NavigateTo<MedicListViewModel>();
@@ -125,6 +146,13 @@ public partial class MainViewModel : ViewModelBase
     {
         _navigationService.NavigateTo<SettingsViewModel>();
         CurrentPageTitle = "Paramètres";
+    }
+
+    [RelayCommand]
+    private void NavigateToTools()
+    {
+        _navigationService.NavigateToView("ToolsView");
+        CurrentPageTitle = "Outils";
     }
 
     [RelayCommand]

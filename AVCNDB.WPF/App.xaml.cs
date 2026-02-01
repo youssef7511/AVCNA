@@ -120,6 +120,7 @@ public partial class App : Application
         services.AddTransient<InteractionsViewModel>();
         services.AddTransient<StockViewModel>();
         services.AddTransient<SettingsViewModel>();
+        services.AddTransient<DatabaseViewModel>();
 
         // ============================================
         // VIEWS
@@ -135,6 +136,10 @@ public partial class App : Application
         services.AddTransient<InteractionsView>();
         services.AddTransient<StockView>();
         services.AddTransient<SettingsView>();
+        services.AddTransient<DatabaseView>();
+        services.AddTransient<LibraryView>();
+        services.AddTransient<MovementsView>();
+        services.AddTransient<ToolsView>();
     }
 
     private void SetDefaultCulture()
