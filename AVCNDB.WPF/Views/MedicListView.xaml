@@ -50,9 +50,13 @@
 
                         <!-- Toggle filtres -->
                         <ToggleButton IsChecked="{Binding ShowFilters}"
-                                      Style="{StaticResource MaterialDesignIconButton}"
+                                      Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Margin="0,0,8,0"
                                       ToolTip="Afficher/masquer les filtres">
-                            <materialDesign:PackIcon Kind="Filter" Width="20" Height="20"/>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Filter" Width="18" Height="18" VerticalAlignment="Center"/>
+                                <TextBlock Text="Filtres" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
                         </ToggleButton>
 
                         <!-- Reset -->
