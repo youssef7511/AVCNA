@@ -11,6 +11,9 @@ obj/
 # VS Code
 .vscode/
 
+# Visual Studio
+.vs/
+
 # Rider
 .idea/
 
@@ -43,6 +46,13 @@ logs/
 *.tmp
 *.temp
 ~$*
+
+# Generated/accidental project artifacts
+*wpftmp*.csproj
+
+# EF Core artifacts (only for this app; force-add if needed)
+AVCNDB.WPF/Migrations/
+AVCNDB.WPF/Scripts/
 
 # OS files
 .DS_Store

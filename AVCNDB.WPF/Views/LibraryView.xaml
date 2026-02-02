@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d" 
-             d:DesignHeight="700" d:DesignWidth="1200">
+             d:DesignHeight="700" d:DesignWidth="1200"
+             Background="{DynamicResource MaterialDesignBackground}">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -14,7 +15,8 @@
         </Grid.RowDefinitions>
 
         <!-- En-tête -->
-        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}">
+        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}"
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <StackPanel>
                 <TextBlock Text="Bibliothèque" 
                            Style="{StaticResource MaterialDesignHeadline4TextBlock}"

@@ -35,42 +35,59 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Recherche et filtres -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <!-- Barre de recherche -->
-                    <TextBox Width="350"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             materialDesign:HintAssist.Hint="🔍 Rechercher par nom, DCI, code-barre..."
-                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                             Margin="0,0,16,0">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <!-- Barre de recherche -->
+                        <TextBox Width="420"
+                                 Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="🔍 Rechercher par nom, DCI, code-barre..."
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Margin="0,0,12,0">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                            </TextBox.InputBindings>
+                        </TextBox>
 
-                    <!-- Filtre par famille -->
-                    <ComboBox Width="200"
-                              ItemsSource="{Binding Families}"
-                              SelectedItem="{Binding SelectedFamily}"
-                              DisplayMemberPath="itemname"
-                              materialDesign:HintAssist.Hint="Famille"
-                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                              Margin="0,0,16,0"/>
+                        <!-- Toggle filtres -->
+                        <ToggleButton IsChecked="{Binding ShowFilters}"
+                                      Style="{StaticResource MaterialDesignIconButton}"
+                                      ToolTip="Afficher/masquer les filtres">
+                            <materialDesign:PackIcon Kind="Filter" Width="20" Height="20"/>
+                        </ToggleButton>
 
-                    <!-- Filtre par laboratoire -->
-                    <ComboBox Width="200"
-                              ItemsSource="{Binding Labos}"
-                              SelectedItem="{Binding SelectedLabo}"
-                              DisplayMemberPath="itemname"
-                              materialDesign:HintAssist.Hint="Laboratoire"
-                              Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                              Margin="0,0,16,0"/>
+                        <!-- Reset -->
+                        <Button Command="{Binding ClearSearchCommand}"
+                                Style="{StaticResource MaterialDesignIconButton}"
+                                ToolTip="Réinitialiser recherche + filtres">
+                            <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20"/>
+                        </Button>
+                    </StackPanel>
 
-                    <!-- Bouton réinitialiser -->
-                    <Button Command="{Binding ClearSearchCommand}"
-                            Style="{StaticResource MaterialDesignIconButton}"
-                            ToolTip="Réinitialiser les filtres">
-                        <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20"/>
-                    </Button>
+                    <!-- Filtres avancés (collapsible) -->
+                    <StackPanel Orientation="Horizontal"
+                                Margin="0,12,0,0"
+                                Visibility="{Binding ShowFilters, Converter={StaticResource BoolToVis}}">
+                        <ComboBox Width="220"
+                                  ItemsSource="{Binding Families}"
+                                  SelectedItem="{Binding SelectedFamily}"
+                                  DisplayMemberPath="itemname"
+                                  materialDesign:HintAssist.Hint="Famille"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  Margin="0,0,12,0"/>
+
+                        <ComboBox Width="220"
+                                  ItemsSource="{Binding Labos}"
+                                  SelectedItem="{Binding SelectedLabo}"
+                                  DisplayMemberPath="itemname"
+                                  materialDesign:HintAssist.Hint="Laboratoire"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  Margin="0,0,12,0"/>
+
+                        <CheckBox IsChecked="{Binding ShowActiveOnly}"
+                                  VerticalAlignment="Center"
+                                  Content="Actifs uniquement"
+                                  Margin="0,0,12,0"/>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Actions -->

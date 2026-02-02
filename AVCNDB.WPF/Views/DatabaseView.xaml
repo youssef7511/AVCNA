@@ -30,8 +30,8 @@
         </Border>
 
         <!-- TabControl pour les différentes tables -->
-        <TabControl Grid.Row="1" 
-                    Style="{StaticResource MaterialDesignNavigationRailTabControl}"
+        <TabControl Grid.Row="1"
+                Style="{StaticResource MaterialDesignFilledTabControl}"
                     TabStripPlacement="Top"
                     SelectedIndex="{Binding SelectedTabIndex}"
                     materialDesign:ColorZoneAssist.Mode="PrimaryLight">
@@ -39,9 +39,9 @@
             <!-- Onglet Médicaments -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="Pill" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Médicaments" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Médicaments" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:MedicListView DataContext="{Binding MedicListViewModel}"/>
@@ -50,9 +50,9 @@
             <!-- Onglet DCI -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="Flask" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="DCI (Substances)" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="DCI (Substances)" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:DciListView DataContext="{Binding DciListViewModel}"/>
@@ -61,9 +61,9 @@
             <!-- Onglet Familles -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="FamilyTree" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Familles" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Familles" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:FamiliesListView DataContext="{Binding FamiliesListViewModel}"/>
@@ -72,9 +72,9 @@
             <!-- Onglet Laboratoires -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="Factory" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Laboratoires" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Laboratoires" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
@@ -83,9 +83,9 @@
             <!-- Onglet Formes -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="ShapeOutline" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Formes" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Formes" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <Grid>
@@ -100,9 +100,9 @@
             <!-- Onglet Voies -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="Directions" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Voies" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Voies" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <Grid>
@@ -117,9 +117,9 @@
             <!-- Onglet Interactions -->
             <TabItem>
                 <TabItem.Header>
-                    <StackPanel Orientation="Horizontal" Margin="8,4">
+                    <StackPanel Orientation="Horizontal" Margin="16,8">
                         <materialDesign:PackIcon Kind="AlertCircle" Width="20" Height="20" VerticalAlignment="Center"/>
-                        <TextBlock Text="Interactions" Margin="8,0,0,0" VerticalAlignment="Center" FontSize="14"/>
+                        <TextBlock Text="Interactions" Margin="8,0,0,0" VerticalAlignment="Center" FontWeight="Medium"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:InteractionsView DataContext="{Binding InteractionsViewModel}"/>

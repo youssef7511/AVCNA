@@ -50,6 +50,9 @@ public partial class MedicListViewModel : ViewModelBase
     [ObservableProperty]
     private bool _showActiveOnly = true;
 
+    [ObservableProperty]
+    private bool _showFilters;
+
     // Collections pour les filtres ComboBox
     [ObservableProperty]
     private ObservableCollection<Families> _families = new();
