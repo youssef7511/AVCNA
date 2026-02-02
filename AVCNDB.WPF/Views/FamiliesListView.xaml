@@ -56,7 +56,7 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding ExportExcelCommand}"
+                    <Button Command="{Binding ExportCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             ToolTip="Exporter en Excel">
                         <materialDesign:PackIcon Kind="MicrosoftExcel" Width="20" Height="20"/>
@@ -77,28 +77,17 @@
             
             <DataGrid.Columns>
                 <DataGridTextColumn Header="ID" 
-                                    Binding="{Binding Familyid}" 
+                                    Binding="{Binding recordid}" 
                                     Width="80"
                                     IsReadOnly="True"/>
                 
                 <DataGridTextColumn Header="Nom de la famille" 
-                                    Binding="{Binding Familyname}" 
+                                    Binding="{Binding itemname}" 
                                     Width="*"/>
 
-                <DataGridTemplateColumn Header="Médicaments" Width="120">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Border Background="{StaticResource SecondaryLightBrush}"
-                                    CornerRadius="4"
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center">
-                                <TextBlock Text="{Binding MedicCount, FallbackValue='0'}"
-                                           FontWeight="Bold"
-                                           Foreground="{StaticResource SecondaryDarkBrush}"/>
-                            </Border>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Catégorie" 
+                                    Binding="{Binding subvalue}" 
+                                    Width="220"/>
 
                 <DataGridTemplateColumn Header="Actions" Width="120">
                     <DataGridTemplateColumn.CellTemplate>

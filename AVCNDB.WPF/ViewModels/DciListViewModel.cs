@@ -92,6 +92,13 @@ public partial class DciListViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task SearchAsync()
+    {
+        CurrentPage = 1;
+        await LoadDataAsync();
+    }
+
+    [RelayCommand]
     private void AddNew()
     {
         SelectedDci = null;
@@ -102,15 +109,15 @@ public partial class DciListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Edit()
+    private void Edit(Dci? dci)
     {
-        if (SelectedDci != null)
-        {
-            EditItemName = SelectedDci.itemname;
-            EditSubValue = SelectedDci.subvalue;
-            EditItemInfo = SelectedDci.iteminfo;
-            IsEditing = true;
-        }
+        if (dci == null) return;
+
+        SelectedDci = dci;
+        EditItemName = dci.itemname;
+        EditSubValue = dci.subvalue;
+        EditItemInfo = dci.iteminfo;
+        IsEditing = true;
     }
 
     [RelayCommand]
@@ -157,19 +164,21 @@ public partial class DciListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task DeleteAsync()
+    private async Task DeleteAsync(Dci? dci)
     {
-        if (SelectedDci == null) return;
+        if (dci == null) return;
+
+        SelectedDci = dci;
 
         var confirm = await _dialogService.ShowConfirmAsync(
             "Confirmer la suppression",
-            $"Voulez-vous vraiment supprimer la DCI '{SelectedDci.itemname}' ?");
+            $"Voulez-vous vraiment supprimer la DCI '{dci.itemname}' ?");
 
         if (confirm)
         {
             await ExecuteAsync(async () =>
             {
-                await _repository.DeleteAsync(SelectedDci);
+                await _repository.DeleteAsync(dci);
                 await LoadDataAsync();
                 await _dialogService.ShowSuccessAsync("Succès", "DCI supprimée avec succès.");
             });

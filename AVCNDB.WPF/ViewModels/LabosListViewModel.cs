@@ -13,6 +13,7 @@ public partial class LabosListViewModel : ViewModelBase
 {
     private readonly IRepository<Labos> _repository;
     private readonly IDialogService _dialogService;
+    private readonly IExcelService _excelService;
 
     [ObservableProperty]
     private ObservableCollection<Labos> _labos = new();
@@ -34,10 +35,12 @@ public partial class LabosListViewModel : ViewModelBase
 
     public LabosListViewModel(
         IRepository<Labos> repository,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IExcelService excelService)
     {
         _repository = repository;
         _dialogService = dialogService;
+        _excelService = excelService;
 
         _ = LoadDataAsync();
     }
@@ -63,6 +66,9 @@ public partial class LabosListViewModel : ViewModelBase
     private async Task RefreshAsync() => await LoadDataAsync();
 
     [RelayCommand]
+    private async Task SearchAsync() => await LoadDataAsync();
+
+    [RelayCommand]
     private void AddNew()
     {
         SelectedLabo = null;
@@ -72,14 +78,14 @@ public partial class LabosListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Edit()
+    private void Edit(Labos? labo)
     {
-        if (SelectedLabo != null)
-        {
-            EditItemName = SelectedLabo.itemname;
-            EditSubValue = SelectedLabo.subvalue;
-            IsEditing = true;
-        }
+        if (labo == null) return;
+
+        SelectedLabo = labo;
+        EditItemName = labo.itemname;
+        EditSubValue = labo.subvalue;
+        IsEditing = true;
     }
 
     [RelayCommand]
@@ -117,18 +123,38 @@ public partial class LabosListViewModel : ViewModelBase
     private void CancelEdit() => IsEditing = false;
 
     [RelayCommand]
-    private async Task DeleteAsync()
+    private async Task DeleteAsync(Labos? labo)
     {
-        if (SelectedLabo == null) return;
+        if (labo == null) return;
+
+        SelectedLabo = labo;
 
         if (await _dialogService.ShowConfirmAsync("Confirmer", 
-            $"Supprimer le laboratoire '{SelectedLabo.itemname}' ?"))
+            $"Supprimer le laboratoire '{labo.itemname}' ?"))
         {
             await ExecuteAsync(async () =>
             {
-                await _repository.DeleteAsync(SelectedLabo);
+                await _repository.DeleteAsync(labo);
                 await LoadDataAsync();
             });
         }
+    }
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Labos_{DateTime.Now:yyyyMMdd}",
+            "Exporter les laboratoires");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var allItems = await _repository.GetAllAsync();
+            await _excelService.ExportAsync(allItems, filePath, "Laboratoires");
+            await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
+        }, "Export en cours...");
     }
 }

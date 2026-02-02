@@ -13,6 +13,7 @@ public partial class FamiliesListViewModel : ViewModelBase
 {
     private readonly IRepository<Families> _repository;
     private readonly IDialogService _dialogService;
+    private readonly IExcelService _excelService;
 
     [ObservableProperty]
     private ObservableCollection<Families> _families = new();
@@ -34,10 +35,12 @@ public partial class FamiliesListViewModel : ViewModelBase
 
     public FamiliesListViewModel(
         IRepository<Families> repository,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IExcelService excelService)
     {
         _repository = repository;
         _dialogService = dialogService;
+        _excelService = excelService;
 
         _ = LoadDataAsync();
     }
@@ -63,6 +66,9 @@ public partial class FamiliesListViewModel : ViewModelBase
     private async Task RefreshAsync() => await LoadDataAsync();
 
     [RelayCommand]
+    private async Task SearchAsync() => await LoadDataAsync();
+
+    [RelayCommand]
     private void AddNew()
     {
         SelectedFamily = null;
@@ -72,14 +78,14 @@ public partial class FamiliesListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Edit()
+    private void Edit(Families? family)
     {
-        if (SelectedFamily != null)
-        {
-            EditItemName = SelectedFamily.itemname;
-            EditSubValue = SelectedFamily.subvalue;
-            IsEditing = true;
-        }
+        if (family == null) return;
+
+        SelectedFamily = family;
+        EditItemName = family.itemname;
+        EditSubValue = family.subvalue;
+        IsEditing = true;
     }
 
     [RelayCommand]
@@ -117,18 +123,38 @@ public partial class FamiliesListViewModel : ViewModelBase
     private void CancelEdit() => IsEditing = false;
 
     [RelayCommand]
-    private async Task DeleteAsync()
+    private async Task DeleteAsync(Families? family)
     {
-        if (SelectedFamily == null) return;
+        if (family == null) return;
+
+        SelectedFamily = family;
 
         if (await _dialogService.ShowConfirmAsync("Confirmer", 
-            $"Supprimer la famille '{SelectedFamily.itemname}' ?"))
+            $"Supprimer la famille '{family.itemname}' ?"))
         {
             await ExecuteAsync(async () =>
             {
-                await _repository.DeleteAsync(SelectedFamily);
+                await _repository.DeleteAsync(family);
                 await LoadDataAsync();
             });
         }
+    }
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Families_{DateTime.Now:yyyyMMdd}",
+            "Exporter les familles");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var allItems = await _repository.GetAllAsync();
+            await _excelService.ExportAsync(allItems, filePath, "Familles");
+            await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
+        }, "Export en cours...");
     }
 }
