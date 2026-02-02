@@ -1,8 +1,8 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
-using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -12,9 +12,11 @@ namespace AVCNDB.WPF.ViewModels;
 public partial class MedicEditViewModel : ViewModelBase
 {
     private readonly IRepository<Medic> _repository;
+    private readonly IRepository<Families> _familyRepository;
+    private readonly IRepository<Labos> _laboRepository;
+    private readonly IRepository<Dci> _dciRepository;
     private readonly INavigationService _navigationService;
     private readonly IDialogService _dialogService;
-    private readonly IValidationService _validationService;
 
     private int? _medicId;
 
@@ -22,95 +24,87 @@ public partial class MedicEditViewModel : ViewModelBase
     private bool _isEditMode;
 
     [ObservableProperty]
+    private bool _isNewMedic;
+
+    [ObservableProperty]
     private string _pageTitle = "Nouveau Médicament";
 
-    // Champs du formulaire
     [ObservableProperty]
-    private string _itemName = string.Empty;
+    private Medic _medic = new();
+
+    // Collections pour les ComboBox
+    [ObservableProperty]
+    private ObservableCollection<Families> _families = new();
 
     [ObservableProperty]
-    private string _shortName = string.Empty;
+    private ObservableCollection<Labos> _labos = new();
 
     [ObservableProperty]
-    private string _barcode = string.Empty;
+    private ObservableCollection<Dci> _dcis = new();
+
+    // Erreurs de validation
+    [ObservableProperty]
+    private string? _errorMessage;
 
     [ObservableProperty]
-    private string _amm = string.Empty;
-
-    [ObservableProperty]
-    private string _dci = string.Empty;
-
-    [ObservableProperty]
-    private string _forme = string.Empty;
-
-    [ObservableProperty]
-    private string _voie = string.Empty;
-
-    [ObservableProperty]
-    private string _present = string.Empty;
-
-    [ObservableProperty]
-    private string _labo = string.Empty;
-
-    [ObservableProperty]
-    private string _family = string.Empty;
-
-    [ObservableProperty]
-    private int _price;
-
-    [ObservableProperty]
-    private string _posology = string.Empty;
-
-    [ObservableProperty]
-    private string _indication = string.Empty;
-
-    [ObservableProperty]
-    private bool _isPediatric;
-
-    [ObservableProperty]
-    private bool _isActive = true;
-
-    [ObservableProperty]
-    private string _veic = string.Empty;
-
-    [ObservableProperty]
-    private string _tableau = string.Empty;
-
-    // Erreurs de validation par champ
-    [ObservableProperty]
-    private string? _itemNameError;
-
-    [ObservableProperty]
-    private string? _barcodeError;
+    private bool _hasError;
 
     public MedicEditViewModel(
         IRepository<Medic> repository,
+        IRepository<Families> familyRepository,
+        IRepository<Labos> laboRepository,
+        IRepository<Dci> dciRepository,
         INavigationService navigationService,
-        IDialogService dialogService,
-        IValidationService validationService)
+        IDialogService dialogService)
     {
         _repository = repository;
+        _familyRepository = familyRepository;
+        _laboRepository = laboRepository;
+        _dciRepository = dciRepository;
         _navigationService = navigationService;
         _dialogService = dialogService;
-        _validationService = validationService;
     }
 
     public override void OnNavigatedTo(object? parameter)
     {
+        _ = InitializeAsync(parameter);
+    }
+
+    private async Task InitializeAsync(object? parameter)
+    {
+        await LoadReferenceDataAsync();
+
         if (parameter is int medicId)
         {
             _medicId = medicId;
             IsEditMode = true;
+            IsNewMedic = false;
             PageTitle = "Modifier le Médicament";
-            _ = LoadMedicAsync(medicId);
+            await LoadMedicAsync(medicId);
         }
         else
         {
             _medicId = null;
             IsEditMode = false;
+            IsNewMedic = true;
             PageTitle = "Nouveau Médicament";
-            ClearForm();
+            Medic = new Medic { isactive = 1 };
         }
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var families = await _familyRepository.GetAllAsync();
+            Families = new ObservableCollection<Families>(families);
+
+            var labos = await _laboRepository.GetAllAsync();
+            Labos = new ObservableCollection<Labos>(labos);
+
+            var dcis = await _dciRepository.GetAllAsync();
+            Dcis = new ObservableCollection<Dci>(dcis);
+        }, "Chargement des données de référence...");
     }
 
     public override void OnNavigatedFrom() { }
@@ -122,103 +116,24 @@ public partial class MedicEditViewModel : ViewModelBase
             var medic = await _repository.GetByIdAsync(medicId);
             if (medic != null)
             {
-                MapMedicToForm(medic);
+                Medic = medic;
             }
-        }, "Chargement...");
-    }
-
-    private void MapMedicToForm(Medic medic)
-    {
-        ItemName = medic.itemname;
-        ShortName = medic.shortname;
-        Barcode = medic.barcode;
-        Amm = medic.amm;
-        Dci = medic.dci;
-        Forme = medic.forme;
-        Voie = medic.voie;
-        Present = medic.present;
-        Labo = medic.labo;
-        Family = medic.family;
-        Price = medic.price;
-        Posology = medic.posology;
-        Indication = medic.indication;
-        IsPediatric = medic.pediatric == 1;
-        IsActive = medic.isactive == 1;
-        Veic = medic.veic;
-        Tableau = medic.tableau;
-    }
-
-    private Medic MapFormToMedic(Medic? existing = null)
-    {
-        var medic = existing ?? new Medic();
-        
-        medic.itemname = ItemName;
-        medic.shortname = ShortName;
-        medic.barcode = Barcode;
-        medic.amm = Amm;
-        medic.dci = Dci;
-        medic.forme = Forme;
-        medic.voie = Voie;
-        medic.present = Present;
-        medic.labo = Labo;
-        medic.family = Family;
-        medic.price = Price;
-        medic.posology = Posology;
-        medic.indication = Indication;
-        medic.pediatric = IsPediatric ? 1 : 0;
-        medic.isactive = IsActive ? 1 : 0;
-        medic.veic = Veic;
-        medic.tableau = Tableau;
-        
-        return medic;
-    }
-
-    private void ClearForm()
-    {
-        ItemName = string.Empty;
-        ShortName = string.Empty;
-        Barcode = string.Empty;
-        Amm = string.Empty;
-        Dci = string.Empty;
-        Forme = string.Empty;
-        Voie = string.Empty;
-        Present = string.Empty;
-        Labo = string.Empty;
-        Family = string.Empty;
-        Price = 0;
-        Posology = string.Empty;
-        Indication = string.Empty;
-        IsPediatric = false;
-        IsActive = true;
-        Veic = string.Empty;
-        Tableau = string.Empty;
-        ClearErrors();
-    }
-
-    private void ClearErrors()
-    {
-        ItemNameError = null;
-        BarcodeError = null;
+        }, "Chargement du médicament...");
     }
 
     private bool Validate()
     {
-        ClearErrors();
-        var isValid = true;
+        HasError = false;
+        ErrorMessage = null;
 
-        if (string.IsNullOrWhiteSpace(ItemName))
+        if (string.IsNullOrWhiteSpace(Medic.itemname))
         {
-            ItemNameError = "Le nom du médicament est obligatoire";
-            isValid = false;
+            ErrorMessage = "Le nom du médicament est obligatoire";
+            HasError = true;
+            return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(Barcode) && !_validationService.IsValidBarcode(Barcode))
-        {
-            BarcodeError = "Format de code-barres invalide";
-            isValid = false;
-        }
-
-        return isValid;
+        return true;
     }
 
     [RelayCommand]
@@ -227,7 +142,7 @@ public partial class MedicEditViewModel : ViewModelBase
         if (!Validate())
         {
             await _dialogService.ShowWarningAsync("Validation", 
-                "Veuillez corriger les erreurs avant de sauvegarder.");
+                ErrorMessage ?? "Veuillez corriger les erreurs avant de sauvegarder.");
             return;
         }
 
@@ -235,17 +150,11 @@ public partial class MedicEditViewModel : ViewModelBase
         {
             if (IsEditMode && _medicId.HasValue)
             {
-                var existing = await _repository.GetByIdAsync(_medicId.Value);
-                if (existing != null)
-                {
-                    var updated = MapFormToMedic(existing);
-                    await _repository.UpdateAsync(updated);
-                }
+                await _repository.UpdateAsync(Medic);
             }
             else
             {
-                var newMedic = MapFormToMedic();
-                await _repository.AddAsync(newMedic);
+                await _repository.AddAsync(Medic);
             }
 
             await _dialogService.ShowSuccessAsync("Succès", 
@@ -258,7 +167,7 @@ public partial class MedicEditViewModel : ViewModelBase
     [RelayCommand]
     private async Task CancelAsync()
     {
-        var hasChanges = !string.IsNullOrEmpty(ItemName) || !string.IsNullOrEmpty(Dci);
+        var hasChanges = !string.IsNullOrEmpty(Medic.itemname);
         
         if (hasChanges)
         {
@@ -269,6 +178,12 @@ public partial class MedicEditViewModel : ViewModelBase
             if (!confirm) return;
         }
 
+        _navigationService.GoBack();
+    }
+
+    [RelayCommand]
+    private void GoBack()
+    {
         _navigationService.GoBack();
     }
 }

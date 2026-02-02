@@ -13,6 +13,8 @@ namespace AVCNDB.WPF.ViewModels;
 public partial class MedicListViewModel : ViewModelBase
 {
     private readonly IRepository<Medic> _repository;
+    private readonly IRepository<Families> _familyRepository;
+    private readonly IRepository<Labos> _laboRepository;
     private readonly INavigationService _navigationService;
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
@@ -48,20 +50,58 @@ public partial class MedicListViewModel : ViewModelBase
     [ObservableProperty]
     private bool _showActiveOnly = true;
 
+    // Collections pour les filtres ComboBox
+    [ObservableProperty]
+    private ObservableCollection<Families> _families = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Labos> _labos = new();
+
+    [ObservableProperty]
+    private Families? _selectedFamily;
+
+    [ObservableProperty]
+    private Labos? _selectedLabo;
+
+    // Propriétés de pagination calculées
+    public int StartIndex => TotalCount == 0 ? 0 : (CurrentPage - 1) * PageSize + 1;
+    public int EndIndex => Math.Min(CurrentPage * PageSize, TotalCount);
+    public bool CanGoPrevious => CurrentPage > 1;
+    public bool CanGoNext => CurrentPage < TotalPages;
+
     public MedicListViewModel(
         IRepository<Medic> repository,
+        IRepository<Families> familyRepository,
+        IRepository<Labos> laboRepository,
         INavigationService navigationService,
         IDialogService dialogService,
         IExcelService excelService,
         IPdfService pdfService)
     {
         _repository = repository;
+        _familyRepository = familyRepository;
+        _laboRepository = laboRepository;
         _navigationService = navigationService;
         _dialogService = dialogService;
         _excelService = excelService;
         _pdfService = pdfService;
 
-        _ = LoadDataAsync();
+        _ = InitializeAsync();
+    }
+
+    private async Task InitializeAsync()
+    {
+        await LoadFiltersAsync();
+        await LoadDataAsync();
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        var families = await _familyRepository.GetAllAsync();
+        Families = new ObservableCollection<Families>(families);
+
+        var labos = await _laboRepository.GetAllAsync();
+        Labos = new ObservableCollection<Labos>(labos);
     }
 
     partial void OnSearchTextChanged(string value)
@@ -70,9 +110,39 @@ public partial class MedicListViewModel : ViewModelBase
         _ = LoadDataAsync();
     }
 
+    partial void OnSelectedFamilyChanged(Families? value)
+    {
+        FilterFamily = value?.itemname ?? string.Empty;
+        CurrentPage = 1;
+        _ = LoadDataAsync();
+    }
+
+    partial void OnSelectedLaboChanged(Labos? value)
+    {
+        FilterLabo = value?.itemname ?? string.Empty;
+        CurrentPage = 1;
+        _ = LoadDataAsync();
+    }
+
     partial void OnCurrentPageChanged(int value)
     {
+        OnPropertyChanged(nameof(StartIndex));
+        OnPropertyChanged(nameof(EndIndex));
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
         _ = LoadDataAsync();
+    }
+
+    partial void OnTotalPagesChanged(int value)
+    {
+        OnPropertyChanged(nameof(CanGoPrevious));
+        OnPropertyChanged(nameof(CanGoNext));
+    }
+
+    partial void OnTotalCountChanged(int value)
+    {
+        OnPropertyChanged(nameof(StartIndex));
+        OnPropertyChanged(nameof(EndIndex));
     }
 
     private async Task LoadDataAsync()
@@ -117,6 +187,26 @@ public partial class MedicListViewModel : ViewModelBase
         SearchText = string.Empty;
         FilterLabo = string.Empty;
         FilterFamily = string.Empty;
+        SelectedFamily = null;
+        SelectedLabo = null;
+    }
+
+    [RelayCommand]
+    private void FirstPage()
+    {
+        if (CurrentPage > 1)
+        {
+            CurrentPage = 1;
+        }
+    }
+
+    [RelayCommand]
+    private void LastPage()
+    {
+        if (CurrentPage < TotalPages)
+        {
+            CurrentPage = TotalPages;
+        }
     }
 
     [RelayCommand]
@@ -138,43 +228,46 @@ public partial class MedicListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ViewDetails()
+    private void ViewDetail(Medic? medic)
     {
-        if (SelectedMedic != null)
+        var target = medic ?? SelectedMedic;
+        if (target != null)
         {
-            _navigationService.NavigateTo<MedicDetailViewModel>(SelectedMedic.recordid);
+            _navigationService.NavigateTo<MedicDetailViewModel>(target.recordid);
         }
     }
 
     [RelayCommand]
-    private void AddNew()
+    private void NewMedic()
     {
         _navigationService.NavigateTo<MedicEditViewModel>(null);
     }
 
     [RelayCommand]
-    private void Edit()
+    private void EditMedic(Medic? medic)
     {
-        if (SelectedMedic != null)
+        var target = medic ?? SelectedMedic;
+        if (target != null)
         {
-            _navigationService.NavigateTo<MedicEditViewModel>(SelectedMedic.recordid);
+            _navigationService.NavigateTo<MedicEditViewModel>(target.recordid);
         }
     }
 
     [RelayCommand]
-    private async Task DeleteAsync()
+    private async Task DeleteMedic(Medic? medic)
     {
-        if (SelectedMedic == null) return;
+        var target = medic ?? SelectedMedic;
+        if (target == null) return;
 
         var confirm = await _dialogService.ShowConfirmAsync(
             "Confirmer la suppression",
-            $"Voulez-vous vraiment supprimer le médicament '{SelectedMedic.itemname}' ?");
+            $"Voulez-vous vraiment supprimer le médicament '{target.itemname}' ?");
 
         if (confirm)
         {
             await ExecuteAsync(async () =>
             {
-                await _repository.DeleteAsync(SelectedMedic);
+                await _repository.DeleteAsync(target);
                 await LoadDataAsync();
                 await _dialogService.ShowSuccessAsync("Succès", "Médicament supprimé avec succès.");
             });

@@ -35,12 +35,9 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Style="{StaticResource TitleH2Style}">
-                        <TextBlock.Text>
-                            <Binding Path="IsNewMedic" Converter="{StaticResource BoolToVis}" ConverterParameter="Nouveau médicament|Modifier le médicament"/>
-                        </TextBlock.Text>
-                    </TextBlock>
-                    <TextBlock Text="{Binding Medic.Itemname, TargetNullValue='Saisir les informations du médicament'}"
+                    <TextBlock Text="{Binding PageTitle}" 
+                               Style="{StaticResource TitleH2Style}"/>
+                    <TextBlock Text="{Binding Medic.itemname, TargetNullValue='Saisir les informations du médicament'}"
                                Style="{StaticResource SubtitleStyle}"
                                Margin="0,4,0,0"/>
                 </StackPanel>
@@ -85,14 +82,14 @@
 
                             <!-- Nom du médicament -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,16,16">
-                                <TextBox Text="{Binding Medic.Itemname, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox Text="{Binding Medic.itemname, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Nom du médicament *"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </StackPanel>
 
                             <!-- Code-barre -->
                             <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,16">
-                                <TextBox Text="{Binding Medic.Barcode, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox Text="{Binding Medic.barcode, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Code-barre (EAN-13)"
                                          MaxLength="13"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
@@ -100,7 +97,7 @@
 
                             <!-- AMM -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
-                                <TextBox Text="{Binding Medic.Amm, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox Text="{Binding Medic.amm, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="N° AMM"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </StackPanel>
@@ -108,7 +105,7 @@
                             <!-- Famille -->
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,0">
                                 <ComboBox ItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.Family}"
+                                          SelectedValue="{Binding Medic.family}"
                                           SelectedValuePath="Familyid"
                                           DisplayMemberPath="Familyname"
                                           materialDesign:HintAssist.Hint="Famille"
@@ -118,7 +115,7 @@
                             <!-- Laboratoire -->
                             <StackPanel Grid.Row="1" Grid.Column="2">
                                 <ComboBox ItemsSource="{Binding Labos}"
-                                          SelectedValue="{Binding Medic.Labo}"
+                                          SelectedValue="{Binding Medic.labo}"
                                           SelectedValuePath="Laboid"
                                           DisplayMemberPath="Laboname"
                                           materialDesign:HintAssist.Hint="Laboratoire"
@@ -150,14 +147,14 @@
                             <!-- DCI 1 -->
                             <ComboBox Grid.Row="0" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
-                                      SelectedValue="{Binding Medic.Dci1}"
+                                      SelectedValue="{Binding Medic.dci1}"
                                       SelectedValuePath="Dciid"
                                       DisplayMemberPath="Dciname"
                                       materialDesign:HintAssist.Hint="DCI Principal *"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
                             <TextBox Grid.Row="0" Grid.Column="1"
-                                     Text="{Binding Medic.Dosage1, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding Medic.dose1, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 1"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
@@ -165,14 +162,14 @@
                             <!-- DCI 2 -->
                             <ComboBox Grid.Row="1" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
-                                      SelectedValue="{Binding Medic.Dci2}"
+                                      SelectedValue="{Binding Medic.dci2}"
                                       SelectedValuePath="Dciid"
                                       DisplayMemberPath="Dciname"
                                       materialDesign:HintAssist.Hint="DCI Secondaire"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
                             <TextBox Grid.Row="1" Grid.Column="1"
-                                     Text="{Binding Medic.Dosage2, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding Medic.dose2, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 2"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
@@ -180,14 +177,14 @@
                             <!-- DCI 3 -->
                             <ComboBox Grid.Row="2" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
-                                      SelectedValue="{Binding Medic.Dci3}"
+                                      SelectedValue="{Binding Medic.dci3}"
                                       SelectedValuePath="Dciid"
                                       DisplayMemberPath="Dciname"
                                       materialDesign:HintAssist.Hint="DCI 3"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
                             <TextBox Grid.Row="2" Grid.Column="1"
-                                     Text="{Binding Medic.Dosage3, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding Medic.dose3, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 3"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
@@ -195,14 +192,14 @@
                             <!-- DCI 4 -->
                             <ComboBox Grid.Row="3" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
-                                      SelectedValue="{Binding Medic.Dci4}"
+                                      SelectedValue="{Binding Medic.dci4}"
                                       SelectedValuePath="Dciid"
                                       DisplayMemberPath="Dciname"
                                       materialDesign:HintAssist.Hint="DCI 4"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,0"/>
                             <TextBox Grid.Row="3" Grid.Column="1"
-                                     Text="{Binding Medic.Dosage4, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding Medic.dose4, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 4"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                         </Grid>
@@ -226,7 +223,7 @@
                             <!-- Forme -->
                             <ComboBox Grid.Column="0"
                                       ItemsSource="{Binding Formes}"
-                                      SelectedValue="{Binding Medic.Forme}"
+                                      SelectedValue="{Binding Medic.forme}"
                                       SelectedValuePath="Formeid"
                                       DisplayMemberPath="Formename"
                                       materialDesign:HintAssist.Hint="Forme"
@@ -236,7 +233,7 @@
                             <!-- Présentation -->
                             <ComboBox Grid.Column="1"
                                       ItemsSource="{Binding Presents}"
-                                      SelectedValue="{Binding Medic.Present}"
+                                      SelectedValue="{Binding Medic.present}"
                                       SelectedValuePath="Presentid"
                                       DisplayMemberPath="Presentname"
                                       materialDesign:HintAssist.Hint="Présentation"
@@ -246,7 +243,7 @@
                             <!-- Voie d'administration -->
                             <ComboBox Grid.Column="2"
                                       ItemsSource="{Binding Voies}"
-                                      SelectedValue="{Binding Medic.Voie}"
+                                      SelectedValue="{Binding Medic.voie}"
                                       SelectedValuePath="Voieid"
                                       DisplayMemberPath="Voiename"
                                       materialDesign:HintAssist.Hint="Voie d'administration"
@@ -273,7 +270,7 @@
 
                             <!-- PFHT -->
                             <TextBox Grid.Column="0"
-                                     Text="{Binding Medic.Pfht, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Fab. HT"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -281,7 +278,7 @@
 
                             <!-- PH -->
                             <TextBox Grid.Column="1"
-                                     Text="{Binding Medic.Ph, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     Text="{Binding Medic.refprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Hospitalier"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -289,7 +286,7 @@
 
                             <!-- PGross -->
                             <TextBox Grid.Column="2"
-                                     Text="{Binding Medic.Pgross, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     Text="{Binding Medic.pctprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix de Gros"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -297,7 +294,7 @@
 
                             <!-- PBR -->
                             <TextBox Grid.Column="3"
-                                     Text="{Binding Medic.Pbr, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     Text="{Binding Medic.netprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Base Remb."
                                      materialDesign:TextFieldAssist.SuffixText="DH"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -305,7 +302,7 @@
 
                             <!-- PPV -->
                             <TextBox Grid.Column="4"
-                                     Text="{Binding Medic.Ppv, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                     Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Public (PPV) *"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -335,28 +332,28 @@
 
                             <!-- Pédiatrique -->
                             <CheckBox Grid.Row="0" Grid.Column="0"
-                                      IsChecked="{Binding Medic.Pediatrique}"
+                                      IsChecked="{Binding Medic.pediatric}"
                                       Content="Pédiatrique"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>
 
                             <!-- Générique -->
                             <CheckBox Grid.Row="0" Grid.Column="1"
-                                      IsChecked="{Binding Medic.Generique}"
+                                      IsChecked="{Binding Medic.isap}"
                                       Content="Générique"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>
 
                             <!-- Remboursable -->
                             <CheckBox Grid.Row="0" Grid.Column="2"
-                                      IsChecked="{Binding Medic.Remboursable}"
+                                      IsChecked="{Binding Medic.isic}"
                                       Content="Remboursable"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>
 
                             <!-- Taux de remboursement -->
                             <TextBox Grid.Row="0" Grid.Column="3"
-                                     Text="{Binding Medic.Taux, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding Medic.ictx, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Taux remb. (%)"
                                      materialDesign:TextFieldAssist.SuffixText="%"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -364,7 +361,7 @@
 
                             <!-- Tableau -->
                             <ComboBox Grid.Row="1" Grid.Column="0"
-                                      SelectedItem="{Binding Medic.Tableau}"
+                                      SelectedItem="{Binding Medic.tableau}"
                                       materialDesign:HintAssist.Hint="Tableau (substance contrôlée)"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,0">
@@ -384,7 +381,7 @@
                                    Style="{StaticResource TitleH3Style}"
                                    Margin="0,0,0,20"/>
 
-                        <TextBox Text="{Binding Medic.Indication, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
                                  materialDesign:HintAssist.Hint="Indications, notes..."
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  TextWrapping="Wrap"
@@ -412,7 +409,7 @@
 
                 <!-- Bouton Annuler -->
                 <Button Grid.Column="0"
-                        Command="{Binding CancelCommand}"
+                        Command="{Binding CancelAsyncCommand}"
                         Style="{StaticResource MaterialDesignOutlinedButton}"
                         HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal">
@@ -423,20 +420,19 @@
 
                 <!-- Boutons de validation -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button Command="{Binding SaveAndNewCommand}"
+                    <Button Command="{Binding GoBackCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,12,0">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
-                            <TextBlock Text="Enregistrer et nouveau" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Kind="ArrowLeft" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Retour" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding SaveCommand}"
+                    <Button Command="{Binding SaveAsyncCommand}"
                             Style="{StaticResource MaterialDesignRaisedButton}"
                             Background="{StaticResource SuccessBrush}"
-                            Foreground="White"
-                            IsEnabled="{Binding CanSave}">
+                            Foreground="White">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Enregistrer" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -462,3 +458,4 @@
         </Border>
     </Grid>
 </UserControl>
+

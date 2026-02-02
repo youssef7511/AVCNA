@@ -51,7 +51,7 @@
                     <ComboBox Width="200"
                               ItemsSource="{Binding Families}"
                               SelectedItem="{Binding SelectedFamily}"
-                              DisplayMemberPath="FamilyName"
+                              DisplayMemberPath="itemname"
                               materialDesign:HintAssist.Hint="Famille"
                               Style="{StaticResource MaterialDesignOutlinedComboBox}"
                               Margin="0,0,16,0"/>
@@ -60,13 +60,13 @@
                     <ComboBox Width="200"
                               ItemsSource="{Binding Labos}"
                               SelectedItem="{Binding SelectedLabo}"
-                              DisplayMemberPath="Laboname"
+                              DisplayMemberPath="itemname"
                               materialDesign:HintAssist.Hint="Laboratoire"
                               Style="{StaticResource MaterialDesignOutlinedComboBox}"
                               Margin="0,0,16,0"/>
 
                     <!-- Bouton réinitialiser -->
-                    <Button Command="{Binding ClearFiltersCommand}"
+                    <Button Command="{Binding ClearSearchCommand}"
                             Style="{StaticResource MaterialDesignIconButton}"
                             ToolTip="Réinitialiser les filtres">
                         <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20"/>
@@ -88,7 +88,7 @@
                     </Button>
 
                     <!-- Import Excel -->
-                    <Button Command="{Binding ImportExcelCommand}"
+                    <Button Command="{Binding ImportFromExcelCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             ToolTip="Importer depuis Excel">
@@ -99,7 +99,7 @@
                     </Button>
 
                     <!-- Export Excel -->
-                    <Button Command="{Binding ExportExcelCommand}"
+                    <Button Command="{Binding ExportToExcelCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             ToolTip="Exporter vers Excel">
@@ -110,7 +110,7 @@
                     </Button>
 
                     <!-- Export PDF -->
-                    <Button Command="{Binding ExportPdfCommand}"
+                    <Button Command="{Binding ExportToPdfCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             ToolTip="Exporter en PDF">
                         <materialDesign:PackIcon Kind="FilePdfBox" Width="20" Height="20"/>

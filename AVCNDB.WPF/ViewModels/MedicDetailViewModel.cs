@@ -33,6 +33,9 @@ public partial class MedicDetailViewModel : ViewModelBase
     [ObservableProperty]
     private string _veicDescription = string.Empty;
 
+    [ObservableProperty]
+    private bool _hasNotes;
+
     public MedicDetailViewModel(
         IRepository<Medic> repository,
         INavigationService navigationService,
@@ -67,6 +70,7 @@ public partial class MedicDetailViewModel : ViewModelBase
                 IsControlled = !string.IsNullOrEmpty(Medic.tableau);
                 FormattedPrice = $"{Medic.price / 1000.0:N3} DT";
                 VeicDescription = GetVeicDescription(Medic.veic);
+                HasNotes = !string.IsNullOrWhiteSpace(Medic.indication);
             }
         }, "Chargement de la fiche...");
     }
