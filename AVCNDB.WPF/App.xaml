@@ -63,6 +63,10 @@
             <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
                 <views:SettingsView />
             </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:DatabaseViewModel}">
+                <views:DatabaseView />
+            </DataTemplate>
             
         </ResourceDictionary>
     </Application.Resources>
