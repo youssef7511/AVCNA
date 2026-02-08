@@ -65,7 +65,7 @@
                                HorizontalAlignment="Center"
                                Margin="0,8,0,0"
                                Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Base Pharmaceutique" 
+                    <TextBlock Text="Base Médicamenteuse" 
                                FontSize="11" 
                                Foreground="#90CAF9"
                                HorizontalAlignment="Center"
@@ -235,7 +235,8 @@
                     Background="{DynamicResource MaterialDesignPaper}"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1"
-                    Padding="24,16">
+                    Padding="24,16"
+                    Visibility="{Binding IsHeaderVisible, Converter={StaticResource BoolToVisibility}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -261,10 +262,10 @@
 
                     <!-- Actions rapides -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <TextBox Width="250"
+                        <TextBox Width="200"
                                  materialDesign:HintAssist.Hint="Rechercher..."
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="0,0,16,0"/>
+                                 Margin="0,0,12,0"/>
                         
                         <Button Style="{StaticResource MaterialDesignIconButton}"
                                 ToolTip="Notifications">

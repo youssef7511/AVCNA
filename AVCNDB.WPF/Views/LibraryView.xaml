@@ -4,50 +4,129 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:views="clr-namespace:AVCNDB.WPF.Views"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
              mc:Ignorable="d" 
              d:DesignHeight="700" d:DesignWidth="1200"
-             Background="{DynamicResource MaterialDesignBackground}">
+             Background="{DynamicResource MaterialDesignBackground}"
+             d:DataContext="{d:DesignInstance Type=vm:LibraryShellViewModel}">
+
+    <UserControl.Resources>
+        <Style x:Key="LibraryTabHeaderText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="LibraryTabHeaderPanel" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Margin" Value="12,6"/>
+            <Setter Property="MinHeight" Value="44"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <!-- Contenu (tabs en haut pour maximiser l'espace utile) -->
+        <TabControl
+                    Style="{StaticResource MaterialDesignFilledTabControl}"
+                    TabStripPlacement="Top"
+                    SelectedIndex="{Binding SelectedTabIndex}"
+                    materialDesign:ColorZoneAssist.Mode="PrimaryLight">
 
-        <!-- En-tête -->
-        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}"
-            BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
-            <StackPanel>
-                <TextBlock Text="Bibliothèque" 
-                           Style="{StaticResource MaterialDesignHeadline4TextBlock}"
-                           Foreground="{StaticResource PrimaryBrush}"/>
-                <TextBlock Text="Documentation et ressources pharmaceutiques" 
-                           Style="{StaticResource MaterialDesignBody2TextBlock}"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"
-                           Margin="0,4,0,0"/>
-            </StackPanel>
-        </Border>
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="Flask" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="DCI"
+                                   Style="{StaticResource LibraryTabHeaderText}"
+                                   ToolTip="Substances actives (DCI)"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:DciListView DataContext="{Binding DciListViewModel}"/>
+            </TabItem>
 
-        <!-- Contenu -->
-        <Grid Grid.Row="1" Margin="24">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <materialDesign:PackIcon Kind="BookOpenPageVariant" 
-                                         Width="120" Height="120" 
-                                         Foreground="{StaticResource PrimaryBrush}"
-                                         HorizontalAlignment="Center"
-                                         Opacity="0.5"/>
-                <TextBlock Text="Page Bibliothèque - À venir..." 
-                           Style="{StaticResource MaterialDesignHeadline5TextBlock}"
-                           HorizontalAlignment="Center" 
-                           Margin="0,24,0,0"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                <TextBlock Text="Cette section contiendra la documentation des médicaments,&#x0a;les fiches techniques et les ressources de référence." 
-                           Style="{StaticResource MaterialDesignBody1TextBlock}"
-                           HorizontalAlignment="Center" 
-                           TextAlignment="Center"
-                           Margin="0,8,0,0"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-            </StackPanel>
-        </Grid>
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="FamilyTree" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Familles"
+                                   Style="{StaticResource LibraryTabHeaderText}"
+                                   ToolTip="Familles thérapeutiques"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:FamiliesListView DataContext="{Binding FamiliesListViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="Factory" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Laboratoires"
+                                   Style="{StaticResource LibraryTabHeaderText}"
+                                   ToolTip="Laboratoires pharmaceutiques"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="ShapeOutline" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Formes"
+                                   Style="{StaticResource LibraryTabHeaderText}"
+                                   ToolTip="Formes galéniques"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:FormesListView DataContext="{Binding FormesListViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="Directions" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Voies"
+                                   Style="{StaticResource LibraryTabHeaderText}"
+                                   ToolTip="Voies d'administration"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:VoiesListView DataContext="{Binding VoiesListViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="BookOpenPageVariant" Width="20" Height="20" VerticalAlignment="Center"/>
+                        <TextBlock Text="Documentation" Style="{StaticResource LibraryTabHeaderText}"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid Margin="24">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <materialDesign:PackIcon Kind="BookOpenPageVariant"
+                                                 Width="96" Height="96"
+                                                 Foreground="{StaticResource PrimaryBrush}"
+                                                 HorizontalAlignment="Center"
+                                                 Opacity="0.5"/>
+                        <TextBlock Text="Documentation - À venir"
+                                   Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,16,0,0"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        <TextBlock Text="Ici on pourra ajouter fiches techniques, PDF, liens, etc."
+                                   Style="{StaticResource MaterialDesignBody1TextBlock}"
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   Margin="0,8,0,0"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </UserControl>

@@ -82,6 +82,25 @@
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
     <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
     <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+
+    <!-- Variantes claires/sombres (utilisées dans plusieurs vues) -->
+    <Color x:Key="SuccessLightColor">#E8F5E9</Color>
+    <Color x:Key="SuccessDarkColor">#1B5E20</Color>
+    <Color x:Key="WarningLightColor">#FFF8E1</Color>
+    <Color x:Key="WarningDarkColor">#FF6F00</Color>
+    <Color x:Key="ErrorLightColor">#FFEBEE</Color>
+    <Color x:Key="ErrorDarkColor">#B71C1C</Color>
+    <Color x:Key="InfoLightColor">#E3F2FD</Color>
+    <Color x:Key="InfoDarkColor">#0D47A1</Color>
+
+    <SolidColorBrush x:Key="SuccessLightBrush" Color="{StaticResource SuccessLightColor}"/>
+    <SolidColorBrush x:Key="SuccessDarkBrush" Color="{StaticResource SuccessDarkColor}"/>
+    <SolidColorBrush x:Key="WarningLightBrush" Color="{StaticResource WarningLightColor}"/>
+    <SolidColorBrush x:Key="WarningDarkBrush" Color="{StaticResource WarningDarkColor}"/>
+    <SolidColorBrush x:Key="ErrorLightBrush" Color="{StaticResource ErrorLightColor}"/>
+    <SolidColorBrush x:Key="ErrorDarkBrush" Color="{StaticResource ErrorDarkColor}"/>
+    <SolidColorBrush x:Key="InfoLightBrush" Color="{StaticResource InfoLightColor}"/>
+    <SolidColorBrush x:Key="InfoDarkBrush" Color="{StaticResource InfoDarkColor}"/>
     
     <!-- Brushes de bordure -->
     <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>

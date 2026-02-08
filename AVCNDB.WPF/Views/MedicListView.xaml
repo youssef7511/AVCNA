@@ -25,7 +25,7 @@
         ============================================ -->
         <Border Grid.Row="0" 
                 Background="{DynamicResource MaterialDesignPaper}"
-                Padding="24,16"
+                Padding="16,10"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid>
@@ -36,11 +36,28 @@
 
                 <!-- Recherche et filtres -->
                 <StackPanel Grid.Column="0">
+                    <!-- Erreur de chargement (ex: DB indisponible) -->
+                    <Border Background="{StaticResource ErrorLightBrush}"
+                            CornerRadius="6"
+                            Padding="12,8"
+                            Margin="0,0,0,12"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlertCircle" Width="18" Height="18" VerticalAlignment="Center" Foreground="{StaticResource ErrorDarkBrush}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource ErrorDarkBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel Orientation="Horizontal">
                         <!-- Barre de recherche -->
-                        <TextBox Width="420"
+                        <TextBox Width="350"
                                  Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="🔍 Rechercher par nom, DCI, code-barre..."
+                                 materialDesign:HintAssist.Hint="Rechercher par nom, DCI, code-barre..."
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  Margin="0,0,12,0">
                             <TextBox.InputBindings>
@@ -119,6 +136,17 @@
                         </StackPanel>
                     </Button>
 
+                    <!-- Modèle Excel (template strict) -->
+                    <Button Command="{Binding DownloadExcelTemplateCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Télécharger le modèle Excel (template strict)">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Modèle" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <!-- Export Excel -->
                     <Button Command="{Binding ExportToExcelCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
@@ -163,7 +191,7 @@
             <DataGrid.Columns>
                 <!-- Code-barre -->
                 <DataGridTextColumn Header="Code-barre" 
-                                    Binding="{Binding Barcode}" 
+                                    Binding="{Binding barcode}" 
                                     Width="120"/>
                 
                 <!-- Nom du médicament -->
@@ -174,9 +202,8 @@
                                 <TextBlock Text="{Binding Itemname}" 
                                            Style="{StaticResource MedicNameStyle}"
                                            TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding Dci1Navigation.Dciname}" 
-                                           Style="{StaticResource DciLabelStyle}"
-                                           Visibility="{Binding Dci1Navigation, Converter={StaticResource BoolToVis}}"
+                                <TextBlock Text="{Binding dci}" 
+                                           Style="{StaticResource DciTextStyle}"
                                            TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                         </DataTemplate>
@@ -185,25 +212,25 @@
 
                 <!-- Dosage -->
                 <DataGridTextColumn Header="Dosage" 
-                                    Binding="{Binding Dosage1}" 
+                                    Binding="{Binding dose1}" 
                                     Width="100"/>
 
                 <!-- Forme -->
                 <DataGridTextColumn Header="Forme" 
-                                    Binding="{Binding FormeNavigation.Formename}" 
+                                    Binding="{Binding forme}" 
                                     Width="120"/>
 
                 <!-- Laboratoire -->
                 <DataGridTextColumn Header="Laboratoire" 
-                                    Binding="{Binding LaboNavigation.Laboname}" 
+                                    Binding="{Binding labo}" 
                                     Width="150"/>
 
                 <!-- Prix public -->
                 <DataGridTemplateColumn Header="Prix Public" Width="100">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Ppv, StringFormat={}{0:N2} DH}" 
-                                       Style="{StaticResource PriceLabelStyle}"
+                            <TextBlock Text="{Binding price, StringFormat={}{0:N0} }" 
+                                       Style="{StaticResource PriceTextStyle}"
                                        HorizontalAlignment="Right"
                                        Margin="0,0,8,0"/>
                         </DataTemplate>
@@ -220,10 +247,10 @@
                                 <Border.Style>
                                     <Style TargetType="Border">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Pediatrique}" Value="True">
+                                            <DataTrigger Binding="{Binding pediatric}" Value="1">
                                                 <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding Generique}" Value="True">
+                                            <DataTrigger Binding="{Binding isap}" Value="1">
                                                 <Setter Property="Background" Value="{StaticResource SecondaryLightBrush}"/>
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -231,12 +258,12 @@
                                 </Border.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="👶" 
-                                               Visibility="{Binding Pediatrique, Converter={StaticResource BoolToVis}}"
+                                               Visibility="{Binding pediatric, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"
                                                Margin="0,0,4,0"/>
                                     <TextBlock Text="G" 
                                                FontWeight="Bold"
                                                Foreground="{StaticResource SecondaryDarkBrush}"
-                                               Visibility="{Binding Generique, Converter={StaticResource BoolToVis}}"/>
+                                               Visibility="{Binding isap, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>

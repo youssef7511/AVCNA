@@ -78,6 +78,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Nom du médicament -->
@@ -102,13 +103,13 @@
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </StackPanel>
 
-                            <!-- Famille -->
+                            <!-- Famille 1 -->
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,0">
                                 <ComboBox ItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.family}"
-                                          SelectedValuePath="Familyid"
-                                          DisplayMemberPath="Familyname"
-                                          materialDesign:HintAssist.Hint="Famille"
+                                          SelectedValue="{Binding Medic.fam1}"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
+                                          materialDesign:HintAssist.Hint="Famille 1"
                                           Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
                             </StackPanel>
 
@@ -116,9 +117,39 @@
                             <StackPanel Grid.Row="1" Grid.Column="2">
                                 <ComboBox ItemsSource="{Binding Labos}"
                                           SelectedValue="{Binding Medic.labo}"
-                                          SelectedValuePath="Laboid"
-                                          DisplayMemberPath="Laboname"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Laboratoire"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            </StackPanel>
+
+                            <!-- Famille 2 -->
+                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,16,16,0">
+                                <ComboBox ItemsSource="{Binding Families}"
+                                          SelectedValue="{Binding Medic.fam2}"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
+                                          materialDesign:HintAssist.Hint="Famille 2"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            </StackPanel>
+
+                            <!-- Famille 3 -->
+                            <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,16,16,0">
+                                <ComboBox ItemsSource="{Binding Families}"
+                                          SelectedValue="{Binding Medic.fam3}"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
+                                          materialDesign:HintAssist.Hint="Famille 3"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            </StackPanel>
+
+                            <!-- Famille 4 -->
+                            <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,16,0,0">
+                                <ComboBox ItemsSource="{Binding Families}"
+                                          SelectedValue="{Binding Medic.family}"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
+                                          materialDesign:HintAssist.Hint="Famille 4"
                                           Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
                             </StackPanel>
                         </Grid>
@@ -148,8 +179,8 @@
                             <ComboBox Grid.Row="0" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci1}"
-                                      SelectedValuePath="Dciid"
-                                      DisplayMemberPath="Dciname"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI Principal *"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
@@ -163,8 +194,8 @@
                             <ComboBox Grid.Row="1" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci2}"
-                                      SelectedValuePath="Dciid"
-                                      DisplayMemberPath="Dciname"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI Secondaire"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
@@ -178,8 +209,8 @@
                             <ComboBox Grid.Row="2" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci3}"
-                                      SelectedValuePath="Dciid"
-                                      DisplayMemberPath="Dciname"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI 3"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
@@ -193,8 +224,8 @@
                             <ComboBox Grid.Row="3" Grid.Column="0"
                                       ItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci4}"
-                                      SelectedValuePath="Dciid"
-                                      DisplayMemberPath="Dciname"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI 4"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,0"/>
@@ -221,33 +252,24 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Forme -->
-                            <ComboBox Grid.Column="0"
-                                      ItemsSource="{Binding Formes}"
-                                      SelectedValue="{Binding Medic.forme}"
-                                      SelectedValuePath="Formeid"
-                                      DisplayMemberPath="Formename"
-                                      materialDesign:HintAssist.Hint="Forme"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                      Margin="0,0,16,0"/>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding Medic.forme, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Forme"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,16,0"/>
 
                             <!-- Présentation -->
-                            <ComboBox Grid.Column="1"
-                                      ItemsSource="{Binding Presents}"
-                                      SelectedValue="{Binding Medic.present}"
-                                      SelectedValuePath="Presentid"
-                                      DisplayMemberPath="Presentname"
-                                      materialDesign:HintAssist.Hint="Présentation"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"
-                                      Margin="0,0,16,0"/>
+                            <TextBox Grid.Column="1"
+                                     Text="{Binding Medic.present, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Présentation"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,16,0"/>
 
                             <!-- Voie d'administration -->
-                            <ComboBox Grid.Column="2"
-                                      ItemsSource="{Binding Voies}"
-                                      SelectedValue="{Binding Medic.voie}"
-                                      SelectedValuePath="Voieid"
-                                      DisplayMemberPath="Voiename"
-                                      materialDesign:HintAssist.Hint="Voie d'administration"
-                                      Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                            <TextBox Grid.Column="2"
+                                     Text="{Binding Medic.voie, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Voie d'administration"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -332,21 +354,21 @@
 
                             <!-- Pédiatrique -->
                             <CheckBox Grid.Row="0" Grid.Column="0"
-                                      IsChecked="{Binding Medic.pediatric}"
+                                      IsChecked="{Binding Medic.pediatric, Converter={StaticResource IntToBoolConverter}}"
                                       Content="Pédiatrique"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>
 
                             <!-- Générique -->
                             <CheckBox Grid.Row="0" Grid.Column="1"
-                                      IsChecked="{Binding Medic.isap}"
+                                      IsChecked="{Binding Medic.isap, Converter={StaticResource IntToBoolConverter}}"
                                       Content="Générique"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>
 
                             <!-- Remboursable -->
                             <CheckBox Grid.Row="0" Grid.Column="2"
-                                      IsChecked="{Binding Medic.isic}"
+                                      IsChecked="{Binding Medic.isic, Converter={StaticResource IntToBoolConverter}}"
                                       Content="Remboursable"
                                       Style="{StaticResource MaterialDesignCheckBox}"
                                       Margin="0,0,0,16"/>

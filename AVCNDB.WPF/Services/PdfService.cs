@@ -13,11 +13,11 @@ namespace AVCNDB.WPF.Services;
 /// </summary>
 public class PdfService : IPdfService
 {
-    private readonly AppDbContext _context;
+    private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public PdfService(AppDbContext context)
+    public PdfService(IDbContextFactory<AppDbContext> contextFactory)
     {
-        _context = context;
+        _contextFactory = contextFactory;
         
         // Configuration de la licence QuestPDF
         QuestPDF.Settings.License = LicenseType.Community;
@@ -25,8 +25,10 @@ public class PdfService : IPdfService
 
     public async Task GenerateMedicReportAsync(int medicId, string outputPath)
     {
-        var medic = await _context.Medics.FindAsync(medicId);
-        if (medic == null) return;
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var medic = await context.Medics.FindAsync(medicId);
+        if (medic == null)
+            throw new InvalidOperationException($"Médicament introuvable (ID: {medicId})");
 
         var document = Document.Create(container =>
         {
@@ -47,7 +49,8 @@ public class PdfService : IPdfService
 
     public async Task GenerateMedicListReportAsync(IEnumerable<int> medicIds, string outputPath)
     {
-        var medics = await _context.Medics
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var medics = await context.Medics
             .Where(m => medicIds.Contains(m.recordid))
             .ToListAsync();
 
@@ -70,7 +73,8 @@ public class PdfService : IPdfService
 
     public async Task GenerateStockReportAsync(string outputPath, bool includeAlerts = true)
     {
-        var stocks = await _context.Stocks.ToListAsync();
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var stocks = await context.Stocks.ToListAsync();
         
         var document = Document.Create(container =>
         {
@@ -92,7 +96,8 @@ public class PdfService : IPdfService
     public async Task GenerateInteractionReportAsync(IEnumerable<string> dciNames, string outputPath)
     {
         var dciList = dciNames.ToList();
-        var interactions = await _context.Interacts
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var interactions = await context.Interacts
             .Where(i => dciList.Contains(i.dci1) || dciList.Contains(i.dci2))
             .ToListAsync();
 
@@ -170,7 +175,8 @@ public class PdfService : IPdfService
 
     public async Task<byte[]> GenerateMedicReportToBytesAsync(int medicId)
     {
-        var medic = await _context.Medics.FindAsync(medicId);
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        var medic = await context.Medics.FindAsync(medicId);
         if (medic == null) return Array.Empty<byte>();
 
         var document = Document.Create(container =>
@@ -196,7 +202,7 @@ public class PdfService : IPdfService
 
     private static void ComposeHeader(IContainer container, string title)
     {
-        container.Row(row =>
+        container.PaddingBottom(20).Row(row =>
         {
             row.RelativeItem().Column(col =>
             {
@@ -214,8 +220,6 @@ public class PdfService : IPdfService
                     .FontSize(10).FontColor("#757575");
             });
         });
-
-        container.PaddingBottom(20);
     }
 
     private static void ComposeFooter(IContainer container)

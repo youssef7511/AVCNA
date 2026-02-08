@@ -19,6 +19,7 @@ public partial class MedicListViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
     private readonly IPdfService _pdfService;
+    private readonly IStrictExcelSyncService<Medic> _strictExcelSyncService;
 
     [ObservableProperty]
     private ObservableCollection<Medic> _medics = new();
@@ -79,7 +80,8 @@ public partial class MedicListViewModel : ViewModelBase
         INavigationService navigationService,
         IDialogService dialogService,
         IExcelService excelService,
-        IPdfService pdfService)
+        IPdfService pdfService,
+        IStrictExcelSyncService<Medic> strictExcelSyncService)
     {
         _repository = repository;
         _familyRepository = familyRepository;
@@ -88,6 +90,7 @@ public partial class MedicListViewModel : ViewModelBase
         _dialogService = dialogService;
         _excelService = excelService;
         _pdfService = pdfService;
+        _strictExcelSyncService = strictExcelSyncService;
 
         _ = InitializeAsync();
     }
@@ -155,13 +158,17 @@ public partial class MedicListViewModel : ViewModelBase
             var result = await _repository.GetPagedAsync(
                 CurrentPage,
                 PageSize,
-                m => (string.IsNullOrEmpty(SearchText) || 
-                      m.itemname.Contains(SearchText) || 
-                      m.dci.Contains(SearchText) ||
-                      m.barcode.Contains(SearchText)) &&
+                m => (string.IsNullOrEmpty(SearchText) ||
+                      (m.itemname != null && m.itemname.Contains(SearchText)) ||
+                      (m.dci != null && m.dci.Contains(SearchText)) ||
+                      (m.barcode != null && m.barcode.Contains(SearchText))) &&
                      (!ShowActiveOnly || m.isactive == 1) &&
-                     (string.IsNullOrEmpty(FilterLabo) || m.labo.Contains(FilterLabo)) &&
-                     (string.IsNullOrEmpty(FilterFamily) || m.family.Contains(FilterFamily)),
+                     (string.IsNullOrEmpty(FilterLabo) || (m.labo != null && m.labo.Contains(FilterLabo))) &&
+                     (string.IsNullOrEmpty(FilterFamily) ||
+                      (m.family != null && m.family.Contains(FilterFamily)) ||
+                      (m.fam1 != null && m.fam1.Contains(FilterFamily)) ||
+                      (m.fam2 != null && m.fam2.Contains(FilterFamily)) ||
+                      (m.fam3 != null && m.fam3.Contains(FilterFamily))),
                 m => m.itemname
             );
 
@@ -231,28 +238,53 @@ public partial class MedicListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ViewDetail(Medic? medic)
+    private async Task ViewDetail(Medic? medic)
     {
         var target = medic ?? SelectedMedic;
-        if (target != null)
+        if (target == null) return;
+
+        try
         {
             _navigationService.NavigateTo<MedicDetailViewModel>(target.recordid);
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur",
+                $"Impossible d'ouvrir la fiche du médicament.\n\n{ex.Message}");
         }
     }
 
     [RelayCommand]
-    private void NewMedic()
+    private async Task NewMedic()
     {
-        _navigationService.NavigateTo<MedicEditViewModel>(null);
+        try
+        {
+            _navigationService.NavigateTo<MedicEditViewModel>(null);
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur",
+                $"Impossible d'ouvrir le formulaire 'Nouveau Médicament'.\n\n{ex.Message}");
+        }
     }
 
     [RelayCommand]
-    private void EditMedic(Medic? medic)
+    private async Task EditMedic(Medic? medic)
     {
         var target = medic ?? SelectedMedic;
-        if (target != null)
+        if (target == null) return;
+
+        try
         {
             _navigationService.NavigateTo<MedicEditViewModel>(target.recordid);
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur",
+                $"Impossible d'ouvrir le formulaire d'édition du médicament.\n\n{ex.Message}");
         }
     }
 
@@ -297,6 +329,26 @@ public partial class MedicListViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task DownloadExcelTemplateAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Medicaments_Template_{DateTime.Now:yyyyMMdd}",
+            "Télécharger le modèle Excel");
+
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            await ExecuteAsync(async () =>
+            {
+                await _strictExcelSyncService.CreateTemplateAsync(filePath, "Médicaments");
+                await _dialogService.ShowSuccessAsync(
+                    "Modèle généré",
+                    $"Modèle Excel créé : {filePath}\nRemplissez les colonnes sans modifier les en-têtes.");
+            }, "Génération du modèle...");
+        }
+    }
+
+    [RelayCommand]
     private async Task ExportToPdfAsync()
     {
         if (SelectedMedic == null)
@@ -331,23 +383,20 @@ public partial class MedicListViewModel : ViewModelBase
         {
             await ExecuteAsync(async () =>
             {
-                var validation = await _excelService.ValidateFileAsync(filePath, new[] 
-                { 
-                    "itemname", "dci", "forme", "voie", "present", "labo" 
-                });
+                var result = await _strictExcelSyncService.ImportAndSyncAsync(filePath, "Médicaments");
 
-                if (!validation.IsValid)
+                if (!result.IsValid)
                 {
-                    await _dialogService.ShowErrorAsync("Erreur de validation", 
-                        string.Join("\n", validation.Errors));
+                    await _dialogService.ShowErrorAsync(
+                        "Erreur de validation",
+                        string.Join("\n", result.Errors));
                     return;
                 }
 
-                var medics = await _excelService.ImportAsync<Medic>(filePath);
-                await _repository.AddRangeAsync(medics);
                 await LoadDataAsync();
-                await _dialogService.ShowSuccessAsync("Import réussi", 
-                    $"{validation.RowCount} médicaments importés avec succès.");
+                await _dialogService.ShowSuccessAsync(
+                    "Import Excel terminé",
+                    $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
             }, "Import en cours...");
         }
     }

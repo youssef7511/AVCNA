@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:AVCNDB.WPF.Converters"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MedicDetailViewModel}"
@@ -11,480 +12,672 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:NullToVisibilityConverter x:Key="NullToVis"/>
         
-        <!-- Style pour les labels d'information -->
-        <Style x:Key="InfoLabelStyle" TargetType="TextBlock">
+        <!-- Label style -->
+        <Style x:Key="DetailLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,4"/>
         </Style>
         
-        <!-- Style pour les valeurs d'information -->
-        <Style x:Key="InfoValueStyle" TargetType="TextBlock">
+        <!-- Value style -->
+        <Style x:Key="DetailValueStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontWeight" Value="Normal"/>
             <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+
+        <!-- Separator -->
+        <Style x:Key="CardSeparator" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Margin" Value="0,4,0,12"/>
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
+    <Grid>
+        <!-- Main content -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      Padding="24,16"
+                      Visibility="{Binding Medic, Converter={StaticResource NullToVis}}">
+            <StackPanel MaxWidth="1200">
 
-            <!-- ============================================
-                 EN-TÊTE DE LA FICHE
-            ============================================ -->
-            <Border Grid.Row="0" 
-                    Style="{StaticResource MedicCardStyle}"
-                    Margin="0,0,0,24">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <!-- ══════════════════════════════════════════
+                     TOP BAR: Back + Actions
+                ══════════════════════════════════════════ -->
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                    <!-- Badges et actions -->
-                    <Grid Grid.Row="0" Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                    <Button Grid.Column="0"
+                            Command="{Binding GoBackCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Padding="12,8">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ArrowLeft" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Retour" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
 
-                        <!-- Badges -->
-                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                            <!-- Badge Pédiatrique -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Command="{Binding CopyToClipboardCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                ToolTip="Copier les informations"
+                                Margin="0,0,8,0"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ContentCopy" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Copier" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding ExportToPdfCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,8,0"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="PDF" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding PrintCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,8,0"
+                                Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Printer" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Imprimer" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Command="{Binding EditCommand}"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Background="{StaticResource PrimaryBrush}"
+                                Foreground="White"
+                                Padding="16,8">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Pencil" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Modifier" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ══════════════════════════════════════════
+                     HERO CARD: Drug Name + Key Info
+                ══════════════════════════════════════════ -->
+                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,20" Padding="24,20">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Badges row -->
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                            <!-- Active/Inactive badge -->
+                            <Border CornerRadius="4" Padding="10,4" Margin="0,0,8,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock FontSize="11" FontWeight="SemiBold">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="INACTIF"/>
+                                            <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="Text" Value="✓ ACTIF"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+
+                            <!-- Pediatric badge -->
                             <Border Style="{StaticResource PediatricBadgeStyle}"
-                                    Visibility="{Binding Medic.Pediatrique, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="👶" Margin="0,0,4,0"/>
-                                    <TextBlock Text="PÉDIATRIQUE"/>
-                                </StackPanel>
+                                    Visibility="{Binding IsPediatric, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="👶 PÉDIATRIQUE" FontSize="11" FontWeight="SemiBold"/>
                             </Border>
 
-                            <!-- Badge Générique -->
+                            <!-- Generic badge -->
                             <Border Style="{StaticResource GenericBadgeStyle}"
-                                    Visibility="{Binding Medic.Generique, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="GÉNÉRIQUE"/>
+                                    Visibility="{Binding IsGeneric, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="GÉNÉRIQUE" FontSize="11" FontWeight="SemiBold"/>
                             </Border>
 
-                            <!-- Badge Contrôlé -->
+                            <!-- Controlled badge -->
                             <Border Style="{StaticResource ControlledBadgeStyle}"
-                                    Visibility="{Binding Medic.Tableau, Converter={StaticResource BoolToVis}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="⚠️" Margin="0,0,4,0"/>
-                                    <TextBlock Text="{Binding Medic.Tableau, StringFormat='TABLEAU {0}'}"/>
-                                </StackPanel>
+                                    Visibility="{Binding IsControlled, Converter={StaticResource BoolToVis}}">
+                                <TextBlock FontSize="11" FontWeight="SemiBold">
+                                    <Run Text="⚠️ TABLEAU"/>
+                                    <Run Text="{Binding Medic.tableau, Mode=OneWay}"/>
+                                </TextBlock>
                             </Border>
                         </StackPanel>
 
-                        <!-- Actions -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button Command="{Binding EditCommand}"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                                    Margin="0,0,8,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Pencil" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Modifier" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Command="{Binding ExportPdfCommand}"
-                                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                                    Margin="0,0,8,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" VerticalAlignment="Center"/>
-                                    <TextBlock Text="PDF" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Command="{Binding PrintCommand}"
-                                    Style="{StaticResource MaterialDesignIconButton}"
-                                    ToolTip="Imprimer">
-                                <materialDesign:PackIcon Kind="Printer" Width="20" Height="20"/>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Nom du médicament -->
-                    <StackPanel Grid.Row="1">
-                        <TextBlock Text="{Binding Medic.Itemname}" 
+                        <!-- Drug name -->
+                        <TextBlock Grid.Row="1" 
+                                   Text="{Binding Medic.itemname}" 
                                    FontSize="28" 
                                    FontWeight="Bold"
                                    Foreground="{StaticResource PrimaryDarkBrush}"
                                    TextWrapping="Wrap"/>
-                        
+
                         <!-- DCI principal -->
-                        <TextBlock Text="{Binding Medic.Dci1Navigation.Dciname}" 
-                                   Style="{StaticResource DciLabelStyle}"
+                        <TextBlock Grid.Row="2" 
+                                   Text="{Binding Medic.dci}" 
+                                   Style="{StaticResource DciTextStyle}"
                                    FontSize="16"
-                                   Margin="0,8,0,0"/>
-                    </StackPanel>
+                                   Margin="0,6,0,0"/>
 
-                    <!-- Informations principales -->
-                    <Grid Grid.Row="2" Margin="0,24,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
+                        <!-- Key info chips -->
+                        <WrapPanel Grid.Row="3" Margin="0,20,0,0">
+                            <!-- Forme -->
+                            <Border Background="{StaticResource BorderLightBrush}" CornerRadius="16" 
+                                    Padding="14,6" Margin="0,0,10,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Pill" Width="16" Height="16" 
+                                                             VerticalAlignment="Center" 
+                                                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding Medic.forme, TargetNullValue='-'}" 
+                                               Margin="6,0,0,0" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Dosage -->
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="DOSAGE" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Medic.Dosage1, TargetNullValue='-'}" 
-                                       Style="{StaticResource InfoValueStyle}"/>
-                        </StackPanel>
+                            <!-- Voie -->
+                            <Border Background="{StaticResource BorderLightBrush}" CornerRadius="16" 
+                                    Padding="14,6" Margin="0,0,10,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Needle" Width="16" Height="16" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding Medic.voie, TargetNullValue='-'}" 
+                                               Margin="6,0,0,0" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Forme -->
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="FORME" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Medic.FormeNavigation.Formename, TargetNullValue='-'}" 
-                                       Style="{StaticResource InfoValueStyle}"/>
-                        </StackPanel>
+                            <!-- Présentation -->
+                            <Border Background="{StaticResource BorderLightBrush}" CornerRadius="16" 
+                                    Padding="14,6" Margin="0,0,10,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="PackageVariant" Width="16" Height="16" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding Medic.present, TargetNullValue='-'}" 
+                                               Margin="6,0,0,0" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Border>
 
-                        <!-- Présentation -->
-                        <StackPanel Grid.Column="2">
-                            <TextBlock Text="PRÉSENTATION" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Medic.PresentNavigation.Presentname, TargetNullValue='-'}" 
-                                       Style="{StaticResource InfoValueStyle}"/>
-                        </StackPanel>
-
-                        <!-- Laboratoire -->
-                        <StackPanel Grid.Column="3">
-                            <TextBlock Text="LABORATOIRE" Style="{StaticResource InfoLabelStyle}"/>
-                            <TextBlock Text="{Binding Medic.LaboNavigation.Laboname, TargetNullValue='-'}" 
-                                       Style="{StaticResource InfoValueStyle}"/>
-                        </StackPanel>
+                            <!-- Laboratoire -->
+                            <Border Background="{StaticResource BorderLightBrush}" CornerRadius="16" 
+                                    Padding="14,6" Margin="0,0,10,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Factory" Width="16" Height="16" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    <TextBlock Text="{Binding Medic.labo, TargetNullValue='-'}" 
+                                               Margin="6,0,0,0" VerticalAlignment="Center" FontSize="13"/>
+                                </StackPanel>
+                            </Border>
+                        </WrapPanel>
                     </Grid>
-                </Grid>
-            </Border>
+                </Border>
 
-            <!-- ============================================
-                 CONTENU DÉTAILLÉ
-            ============================================ -->
-            <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <!-- ══════════════════════════════════════════
+                     TWO-COLUMN CONTENT
+                ══════════════════════════════════════════ -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <!-- Colonne gauche -->
-                <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                    
-                    <!-- Section Prix -->
-                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="💰 Tarification" 
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,16"/>
+                    <!-- ═══ LEFT COLUMN ═══ -->
+                    <StackPanel Grid.Column="0">
 
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <!-- Prix Fabricant HT -->
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
-                                    <TextBlock Text="Prix Fabricant HT" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Pfht, StringFormat={}{0:N2} DH, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
+                        <!-- ── PRIX CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <materialDesign:PackIcon Kind="CurrencyUsd" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Tarification" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <!-- Prix Hospitalier -->
-                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,12">
-                                    <TextBlock Text="Prix Hospitalier" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Ph, StringFormat={}{0:N2} DH, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- Prix de Gros -->
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,12">
-                                    <TextBlock Text="Prix de Gros" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Pgross, StringFormat={}{0:N2} DH, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- PBR -->
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,12">
-                                    <TextBlock Text="Prix Base Remboursement" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Pbr, StringFormat={}{0:N2} DH, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- PPV (mis en évidence) -->
-                                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
-                                        Background="{StaticResource SuccessLightBrush}"
-                                        CornerRadius="8"
-                                        Padding="16,12">
+                                <!-- PPV Highlight -->
+                                <Border Background="{StaticResource SuccessLightBrush}"
+                                        CornerRadius="10"
+                                        Padding="20,14"
+                                        Margin="0,0,0,16">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         
-                                        <TextBlock Grid.Column="0" 
-                                                   Text="Prix Public de Vente (PPV)"
-                                                   VerticalAlignment="Center"
-                                                   FontWeight="SemiBold"/>
+                                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                            <TextBlock Text="PRIX PUBLIC DE VENTE"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource SuccessDarkBrush}"/>
+                                            <TextBlock Text="PPV TTC"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        </StackPanel>
                                         
                                         <TextBlock Grid.Column="1"
-                                                   Text="{Binding Medic.Ppv, StringFormat={}{0:N2} DH}"
-                                                   FontSize="24"
+                                                   Text="{Binding FormattedPrice}"
+                                                   FontSize="26"
                                                    FontWeight="Bold"
-                                                   Foreground="{StaticResource SuccessDarkBrush}"/>
+                                                   Foreground="{StaticResource SuccessDarkBrush}"
+                                                   VerticalAlignment="Center"/>
                                     </Grid>
                                 </Border>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
 
-                    <!-- Section Composition (DCI) -->
-                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="🧪 Composition" 
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,16"/>
-
-                            <!-- DCI 1 -->
-                            <Border BorderBrush="{StaticResource BorderLightBrush}"
-                                    BorderThickness="0,0,0,1"
-                                    Padding="0,8"
-                                    Visibility="{Binding Medic.Dci1Navigation, Converter={StaticResource BoolToVis}}">
+                                <!-- Other prices grid -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="DCI Principal" Style="{StaticResource InfoLabelStyle}"/>
-                                        <TextBlock Text="{Binding Medic.Dci1Navigation.Dciname}" 
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Medic.Dosage1}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                            <!-- DCI 2 -->
-                            <Border BorderBrush="{StaticResource BorderLightBrush}"
-                                    BorderThickness="0,0,0,1"
-                                    Padding="0,8"
-                                    Visibility="{Binding Medic.Dci2Navigation, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,12">
+                                        <TextBlock Text="PRIX FAB. HT" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding FormattedRefPrice}" Style="{StaticResource DetailValueStyle}" Margin="0"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,12">
+                                        <TextBlock Text="PRIX HOSPITALIER" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding FormattedPctPrice}" Style="{StaticResource DetailValueStyle}" Margin="0"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="PRIX BASE REMB." Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding FormattedNetPrice}" Style="{StaticResource DetailValueStyle}" Margin="0"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="TAUX REMB." Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Style="{StaticResource DetailValueStyle}" Margin="0">
+                                            <Run Text="{Binding Medic.ictx, Mode=OneWay, StringFormat={}{0}%}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── COMPOSITION CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <materialDesign:PackIcon Kind="Flask" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Composition (DCI)" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- DCI 1 (Principal) -->
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="DCI PRINCIPAL" 
+                                                       FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource PrimaryBrush}"
+                                                       Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Medic.dci1, TargetNullValue='-'}" 
+                                                       FontSize="14" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Medic.dose1, TargetNullValue=''}"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DCI 2 -->
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,10" Margin="0,0,0,8"
+                                        Visibility="{Binding HasDci2, Converter={StaticResource BoolToVis}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="DCI SECONDAIRE" 
+                                                       FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Medic.dci2}" FontSize="14"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Medic.dose2, TargetNullValue=''}"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DCI 3 -->
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,10" Margin="0,0,0,8"
+                                        Visibility="{Binding HasDci3, Converter={StaticResource BoolToVis}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="DCI 3" 
+                                                       FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Medic.dci3}" FontSize="14"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Medic.dose3, TargetNullValue=''}"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+
+                                <!-- DCI 4 -->
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,10"
+                                        Visibility="{Binding HasDci4, Converter={StaticResource BoolToVis}}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="DCI 4" 
+                                                       FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Margin="0,0,0,2"/>
+                                            <TextBlock Text="{Binding Medic.dci4}" FontSize="14"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding Medic.dose4, TargetNullValue=''}"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── CONDUITE CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <materialDesign:PackIcon Kind="Car" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Conduite et vigilance" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,10">
+                                    <TextBlock Text="{Binding VeicDescription}" 
+                                               FontSize="14" TextWrapping="Wrap"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- ═══ RIGHT COLUMN ═══ -->
+                    <StackPanel Grid.Column="2">
+
+                        <!-- ── IDENTIFICATION CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <materialDesign:PackIcon Kind="CardAccountDetails" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Identification" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="DCI Secondaire" Style="{StaticResource InfoLabelStyle}"/>
-                                        <TextBlock Text="{Binding Medic.Dci2Navigation.Dciname}" 
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Medic.Dosage2}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                            <!-- DCI 3 -->
-                            <Border BorderBrush="{StaticResource BorderLightBrush}"
-                                    BorderThickness="0,0,0,1"
-                                    Padding="0,8"
-                                    Visibility="{Binding Medic.Dci3Navigation, Converter={StaticResource BoolToVis}}">
+                                    <!-- Code-barre -->
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="CODE-BARRE" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.barcode, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"
+                                                   FontFamily="Consolas"/>
+                                    </StackPanel>
+
+                                    <!-- AMM -->
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="N° AMM" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.amm, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+
+                                    <!-- Colisage -->
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="COLISAGE" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.colisage}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+
+                                    <!-- Code PCT -->
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="CODE PCT" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.pctcode, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── CLASSIFICATION CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <materialDesign:PackIcon Kind="FolderMultiple" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Classification" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    
-                                    <StackPanel Grid.Column="0">
-                                        <TextBlock Text="DCI 3" Style="{StaticResource InfoLabelStyle}"/>
-                                        <TextBlock Text="{Binding Medic.Dci3Navigation.Dciname}" 
-                                                   FontWeight="SemiBold"/>
-                                    </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Medic.Dosage3}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                            <!-- DCI 4 -->
-                            <Border Padding="0,8"
-                                    Visibility="{Binding Medic.Dci4Navigation, Converter={StaticResource BoolToVis}}">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="FAMILLE 1" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.fam1, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="FAMILLE 2" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.fam2, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+                                        <TextBlock Text="FAMILLE 3" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.fam3, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                                        <TextBlock Text="FAMILLE PRINCIPALE" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock Text="{Binding Medic.family, TargetNullValue='-'}" 
+                                                   Style="{StaticResource DetailValueStyle}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── REMBOURSEMENT CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="20">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                    <materialDesign:PackIcon Kind="HospitalBuilding" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Remboursement" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    
+
+                                    <!-- Taux -->
                                     <StackPanel Grid.Column="0">
-                                        <TextBlock Text="DCI 4" Style="{StaticResource InfoLabelStyle}"/>
-                                        <TextBlock Text="{Binding Medic.Dci4Navigation.Dciname}" 
-                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="TAUX" Style="{StaticResource DetailLabelStyle}"/>
+                                        <TextBlock FontSize="18" FontWeight="SemiBold"
+                                                   Margin="0,0,0,8">
+                                            <Run Text="{Binding Medic.ictx, Mode=OneWay}"/><Run Text="%"/>
+                                        </TextBlock>
                                     </StackPanel>
-                                    
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding Medic.Dosage4}"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               VerticalAlignment="Center"/>
-                                </Grid>
-                            </Border>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
 
-                <!-- Colonne droite -->
-                <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                    
-                    <!-- Section Identification -->
-                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="🔖 Identification" 
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,16"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <!-- Code-barre -->
-                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
-                                    <TextBlock Text="Code-barre" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Barcode, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"
-                                               FontFamily="Consolas"/>
-                                </StackPanel>
-
-                                <!-- AMM -->
-                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,12">
-                                    <TextBlock Text="N° AMM" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Amm, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- Famille -->
-                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,12">
-                                    <TextBlock Text="Famille" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.FamilyNavigation.Familyname, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- Sous-famille -->
-                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,12">
-                                    <TextBlock Text="Sous-famille" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.Sfamily, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-
-                                <!-- Voie d'administration -->
-                                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
-                                    <TextBlock Text="Voie d'administration" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Text="{Binding Medic.VoieNavigation.Voiename, TargetNullValue='-'}" 
-                                               Style="{StaticResource InfoValueStyle}"/>
-                                </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Section Remboursement -->
-                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
-                        <StackPanel>
-                            <TextBlock Text="🏥 Remboursement" 
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,16"/>
-
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <!-- Taux de remboursement -->
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Taux" Style="{StaticResource InfoLabelStyle}"/>
-                                    <TextBlock Style="{StaticResource InfoValueStyle}">
-                                        <Run Text="{Binding Medic.Taux, StringFormat={}{0}%, TargetNullValue='-'}"/>
-                                    </TextBlock>
-                                </StackPanel>
-
-                                <!-- Statut remboursement -->
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="Remboursable" Style="{StaticResource InfoLabelStyle}"/>
-                                    <Border CornerRadius="4" 
-                                            Padding="12,6"
-                                            HorizontalAlignment="Left">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Medic.Remboursable}" Value="True">
-                                                        <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock FontWeight="SemiBold">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Text" Value="❌ Non"/>
-                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                    <!-- Statut -->
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="STATUT" Style="{StaticResource DetailLabelStyle}"/>
+                                        <Border CornerRadius="6" Padding="12,6" Margin="0,2,0,0"
+                                                HorizontalAlignment="Left">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Medic.Remboursable}" Value="True">
-                                                            <Setter Property="Text" Value="✓ Oui"/>
-                                                            <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                        <DataTrigger Binding="{Binding IsReimbursable}" Value="True">
+                                                            <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Border>
+                                            </Border.Style>
+                                            <TextBlock FontWeight="SemiBold" FontSize="12">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="❌ Non remboursable"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsReimbursable}" Value="True">
+                                                                <Setter Property="Text" Value="✓ Remboursable"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ── NOTES CARD ── -->
+                        <Border Style="{StaticResource ElevatedCardStyle}" Padding="20"
+                                Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <materialDesign:PackIcon Kind="NoteText" Width="22" Height="22" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{StaticResource PrimaryBrush}"/>
+                                    <TextBlock Text="Notes et indications" 
+                                               Style="{StaticResource TitleH3Style}"
+                                               Margin="8,0,0,0"
+                                               VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
 
-                    <!-- Section Notes -->
-                    <Border Style="{StaticResource ElevatedCardStyle}"
-                            Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}">
-                        <StackPanel>
-                            <TextBlock Text="📝 Notes" 
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,16"/>
+                                <Border Background="{StaticResource BorderLightBrush}"
+                                        CornerRadius="8" Padding="14,12">
+                                    <TextBlock Text="{Binding Medic.indication}"
+                                               TextWrapping="Wrap"
+                                               FontSize="13"
+                                               LineHeight="22"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
 
-                            <TextBlock Text="{Binding Medic.Indication}"
-                                       TextWrapping="Wrap"
-                                       Foreground="{StaticResource TextSecondaryBrush}"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Grid>
-        </Grid>
-    </ScrollViewer>
+        <!-- Loading overlay -->
+        <Border Background="#80000000"
+                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <ProgressBar IsIndeterminate="True" 
+                             Width="200"
+                             Style="{StaticResource MaterialDesignCircularProgressBar}"/>
+                <TextBlock Text="Chargement de la fiche..."
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,0"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </UserControl>

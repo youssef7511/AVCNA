@@ -12,6 +12,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using System.Windows.Threading;
+using System.Threading;
 
 namespace AVCNDB.WPF;
 
@@ -21,6 +23,8 @@ namespace AVCNDB.WPF;
 public partial class App : Application
 {
     private readonly IHost _host;
+
+    private static int _isHandlingUnhandledUiException;
 
     public static IServiceProvider Services { get; private set; } = null!;
 
@@ -50,6 +54,61 @@ public partial class App : Application
             .Build();
 
         Services = _host.Services;
+
+        // Safety net: avoid hard crashes on unhandled UI exceptions
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+    }
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        // Prevent infinite cascades if showing the dialog triggers another UI exception.
+        if (Interlocked.Exchange(ref _isHandlingUnhandledUiException, 1) == 1)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        try
+        {
+            Log.Error(e.Exception, "Unhandled UI exception");
+        }
+        catch
+        {
+            // ignore logging failures
+        }
+
+        try
+        {
+            var logDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AVCNDB",
+                "logs");
+            Directory.CreateDirectory(logDir);
+
+            var logPath = Path.Combine(logDir, $"ui-{DateTime.Now:yyyyMMdd}.log");
+            File.AppendAllText(logPath, $"[{DateTime.Now:O}]\n{e.Exception}\n\n");
+        }
+        catch
+        {
+            // ignore file IO failures
+        }
+
+        try
+        {
+            MessageBox.Show(
+                $"Une erreur inattendue s'est produite.\n\n{e.Exception.Message}",
+                "Erreur",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        catch
+        {
+            // ignore UI failures
+        }
+
+        e.Handled = true;
+
+        Interlocked.Exchange(ref _isHandlingUnhandledUiException, 0);
     }
 
     private void ConfigureServices(IConfiguration configuration, IServiceCollection services)
@@ -70,16 +129,24 @@ public partial class App : Application
         // ============================================
         // DATABASE CONTEXT
         // ============================================
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        var useRemoteDb = configuration.GetValue<bool>("AppSettings:UseRemoteDatabase");
+        var connectionName = useRemoteDb ? "RemoteConnection" : "DefaultConnection";
+        var connectionString = configuration.GetConnectionString(connectionName);
         var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
         
         // Use DbContextFactory for thread-safe DbContext creation
         services.AddDbContextFactory<AppDbContext>(options =>
-            options.UseMySql(connectionString, serverVersion));
+            options.UseMySql(connectionString, serverVersion, mySqlOptions =>
+            {
+                mySqlOptions.EnableRetryOnFailure();
+            }));
         
         // Also register DbContext for cases where scoped access is needed
         services.AddDbContext<AppDbContext>(options =>
-            options.UseMySql(connectionString, serverVersion), 
+            options.UseMySql(connectionString, serverVersion, mySqlOptions =>
+            {
+                mySqlOptions.EnableRetryOnFailure();
+            }),
             ServiceLifetime.Transient);
 
         // ============================================
@@ -102,9 +169,12 @@ public partial class App : Application
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IThemeService, ThemeService>();
         services.AddSingleton<IValidationService, ValidationService>();
+        services.AddSingleton<DatabaseDiagnosticsService>();
+        services.AddSingleton<MedicSyncService>();
         services.AddTransient<IExcelService, ExcelService>();
         services.AddTransient<IPdfService, PdfService>();
         services.AddTransient<IStockService, StockService>();
+        services.AddTransient(typeof(IStrictExcelSyncService<>), typeof(StrictExcelSyncService<>));
 
         // ============================================
         // VIEWMODELS
@@ -118,9 +188,12 @@ public partial class App : Application
         services.AddTransient<MedicDetailViewModel>();
         services.AddTransient<MedicEditViewModel>();
         services.AddTransient<InteractionsViewModel>();
+        services.AddTransient<FormesListViewModel>();
+        services.AddTransient<VoiesListViewModel>();
         services.AddTransient<StockViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<DatabaseViewModel>();
+        services.AddTransient<LibraryShellViewModel>();
 
         // ============================================
         // VIEWS
@@ -134,6 +207,8 @@ public partial class App : Application
         services.AddTransient<MedicDetailView>();
         services.AddTransient<MedicEditView>();
         services.AddTransient<InteractionsView>();
+        services.AddTransient<FormesListView>();
+        services.AddTransient<VoiesListView>();
         services.AddTransient<StockView>();
         services.AddTransient<SettingsView>();
         services.AddTransient<DatabaseView>();
@@ -154,6 +229,19 @@ public partial class App : Application
         await _host.StartAsync();
         
         Log.Information("Application AVCNDB démarrée");
+
+        try
+        {
+            var diagnostics = Services.GetService<DatabaseDiagnosticsService>();
+            if (diagnostics != null)
+            {
+                await diagnostics.LogDiagnosticsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Startup diagnostics failed");
+        }
 
         var mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.Show();

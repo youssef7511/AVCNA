@@ -51,7 +51,28 @@ public class ExcelService : IExcelService
                 {
                     var cell = row.Cell(col);
                     var value = ConvertCellValue(cell, property.PropertyType);
-                    property.SetValue(item, value);
+
+                    // Si la cellule est vide et que la propriété est un type valeur non-nullable,
+                    // ne pas forcer null (laisser la valeur par défaut).
+                    if (value == null)
+                    {
+                        var underlyingType = Nullable.GetUnderlyingType(property.PropertyType);
+                        var isNonNullableValueType = underlyingType == null && property.PropertyType.IsValueType;
+                        if (isNonNullableValueType)
+                        {
+                            continue;
+                        }
+                    }
+
+                    try
+                    {
+                        property.SetValue(item, value);
+                    }
+                    catch
+                    {
+                        // Ignore les erreurs de conversion/assignation cellule -> propriété
+                        // (le template strict + validation empêchent normalement ces cas)
+                    }
                 }
                 
                 result.Add(item);
@@ -197,9 +218,19 @@ public class ExcelService : IExcelService
 
     private static object? ConvertCellValue(IXLCell cell, Type targetType)
     {
-        if (cell.IsEmpty()) return null;
-        
         var underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+        if (cell.IsEmpty())
+        {
+            // For strings, prefer empty string over null so we don't
+            // overwrite default initializers (and to satisfy non-nullable EF columns).
+            if (underlyingType == typeof(string))
+            {
+                return string.Empty;
+            }
+
+            return null;
+        }
         
         try
         {

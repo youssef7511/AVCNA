@@ -25,16 +25,46 @@ public partial class MedicDetailViewModel : ViewModelBase
     private bool _isPediatric;
 
     [ObservableProperty]
+    private bool _isGeneric;
+
+    [ObservableProperty]
     private bool _isControlled;
 
     [ObservableProperty]
-    private string _formattedPrice = "0.000 DT";
+    private bool _isReimbursable;
+
+    [ObservableProperty]
+    private string _formattedPrice = "—";
+
+    [ObservableProperty]
+    private string _formattedRefPrice = "—";
+
+    [ObservableProperty]
+    private string _formattedPctPrice = "—";
+
+    [ObservableProperty]
+    private string _formattedNetPrice = "—";
 
     [ObservableProperty]
     private string _veicDescription = string.Empty;
 
     [ObservableProperty]
     private bool _hasNotes;
+
+    [ObservableProperty]
+    private bool _hasDci2;
+
+    [ObservableProperty]
+    private bool _hasDci3;
+
+    [ObservableProperty]
+    private bool _hasDci4;
+
+    [ObservableProperty]
+    private string _statusText = "Actif";
+
+    [ObservableProperty]
+    private bool _isActive;
 
     public MedicDetailViewModel(
         IRepository<Medic> repository,
@@ -66,9 +96,26 @@ public partial class MedicDetailViewModel : ViewModelBase
             
             if (Medic != null)
             {
+                // Flags
                 IsPediatric = Medic.pediatric == 1;
-                IsControlled = !string.IsNullOrEmpty(Medic.tableau);
-                FormattedPrice = $"{Medic.price / 1000.0:N3} DT";
+                IsGeneric = Medic.isap == 1;
+                IsControlled = !string.IsNullOrEmpty(Medic.tableau) && Medic.tableau != "0";
+                IsReimbursable = Medic.isic == 1;
+                IsActive = Medic.isactive == 1;
+                StatusText = IsActive ? "Actif" : "Inactif";
+
+                // Prix formatés (stockés en millièmes)
+                FormattedPrice = Medic.price > 0 ? $"{Medic.price / 1000.0:N3} DT" : "—";
+                FormattedRefPrice = Medic.refprice > 0 ? $"{Medic.refprice / 1000.0:N3} DT" : "—";
+                FormattedPctPrice = Medic.pctprice > 0 ? $"{Medic.pctprice / 1000.0:N3} DT" : "—";
+                FormattedNetPrice = Medic.netprice > 0 ? $"{Medic.netprice / 1000.0:N3} DT" : "—";
+
+                // DCI composition flags
+                HasDci2 = !string.IsNullOrWhiteSpace(Medic.dci2);
+                HasDci3 = !string.IsNullOrWhiteSpace(Medic.dci3);
+                HasDci4 = !string.IsNullOrWhiteSpace(Medic.dci4);
+
+                // Conduite
                 VeicDescription = GetVeicDescription(Medic.veic);
                 HasNotes = !string.IsNullOrWhiteSpace(Medic.indication);
             }
@@ -88,11 +135,19 @@ public partial class MedicDetailViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Edit()
+    private async Task Edit()
     {
-        if (Medic != null)
+        if (Medic == null) return;
+
+        try
         {
             _navigationService.NavigateTo<MedicEditViewModel>(Medic.recordid);
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur",
+                $"Impossible d'ouvrir le formulaire d'édition du médicament.\n\n{ex.Message}");
         }
     }
 
@@ -114,12 +169,26 @@ public partial class MedicDetailViewModel : ViewModelBase
 
         if (!string.IsNullOrEmpty(filePath))
         {
-            await ExecuteAsync(async () =>
+            try
             {
                 await _pdfService.GenerateMedicReportAsync(Medic.recordid, filePath);
-                await _dialogService.ShowSuccessAsync("Export réussi", 
-                    $"Fiche médicament exportée vers :\n{filePath}");
-            }, "Génération du PDF...");
+
+                if (File.Exists(filePath))
+                {
+                    await _dialogService.ShowSuccessAsync("Export réussi", 
+                        $"Fiche médicament exportée vers :\n{filePath}");
+                }
+                else
+                {
+                    await _dialogService.ShowErrorAsync("Erreur",
+                        "Le fichier PDF n'a pas pu être créé. Vérifiez les permissions du dossier.");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.ShowErrorAsync("Erreur d'export PDF",
+                    $"Impossible de générer le PDF :\n{ex.Message}");
+            }
         }
     }
 
@@ -128,21 +197,32 @@ public partial class MedicDetailViewModel : ViewModelBase
     {
         if (Medic == null) return;
 
-        // Génération temporaire puis ouverture pour impression
-        var tempPath = Path.Combine(Path.GetTempPath(), $"Fiche_{Medic.recordid}.pdf");
+        var tempPath = Path.Combine(Path.GetTempPath(), $"Fiche_{Medic.recordid}_{DateTime.Now:yyyyMMddHHmmss}.pdf");
         
-        await ExecuteAsync(async () =>
+        try
         {
             await _pdfService.GenerateMedicReportAsync(Medic.recordid, tempPath);
             
-            // Ouvrir le PDF dans le lecteur par défaut
-            var processInfo = new System.Diagnostics.ProcessStartInfo
+            if (File.Exists(tempPath))
             {
-                FileName = tempPath,
-                UseShellExecute = true
-            };
-            System.Diagnostics.Process.Start(processInfo);
-        }, "Préparation de l'impression...");
+                var processInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = tempPath,
+                    UseShellExecute = true
+                };
+                System.Diagnostics.Process.Start(processInfo);
+            }
+            else
+            {
+                await _dialogService.ShowErrorAsync("Erreur",
+                    "Impossible de générer le PDF pour l'impression.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync("Erreur d'impression",
+                $"Impossible de préparer l'impression :\n{ex.Message}");
+        }
     }
 
     [RelayCommand]

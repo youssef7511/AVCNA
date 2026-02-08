@@ -29,7 +29,9 @@ public partial class DatabaseView : System.Windows.Controls.UserControl
             && databaseViewModel.DciListViewModel != null
             && databaseViewModel.FamiliesListViewModel != null
             && databaseViewModel.LabosListViewModel != null
-            && databaseViewModel.InteractionsViewModel != null)
+            && databaseViewModel.InteractionsViewModel != null
+            && databaseViewModel.FormesListViewModel != null
+            && databaseViewModel.VoiesListViewModel != null)
         {
             return;
         }
@@ -39,12 +41,16 @@ public partial class DatabaseView : System.Windows.Controls.UserControl
         var familiesListViewModel = App.Services.GetRequiredService<FamiliesListViewModel>();
         var labosListViewModel = App.Services.GetRequiredService<LabosListViewModel>();
         var interactionsViewModel = App.Services.GetRequiredService<InteractionsViewModel>();
+        var formesListViewModel = App.Services.GetRequiredService<FormesListViewModel>();
+        var voiesListViewModel = App.Services.GetRequiredService<VoiesListViewModel>();
 
         databaseViewModel.InitializeSubViewModels(
             medicListViewModel,
             dciListViewModel,
             familiesListViewModel,
             labosListViewModel,
-            interactionsViewModel);
+            interactionsViewModel,
+            formesListViewModel,
+            voiesListViewModel);
     }
 }

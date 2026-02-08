@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -14,6 +15,10 @@ public partial class DciListViewModel : ViewModelBase
     private readonly IRepository<Dci> _repository;
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
+    private readonly IStrictExcelSyncService<Dci> _strictExcelSyncService;
+    private readonly MedicSyncService _syncService;
+
+    private string? _editOldName;
 
     [ObservableProperty]
     private ObservableCollection<Dci> _dcis = new();
@@ -52,11 +57,15 @@ public partial class DciListViewModel : ViewModelBase
     public DciListViewModel(
         IRepository<Dci> repository,
         IDialogService dialogService,
-        IExcelService excelService)
+        IExcelService excelService,
+        IStrictExcelSyncService<Dci> strictExcelSyncService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _dialogService = dialogService;
         _excelService = excelService;
+        _strictExcelSyncService = strictExcelSyncService;
+        _syncService = syncService;
 
         _ = LoadDataAsync();
     }
@@ -114,6 +123,7 @@ public partial class DciListViewModel : ViewModelBase
         if (dci == null) return;
 
         SelectedDci = dci;
+        _editOldName = dci.itemname;
         EditItemName = dci.itemname;
         EditSubValue = dci.subvalue;
         EditItemInfo = dci.iteminfo;
@@ -134,10 +144,19 @@ public partial class DciListViewModel : ViewModelBase
             if (SelectedDci != null)
             {
                 // Mise à jour
+                var oldName = _editOldName;
                 SelectedDci.itemname = EditItemName;
                 SelectedDci.subvalue = EditSubValue;
                 SelectedDci.iteminfo = EditItemInfo;
                 await _repository.UpdateAsync(SelectedDci);
+
+                // Propager le renommage aux médicaments
+                if (!string.IsNullOrEmpty(oldName) && oldName != EditItemName)
+                {
+                    var count = await _syncService.RenameDciInMedicsAsync(oldName, EditItemName);
+                    if (count > 0)
+                        await _dialogService.ShowSuccessAsync("Synchronisation", $"DCI renommée dans {count} médicament(s).");
+                }
             }
             else
             {
@@ -170,14 +189,23 @@ public partial class DciListViewModel : ViewModelBase
 
         SelectedDci = dci;
 
+        // Vérifier l'utilisation dans les médicaments
+        var usageCount = await _syncService.CountMedicsUsingDciAsync(dci.itemname);
+        var message = usageCount > 0
+            ? $"Voulez-vous vraiment supprimer la DCI '{dci.itemname}' ?\n\n⚠️ Cette DCI est utilisée dans {usageCount} médicament(s). Les références seront effacées."
+            : $"Voulez-vous vraiment supprimer la DCI '{dci.itemname}' ?";
+
         var confirm = await _dialogService.ShowConfirmAsync(
-            "Confirmer la suppression",
-            $"Voulez-vous vraiment supprimer la DCI '{dci.itemname}' ?");
+            "Confirmer la suppression", message);
 
         if (confirm)
         {
             await ExecuteAsync(async () =>
             {
+                // Effacer les références dans les médicaments avant la suppression
+                if (usageCount > 0)
+                    await _syncService.ClearDciFromMedicsAsync(dci.itemname);
+
                 await _repository.DeleteAsync(dci);
                 await LoadDataAsync();
                 await _dialogService.ShowSuccessAsync("Succès", "DCI supprimée avec succès.");
@@ -202,6 +230,52 @@ public partial class DciListViewModel : ViewModelBase
                 await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
             }, "Export en cours...");
         }
+    }
+
+    [RelayCommand]
+    private async Task DownloadExcelTemplateAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"DCI_Template_{DateTime.Now:yyyyMMdd}",
+            "Télécharger le modèle Excel");
+
+        if (!string.IsNullOrEmpty(filePath))
+        {
+            await ExecuteAsync(async () =>
+            {
+                await _strictExcelSyncService.CreateTemplateAsync(filePath, "DCI");
+                await _dialogService.ShowSuccessAsync(
+                    "Modèle généré",
+                    $"Modèle Excel créé : {filePath}\nNe modifiez pas les en-têtes de colonnes.");
+            }, "Génération du modèle...");
+        }
+    }
+
+    [RelayCommand]
+    private async Task ImportFromExcelAsync()
+    {
+        var filePath = _dialogService.ShowOpenFileDialog(
+            "Excel Files|*.xlsx;*.xls",
+            "Importer les DCI depuis Excel");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _strictExcelSyncService.ImportAndSyncAsync(filePath, "DCI");
+
+            if (!result.IsValid)
+            {
+                await _dialogService.ShowErrorAsync("Erreur de validation", string.Join("\n", result.Errors));
+                return;
+            }
+
+            await LoadDataAsync();
+            await _dialogService.ShowSuccessAsync(
+                "Import Excel terminé",
+                $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
+        }, "Import en cours...");
     }
 
     [RelayCommand]

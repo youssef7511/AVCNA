@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:converters="clr-namespace:AVCNDB.WPF.Converters"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:InteractionsViewModel}"
@@ -11,6 +12,7 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:StringToVisibilityConverter x:Key="StringToVis"/>
     </UserControl.Resources>
 
     <Grid>
@@ -37,8 +39,15 @@
                 <!-- Titre -->
                 <Border Grid.Row="0" Padding="20,16">
                     <StackPanel>
-                        <TextBlock Text="🔬 Analyse d'interactions"
-                                   Style="{StaticResource TitleH3Style}"/>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="SwapHorizontal" Width="24" Height="24"
+                                                     Foreground="{StaticResource PrimaryBrush}"
+                                                     VerticalAlignment="Center"/>
+                            <TextBlock Text="Analyse d'interactions"
+                                       Style="{StaticResource TitleH3Style}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
                         <TextBlock Text="Sélectionnez les DCI à analyser"
                                    Style="{StaticResource SubtitleStyle}"
                                    Margin="0,4,0,0"/>
@@ -46,9 +55,9 @@
                 </Border>
 
                 <!-- Recherche de DCI -->
-                <Border Grid.Row="1" Padding="20,0,20,16">
+                <Border Grid.Row="1" Padding="16,0,16,10">
                     <TextBox Text="{Binding DciSearchText, UpdateSourceTrigger=PropertyChanged}"
-                             materialDesign:HintAssist.Hint="🔍 Rechercher une DCI..."
+                             materialDesign:HintAssist.Hint="Rechercher une DCI..."
                              Style="{StaticResource MaterialDesignOutlinedTextBox}">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding SearchDciCommand}"/>
@@ -59,30 +68,30 @@
                 <!-- Liste des DCI disponibles -->
                 <ListBox Grid.Row="2"
                          ItemsSource="{Binding AvailableDcis}"
-                         SelectionMode="Multiple"
+                         SelectionMode="Single"
                          Margin="0"
-                         Padding="8">
+                         Padding="8"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                            <Setter Property="Padding" Value="4,2"/>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,4">
+                            <Grid Margin="0,2">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <CheckBox Grid.Column="0"
-                                          IsChecked="{Binding IsSelected}"
-                                          Style="{StaticResource MaterialDesignCheckBox}"
-                                          VerticalAlignment="Center"/>
-
-                                <TextBlock Grid.Column="1"
+                                <TextBlock Grid.Column="0"
                                            Text="{Binding Dciname}"
                                            VerticalAlignment="Center"
-                                           Margin="8,0,0,0"
-                                           TextTrimming="CharacterEllipsis"/>
+                                           TextTrimming="CharacterEllipsis"
+                                           FontSize="13"/>
 
-                                <Button Grid.Column="2"
+                                <Button Grid.Column="1"
                                         Command="{Binding DataContext.AddDciCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                         CommandParameter="{Binding}"
                                         Style="{StaticResource MaterialDesignIconButton}"
@@ -96,7 +105,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
 
-                <!-- DCI sélectionnées -->
+                <!-- DCI sélectionnées + bouton analyser -->
                 <Border Grid.Row="3" 
                         Background="{StaticResource PrimaryLightBrush}"
                         Padding="20,16">
@@ -120,6 +129,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding Dciname}"
                                                        Foreground="White"
+                                                       FontSize="12"
                                                        VerticalAlignment="Center"/>
                                             <Button Command="{Binding DataContext.RemoveDciCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                                     CommandParameter="{Binding}"
@@ -163,7 +173,7 @@
             <!-- Barre d'outils -->
             <Border Grid.Row="0" 
                     Background="{DynamicResource MaterialDesignPaper}"
-                    Padding="24,16"
+                    Padding="16,10"
                     BorderBrush="{StaticResource BorderBrush}"
                     BorderThickness="0,0,0,1">
                 <Grid>
@@ -180,174 +190,184 @@
                         <Run Text=" interaction(s) trouvée(s)"/>
                     </TextBlock>
 
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Button Command="{Binding ExportPdfCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                ToolTip="Exporter en PDF"
-                                IsEnabled="{Binding HasResults}">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" VerticalAlignment="Center"/>
-                                <TextBlock Text="Export PDF" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Command="{Binding ExportPdfCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            ToolTip="Exporter en PDF"
+                            IsEnabled="{Binding HasResults}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export PDF" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
 
-            <!-- Liste des interactions -->
-            <ScrollViewer Grid.Row="1" 
-                          VerticalScrollBarVisibility="Auto"
-                          Padding="24">
-                
-                <!-- État vide -->
-                <StackPanel VerticalAlignment="Center"
-                            HorizontalAlignment="Center"
-                            Visibility="{Binding NoResults, Converter={StaticResource BoolToVis}}">
-                    <materialDesign:PackIcon Kind="AlertCircleOutline" 
-                                             Width="64" Height="64"
-                                             Foreground="{StaticResource TextSecondaryBrush}"
-                                             HorizontalAlignment="Center"/>
-                    <TextBlock Text="Aucune interaction trouvée"
-                               Style="{StaticResource TitleH3Style}"
-                               Foreground="{StaticResource TextSecondaryBrush}"
-                               HorizontalAlignment="Center"
-                               Margin="0,16,0,0"/>
-                    <TextBlock Text="Sélectionnez des DCI et lancez l'analyse"
-                               Style="{StaticResource SubtitleStyle}"
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
-            </ScrollViewer>
+            <!-- État vide -->
+            <StackPanel Grid.Row="1"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        Visibility="{Binding NoResults, Converter={StaticResource BoolToVis}}">
+                <materialDesign:PackIcon Kind="ShieldSearch" 
+                                         Width="80" Height="80"
+                                         Foreground="{StaticResource BorderBrush}"
+                                         HorizontalAlignment="Center"/>
+                <TextBlock Text="Aucune interaction trouvée"
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,4"/>
+                <TextBlock Text="Sélectionnez au moins 2 DCI et lancez l'analyse"
+                           Style="{StaticResource SubtitleStyle}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
 
             <!-- Liste des interactions trouvées -->
-            <ItemsControl Grid.Row="1"
-                          ItemsSource="{Binding Interactions}"
-                          Margin="24"
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                <ItemsControl ItemsSource="{Binding Interactions}"
+                              Margin="24">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="0">
+                                <Grid>
+                                    <!-- Severity color bar -->
+                                    <Border HorizontalAlignment="Left" Width="6" CornerRadius="12,0,0,12">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding level}" Value="Contre-indication">
+                                                        <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding level}" Value="Association déconseillée">
+                                                        <Setter Property="Background" Value="#FF9800"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding level}" Value="Précaution d'emploi">
+                                                        <Setter Property="Background" Value="{StaticResource InfoBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
 
-                                <!-- Indicateur de gravité -->
-                                <Border Grid.Column="0"
-                                        Width="8"
-                                        CornerRadius="4,0,0,4"
-                                        Margin="-20,-20,-12,-20">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Gravite}" Value="Majeure">
-                                                    <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Gravite}" Value="Mineure">
-                                                    <Setter Property="Background" Value="{StaticResource InfoBrush}"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                </Border>
+                                    <!-- Content -->
+                                    <StackPanel Margin="20,16">
+                                        <!-- Header: DCI1 ↔ DCI2 + severity badge -->
+                                        <Grid Margin="0,0,0,12">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
 
-                                <!-- Contenu -->
-                                <StackPanel Grid.Column="1">
-                                    <!-- En-tête -->
-                                    <Grid Margin="0,0,0,12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                <Border Background="{StaticResource PrimaryLightBrush}"
+                                                        CornerRadius="6" Padding="10,5">
+                                                    <TextBlock Text="{Binding dci1}"
+                                                               FontWeight="SemiBold" FontSize="13"
+                                                               Foreground="{StaticResource PrimaryDarkBrush}"/>
+                                                </Border>
 
-                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                            <Border Background="{StaticResource PrimaryLightBrush}"
-                                                    CornerRadius="4"
-                                                    Padding="8,4">
-                                                <TextBlock Text="{Binding Dci1Navigation.Dciname}"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource PrimaryDarkBrush}"/>
-                                            </Border>
-                                            
-                                            <materialDesign:PackIcon Kind="SwapHorizontal" 
-                                                                     Width="24" Height="24"
-                                                                     Margin="12,0"
-                                                                     VerticalAlignment="Center"/>
-                                            
-                                            <Border Background="{StaticResource SecondaryLightBrush}"
-                                                    CornerRadius="4"
-                                                    Padding="8,4">
-                                                <TextBlock Text="{Binding Dci2Navigation.Dciname}"
-                                                           FontWeight="SemiBold"
-                                                           Foreground="{StaticResource SecondaryDarkBrush}"/>
-                                            </Border>
-                                        </StackPanel>
+                                                <materialDesign:PackIcon Kind="SwapHorizontal" 
+                                                                         Width="22" Height="22"
+                                                                         Margin="10,0"
+                                                                         VerticalAlignment="Center"
+                                                                         Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                        <!-- Badge gravité -->
-                                        <Border Grid.Column="1"
-                                                CornerRadius="4"
-                                                Padding="12,4">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Gravite}" Value="Majeure">
-                                                            <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding Gravite}" Value="Mineure">
-                                                            <Setter Property="Background" Value="{StaticResource InfoLightBrush}"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding Gravite, StringFormat='⚠ {0}'}" FontWeight="SemiBold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="{StaticResource WarningDarkBrush}"/>
+                                                <Border Background="{StaticResource SecondaryLightBrush}"
+                                                        CornerRadius="6" Padding="10,5">
+                                                    <TextBlock Text="{Binding dci2}"
+                                                               FontWeight="SemiBold" FontSize="13"
+                                                               Foreground="{StaticResource SecondaryDarkBrush}"/>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- Severity badge -->
+                                            <Border Grid.Column="1" CornerRadius="6" Padding="10,5">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Gravite}" Value="Majeure">
-                                                                <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                            <DataTrigger Binding="{Binding level}" Value="Contre-indication">
+                                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Gravite}" Value="Mineure">
-                                                                <Setter Property="Foreground" Value="{StaticResource InfoDarkBrush}"/>
+                                                            <DataTrigger Binding="{Binding level}" Value="Association déconseillée">
+                                                                <Setter Property="Background" Value="#FFF3E0"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding level}" Value="Précaution d'emploi">
+                                                                <Setter Property="Background" Value="{StaticResource InfoLightBrush}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding level}" FontWeight="SemiBold" FontSize="12">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource WarningDarkBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding level}" Value="Contre-indication">
+                                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding level}" Value="Association déconseillée">
+                                                                    <Setter Property="Foreground" Value="#E65100"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding level}" Value="Précaution d'emploi">
+                                                                    <Setter Property="Foreground" Value="{StaticResource InfoDarkBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Description -->
+                                        <TextBlock Text="{Binding description}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="13"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   Margin="0,0,0,8"
+                                                   Visibility="{Binding description, Converter={StaticResource StringToVis}}"/>
+
+                                        <!-- Mécanisme -->
+                                        <Border Background="{DynamicResource MaterialDesignBackground}"
+                                                CornerRadius="6" Padding="12,10"
+                                                Margin="0,0,0,8"
+                                                Visibility="{Binding mecanisme, Converter={StaticResource StringToVis}}">
+                                            <StackPanel>
+                                                <TextBlock Text="MÉCANISME"
+                                                           FontWeight="SemiBold" FontSize="11"
+                                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                                           Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding mecanisme}"
+                                                           TextWrapping="Wrap" FontSize="12"/>
+                                            </StackPanel>
                                         </Border>
-                                    </Grid>
 
-                                    <!-- Description -->
-                                    <TextBlock Text="{Binding Description}"
-                                               TextWrapping="Wrap"
-                                               Foreground="{StaticResource TextSecondaryBrush}"
-                                               Margin="0,0,0,8"/>
+                                        <!-- Conduite à tenir -->
+                                        <Border Background="#E8F5E9"
+                                                CornerRadius="6" Padding="12,10"
+                                                Visibility="{Binding conduite, Converter={StaticResource StringToVis}}">
+                                            <StackPanel>
+                                                <TextBlock Text="CONDUITE À TENIR"
+                                                           FontWeight="SemiBold" FontSize="11"
+                                                           Foreground="#2E7D32"
+                                                           Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding conduite}"
+                                                           TextWrapping="Wrap" FontSize="12"
+                                                           Foreground="#1B5E20"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
-                                    <!-- Mécanisme -->
-                                    <Border Background="{DynamicResource MaterialDesignBackground}"
-                                            CornerRadius="4"
-                                            Padding="12,8"
-                                            Visibility="{Binding Mecanisme, Converter={StaticResource BoolToVis}}">
-                                        <StackPanel>
-                                            <TextBlock Text="Mécanisme :"
-                                                       FontWeight="SemiBold"
-                                                       FontSize="12"
-                                                       Margin="0,0,0,4"/>
-                                            <TextBlock Text="{Binding Mecanisme}"
-                                                       TextWrapping="Wrap"
-                                                       FontSize="12"/>
-                                        </StackPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <!-- Indicateur de chargement -->
+            <!-- Loading -->
             <ProgressBar Grid.Row="1"
                          IsIndeterminate="True"
                          Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"

@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -6,7 +7,7 @@ namespace AVCNDB.WPF.ViewModels;
 /// Classe de base pour tous les ViewModels
 /// Fournit les fonctionnalités communes MVVM
 /// </summary>
-public abstract partial class ViewModelBase : ObservableObject
+public abstract partial class ViewModelBase : ObservableObject, INavigationAware
 {
     [ObservableProperty]
     private bool _isLoading;

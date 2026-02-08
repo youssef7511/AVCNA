@@ -46,9 +46,11 @@ public partial class HomeViewModel : ViewModelBase
         _laboRepository = laboRepository;
         _stockService = stockService;
         _navigationService = navigationService;
+    }
 
-        // Ne pas charger automatiquement les données - la base peut ne pas être disponible
-        // L'utilisateur peut rafraîchir manuellement
+    public override void OnNavigatedTo(object? parameter)
+    {
+        _ = LoadDashboardDataAsync();
     }
 
     private async Task LoadDashboardDataAsync()

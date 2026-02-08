@@ -21,6 +21,9 @@ public partial class MainViewModel : ViewModelBase
     private string _currentPageTitle = "Accueil";
 
     [ObservableProperty]
+    private bool _isHeaderVisible = true;
+
+    [ObservableProperty]
     private bool _isMenuExpanded = true;
 
     [ObservableProperty]
@@ -52,6 +55,18 @@ public partial class MainViewModel : ViewModelBase
     private void OnNavigationChanged()
     {
         CurrentView = _navigationService.CurrentView;
+        UpdateHeaderVisibility();
+    }
+
+    partial void OnCurrentViewChanged(object? value)
+    {
+        UpdateHeaderVisibility();
+    }
+
+    private void UpdateHeaderVisibility()
+    {
+        // Masquer l'en-tête global - chaque page a déjà son propre en-tête
+        IsHeaderVisible = false;
     }
 
     private void OnThemeChanged(AppTheme theme)
@@ -76,13 +91,15 @@ public partial class MainViewModel : ViewModelBase
     {
         _navigationService.NavigateTo<HomeViewModel>();
         CurrentPageTitle = "Accueil";
+        UpdateHeaderVisibility();
     }
 
     [RelayCommand]
     private void NavigateToLibrary()
     {
-        _navigationService.NavigateToView("LibraryView");
+        _navigationService.NavigateTo<LibraryShellViewModel>();
         CurrentPageTitle = "Bibliothèque";
+        UpdateHeaderVisibility();
     }
 
     [RelayCommand]
@@ -90,6 +107,7 @@ public partial class MainViewModel : ViewModelBase
     {
         _navigationService.NavigateTo<DatabaseViewModel>();
         CurrentPageTitle = "Base de données";
+        UpdateHeaderVisibility();
     }
 
     [RelayCommand]

@@ -22,7 +22,7 @@
         <!-- Barre d'outils -->
         <Border Grid.Row="0" 
                 Background="{DynamicResource MaterialDesignPaper}"
-                Padding="24,16"
+                Padding="16,10"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid>
@@ -33,10 +33,10 @@
 
                 <!-- Recherche -->
                 <TextBox Grid.Column="0"
-                         Width="350"
+                         Width="280"
                          HorizontalAlignment="Left"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         materialDesign:HintAssist.Hint="🔍 Rechercher un laboratoire..."
+                         materialDesign:HintAssist.Hint="Rechercher un laboratoire..."
                          Style="{StaticResource MaterialDesignOutlinedTextBox}">
                     <TextBox.InputBindings>
                         <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
@@ -56,10 +56,33 @@
                         </StackPanel>
                     </Button>
 
+                    <Button Command="{Binding ImportFromExcelCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Importer depuis Excel (template strict)">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="MicrosoftExcel" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Import" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding DownloadExcelTemplateCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            ToolTip="Télécharger le modèle Excel (template strict)">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileExcel" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Modèle" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button Command="{Binding ExportCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
                             ToolTip="Exporter en Excel">
-                        <materialDesign:PackIcon Kind="MicrosoftExcel" Width="20" Height="20"/>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Download" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -123,5 +146,47 @@
                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                      VerticalAlignment="Top"
                      Margin="24,0"/>
+
+        <!-- Édition / Ajout -->
+        <Border Grid.RowSpan="2"
+                Background="#80000000"
+                Visibility="{Binding IsEditing, Converter={StaticResource BoolToVis}}">
+            <Border Background="{DynamicResource MaterialDesignPaper}"
+                    CornerRadius="8"
+                    Padding="24"
+                    MaxWidth="700"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <StackPanel>
+                    <TextBlock Text="Édition Laboratoire"
+                               Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                               Margin="0,0,0,16"/>
+
+                    <TextBox Text="{Binding EditItemName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Nom *"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,12" />
+
+                    <TextBox Text="{Binding EditSubValue, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Catégorie"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,16" />
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Command="{Binding CancelEditCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,0,12,0">
+                            Annuler
+                        </Button>
+                        <Button Command="{Binding SaveCommand}"
+                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                Background="{StaticResource SuccessBrush}"
+                                Foreground="White">
+                            Enregistrer
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Border>
     </Grid>
 </UserControl>

@@ -16,33 +16,28 @@ public partial class InteractionsViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IPdfService _pdfService;
 
+    // ── Résultats ──
     [ObservableProperty]
     private ObservableCollection<Interact> _interactions = new();
 
     [ObservableProperty]
-    private Interact? _selectedInteraction;
+    private bool _hasResults;
 
     [ObservableProperty]
-    private string _searchDci1 = string.Empty;
+    private bool _noResults = true;
+
+    // ── Panneau gauche : recherche et sélection DCI ──
+    [ObservableProperty]
+    private string _dciSearchText = string.Empty;
 
     [ObservableProperty]
-    private string _searchDci2 = string.Empty;
+    private ObservableCollection<DciSelectItem> _availableDcis = new();
 
     [ObservableProperty]
-    private ObservableCollection<string> _dciSuggestions = new();
-
-    // Pour l'analyse de prescription
-    [ObservableProperty]
-    private ObservableCollection<string> _selectedDcis = new();
+    private ObservableCollection<DciSelectItem> _selectedDcis = new();
 
     [ObservableProperty]
-    private ObservableCollection<Interact> _foundInteractions = new();
-
-    [ObservableProperty]
-    private bool _isAnalyzing;
-
-    [ObservableProperty]
-    private string _analysisResult = string.Empty;
+    private bool _canAnalyze;
 
     public InteractionsViewModel(
         IRepository<Interact> repository,
@@ -55,141 +50,111 @@ public partial class InteractionsViewModel : ViewModelBase
         _dialogService = dialogService;
         _pdfService = pdfService;
 
-        _ = LoadDataAsync();
+        _ = LoadDcisAsync();
     }
 
-    private async Task LoadDataAsync()
+    private async Task LoadDcisAsync()
     {
         await ExecuteAsync(async () =>
         {
-            var items = await _repository.GetAllAsync();
-            Interactions = new ObservableCollection<Interact>(
-                items.OrderBy(i => i.dci1).ThenBy(i => i.dci2));
-        }, "Chargement des interactions...");
+            var dcis = await _dciRepository.GetAllAsync();
+            AvailableDcis = new ObservableCollection<DciSelectItem>(
+                dcis.OrderBy(d => d.itemname)
+                    .Select(d => new DciSelectItem { Dciname = d.itemname }));
+        }, "Chargement des DCI...");
     }
 
-    [RelayCommand]
-    private async Task SearchAsync()
+    partial void OnDciSearchTextChanged(string value)
     {
-        await ExecuteAsync(async () =>
-        {
-            IEnumerable<Interact> items;
-
-            if (!string.IsNullOrEmpty(SearchDci1) && !string.IsNullOrEmpty(SearchDci2))
-            {
-                items = await _repository.FindAsync(i =>
-                    (i.dci1.Contains(SearchDci1) && i.dci2.Contains(SearchDci2)) ||
-                    (i.dci1.Contains(SearchDci2) && i.dci2.Contains(SearchDci1)));
-            }
-            else if (!string.IsNullOrEmpty(SearchDci1))
-            {
-                items = await _repository.FindAsync(i =>
-                    i.dci1.Contains(SearchDci1) || i.dci2.Contains(SearchDci1));
-            }
-            else
-            {
-                items = await _repository.GetAllAsync();
-            }
-
-            Interactions = new ObservableCollection<Interact>(items);
-        }, "Recherche...");
+        _ = FilterDcisAsync(value);
     }
 
-    [RelayCommand]
-    private void ClearSearch()
+    private async Task FilterDcisAsync(string search)
     {
-        SearchDci1 = string.Empty;
-        SearchDci2 = string.Empty;
-        _ = LoadDataAsync();
+        var dcis = string.IsNullOrWhiteSpace(search)
+            ? await _dciRepository.GetAllAsync()
+            : await _dciRepository.FindAsync(d => d.itemname.Contains(search));
+
+        AvailableDcis = new ObservableCollection<DciSelectItem>(
+            dcis.OrderBy(d => d.itemname)
+                .Select(d => new DciSelectItem
+                {
+                    Dciname = d.itemname,
+                    IsSelected = SelectedDcis.Any(s => s.Dciname == d.itemname)
+                }));
     }
 
     [RelayCommand]
-    private void AddDciToAnalysis(string dci)
+    private void SearchDci() { /* triggered by Enter key, OnDciSearchTextChanged handles it */ }
+
+    [RelayCommand]
+    private void AddDci(DciSelectItem? dci)
     {
-        if (!string.IsNullOrWhiteSpace(dci) && !SelectedDcis.Contains(dci))
-        {
-            SelectedDcis.Add(dci);
-        }
+        if (dci == null || string.IsNullOrWhiteSpace(dci.Dciname)) return;
+        if (SelectedDcis.Any(s => s.Dciname == dci.Dciname)) return;
+
+        SelectedDcis.Add(new DciSelectItem { Dciname = dci.Dciname, IsSelected = true });
+        dci.IsSelected = true;
+        CanAnalyze = SelectedDcis.Count >= 2;
     }
 
     [RelayCommand]
-    private void RemoveDciFromAnalysis(string dci)
+    private void RemoveDci(DciSelectItem? dci)
     {
-        SelectedDcis.Remove(dci);
+        if (dci == null) return;
+
+        var item = SelectedDcis.FirstOrDefault(s => s.Dciname == dci.Dciname);
+        if (item != null) SelectedDcis.Remove(item);
+
+        // Also uncheck in available list
+        var available = AvailableDcis.FirstOrDefault(a => a.Dciname == dci.Dciname);
+        if (available != null) available.IsSelected = false;
+
+        CanAnalyze = SelectedDcis.Count >= 2;
     }
 
     [RelayCommand]
-    private async Task AnalyzeInteractionsAsync()
+    private async Task Analyze()
     {
         if (SelectedDcis.Count < 2)
         {
-            await _dialogService.ShowWarningAsync("Attention", 
+            await _dialogService.ShowWarningAsync("Attention",
                 "Veuillez sélectionner au moins 2 DCI pour analyser les interactions.");
             return;
         }
 
-        IsAnalyzing = true;
-
         await ExecuteAsync(async () =>
         {
-            var dcis = SelectedDcis.ToList();
+            var dciNames = SelectedDcis.Select(d => d.Dciname).ToList();
             var found = new List<Interact>();
 
-            // Chercher toutes les interactions entre les DCI sélectionnées
-            for (int i = 0; i < dcis.Count; i++)
+            for (int i = 0; i < dciNames.Count; i++)
             {
-                for (int j = i + 1; j < dcis.Count; j++)
+                for (int j = i + 1; j < dciNames.Count; j++)
                 {
-                    var dci1 = dcis[i];
-                    var dci2 = dcis[j];
+                    var d1 = dciNames[i];
+                    var d2 = dciNames[j];
 
                     var interactions = await _repository.FindAsync(inter =>
-                        (inter.dci1.Contains(dci1) && inter.dci2.Contains(dci2)) ||
-                        (inter.dci1.Contains(dci2) && inter.dci2.Contains(dci1)));
+                        (inter.dci1.Contains(d1) && inter.dci2.Contains(d2)) ||
+                        (inter.dci1.Contains(d2) && inter.dci2.Contains(d1)));
 
                     found.AddRange(interactions);
                 }
             }
 
-            FoundInteractions = new ObservableCollection<Interact>(found);
-
-            if (found.Any())
-            {
-                var contraindicated = found.Count(i => 
-                    i.level?.ToLower().Contains("contre-indication") == true);
-                var discouraged = found.Count(i => 
-                    i.level?.ToLower().Contains("déconseillée") == true);
-                var precaution = found.Count(i => 
-                    i.level?.ToLower().Contains("précaution") == true);
-
-                AnalysisResult = $"⚠ {found.Count} interaction(s) trouvée(s):\n" +
-                                 $"• Contre-indications: {contraindicated}\n" +
-                                 $"• Associations déconseillées: {discouraged}\n" +
-                                 $"• Précautions d'emploi: {precaution}";
-            }
-            else
-            {
-                AnalysisResult = "✅ Aucune interaction connue entre les DCI sélectionnées.";
-            }
+            Interactions = new ObservableCollection<Interact>(found);
+            HasResults = found.Count > 0;
+            NoResults = found.Count == 0;
         }, "Analyse en cours...");
-
-        IsAnalyzing = false;
     }
 
     [RelayCommand]
-    private void ClearAnalysis()
+    private async Task ExportPdf()
     {
-        SelectedDcis.Clear();
-        FoundInteractions.Clear();
-        AnalysisResult = string.Empty;
-    }
-
-    [RelayCommand]
-    private async Task ExportAnalysisAsync()
-    {
-        if (!SelectedDcis.Any())
+        if (!HasResults && SelectedDcis.Count == 0)
         {
-            await _dialogService.ShowWarningAsync("Attention", 
+            await _dialogService.ShowWarningAsync("Attention",
                 "Veuillez d'abord sélectionner des DCI et lancer une analyse.");
             return;
         }
@@ -201,18 +166,34 @@ public partial class InteractionsViewModel : ViewModelBase
 
         if (!string.IsNullOrEmpty(filePath))
         {
-            await ExecuteAsync(async () =>
+            try
             {
-                await _pdfService.GenerateInteractionReportAsync(SelectedDcis, filePath);
-                await _dialogService.ShowSuccessAsync("Export réussi", 
-                    $"Rapport d'interactions exporté vers {filePath}");
-            }, "Génération du rapport...");
+                var dciNames = SelectedDcis.Select(d => d.Dciname);
+                await _pdfService.GenerateInteractionReportAsync(dciNames, filePath);
+
+                if (System.IO.File.Exists(filePath))
+                {
+                    await _dialogService.ShowSuccessAsync("Export réussi",
+                        $"Rapport d'interactions exporté vers :\n{filePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.ShowErrorAsync("Erreur d'export",
+                    $"Impossible de générer le PDF :\n{ex.Message}");
+            }
         }
     }
+}
 
-    [RelayCommand]
-    private async Task RefreshAsync()
-    {
-        await LoadDataAsync();
-    }
+/// <summary>
+/// Item de sélection DCI pour l'analyse d'interactions
+/// </summary>
+public partial class DciSelectItem : ObservableObject
+{
+    [ObservableProperty]
+    private string _dciname = string.Empty;
+
+    [ObservableProperty]
+    private bool _isSelected;
 }

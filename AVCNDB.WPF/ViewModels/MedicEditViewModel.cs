@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -17,6 +18,7 @@ public partial class MedicEditViewModel : ViewModelBase
     private readonly IRepository<Dci> _dciRepository;
     private readonly INavigationService _navigationService;
     private readonly IDialogService _dialogService;
+    private readonly MedicSyncService _syncService;
 
     private int? _medicId;
 
@@ -55,7 +57,8 @@ public partial class MedicEditViewModel : ViewModelBase
         IRepository<Labos> laboRepository,
         IRepository<Dci> dciRepository,
         INavigationService navigationService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _familyRepository = familyRepository;
@@ -63,6 +66,7 @@ public partial class MedicEditViewModel : ViewModelBase
         _dciRepository = dciRepository;
         _navigationService = navigationService;
         _dialogService = dialogService;
+        _syncService = syncService;
     }
 
     public override void OnNavigatedTo(object? parameter)
@@ -156,6 +160,9 @@ public partial class MedicEditViewModel : ViewModelBase
             {
                 await _repository.AddAsync(Medic);
             }
+
+            // Synchroniser les tables de référence (DCI, Familles, Labos, Formes, Voies)
+            try { await _syncService.SyncLookupTablesAsync(Medic); } catch { /* non-fatal */ }
 
             await _dialogService.ShowSuccessAsync("Succès", 
                 IsEditMode ? "Médicament mis à jour avec succès." : "Médicament créé avec succès.");

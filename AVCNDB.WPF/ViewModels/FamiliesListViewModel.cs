@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -14,6 +15,10 @@ public partial class FamiliesListViewModel : ViewModelBase
     private readonly IRepository<Families> _repository;
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
+    private readonly IStrictExcelSyncService<Families> _strictExcelSyncService;
+    private readonly MedicSyncService _syncService;
+
+    private string? _editOldName;
 
     [ObservableProperty]
     private ObservableCollection<Families> _families = new();
@@ -36,11 +41,15 @@ public partial class FamiliesListViewModel : ViewModelBase
     public FamiliesListViewModel(
         IRepository<Families> repository,
         IDialogService dialogService,
-        IExcelService excelService)
+        IExcelService excelService,
+        IStrictExcelSyncService<Families> strictExcelSyncService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _dialogService = dialogService;
         _excelService = excelService;
+        _strictExcelSyncService = strictExcelSyncService;
+        _syncService = syncService;
 
         _ = LoadDataAsync();
     }
@@ -83,6 +92,7 @@ public partial class FamiliesListViewModel : ViewModelBase
         if (family == null) return;
 
         SelectedFamily = family;
+        _editOldName = family.itemname;
         EditItemName = family.itemname;
         EditSubValue = family.subvalue;
         IsEditing = true;
@@ -101,9 +111,18 @@ public partial class FamiliesListViewModel : ViewModelBase
         {
             if (SelectedFamily != null)
             {
+                var oldName = _editOldName;
                 SelectedFamily.itemname = EditItemName;
                 SelectedFamily.subvalue = EditSubValue;
                 await _repository.UpdateAsync(SelectedFamily);
+
+                // Propager le renommage aux médicaments
+                if (!string.IsNullOrEmpty(oldName) && oldName != EditItemName)
+                {
+                    var count = await _syncService.RenameFamilyInMedicsAsync(oldName, EditItemName);
+                    if (count > 0)
+                        await _dialogService.ShowSuccessAsync("Synchronisation", $"Famille renommée dans {count} médicament(s).");
+                }
             }
             else
             {
@@ -129,11 +148,19 @@ public partial class FamiliesListViewModel : ViewModelBase
 
         SelectedFamily = family;
 
-        if (await _dialogService.ShowConfirmAsync("Confirmer", 
-            $"Supprimer la famille '{family.itemname}' ?"))
+        // Vérifier l'utilisation dans les médicaments
+        var usageCount = await _syncService.CountMedicsUsingFamilyAsync(family.itemname);
+        var message = usageCount > 0
+            ? $"Supprimer la famille '{family.itemname}' ?\n\n⚠️ Utilisée dans {usageCount} médicament(s). Les références seront effacées."
+            : $"Supprimer la famille '{family.itemname}' ?";
+
+        if (await _dialogService.ShowConfirmAsync("Confirmer", message))
         {
             await ExecuteAsync(async () =>
             {
+                if (usageCount > 0)
+                    await _syncService.ClearFamilyFromMedicsAsync(family.itemname);
+
                 await _repository.DeleteAsync(family);
                 await LoadDataAsync();
             });
@@ -156,5 +183,50 @@ public partial class FamiliesListViewModel : ViewModelBase
             await _excelService.ExportAsync(allItems, filePath, "Familles");
             await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
         }, "Export en cours...");
+    }
+
+    [RelayCommand]
+    private async Task DownloadExcelTemplateAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Families_Template_{DateTime.Now:yyyyMMdd}",
+            "Télécharger le modèle Excel");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            await _strictExcelSyncService.CreateTemplateAsync(filePath, "Familles");
+            await _dialogService.ShowSuccessAsync(
+                "Modèle généré",
+                $"Modèle Excel créé : {filePath}\nNe modifiez pas les en-têtes de colonnes.");
+        }, "Génération du modèle...");
+    }
+
+    [RelayCommand]
+    private async Task ImportFromExcelAsync()
+    {
+        var filePath = _dialogService.ShowOpenFileDialog(
+            "Excel Files|*.xlsx;*.xls",
+            "Importer les familles depuis Excel");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _strictExcelSyncService.ImportAndSyncAsync(filePath, "Familles");
+
+            if (!result.IsValid)
+            {
+                await _dialogService.ShowErrorAsync("Erreur de validation", string.Join("\n", result.Errors));
+                return;
+            }
+
+            await LoadDataAsync();
+            await _dialogService.ShowSuccessAsync(
+                "Import Excel terminé",
+                $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
+        }, "Import en cours...");
     }
 }
