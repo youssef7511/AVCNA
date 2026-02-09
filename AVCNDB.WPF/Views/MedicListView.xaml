@@ -189,6 +189,21 @@
             </DataGrid.InputBindings>
 
             <DataGrid.Columns>
+                <!-- Sélection -->
+                <DataGridTemplateColumn Width="45" CanUserResize="False" CanUserSort="False">
+                    <DataGridTemplateColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Focusable" Value="False"/>
+                        </Style>
+                    </DataGridTemplateColumn.CellStyle>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <!-- Code-barre -->
                 <DataGridTextColumn Header="Code-barre" 
                                     Binding="{Binding barcode}" 

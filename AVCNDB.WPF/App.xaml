@@ -80,6 +80,10 @@
             <DataTemplate DataType="{x:Type vm:LibraryShellViewModel}">
                 <views:LibraryView />
             </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:ToolsViewModel}">
+                <views:ToolsView />
+            </DataTemplate>
             
         </ResourceDictionary>
     </Application.Resources>

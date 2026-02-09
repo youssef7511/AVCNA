@@ -1,6 +1,6 @@
-# AVICENNA DB - Base de Données Pharmaceutique
+# AVICENNA DB - Base de Données Médicamenteuse
 
-Application de bureau complète pour la gestion pharmaceutique, développée en **WPF .NET 8.0** avec **Material Design**, **MVVM** (CommunityToolkit.Mvvm), **Entity Framework Core** (MySQL/MariaDB), et un système de logging **Serilog**.
+Application de bureau complète pour la gestion médicamenteuse, développée en **WPF .NET 8.0** avec **Material Design**, **MVVM** (CommunityToolkit.Mvvm), **Entity Framework Core** (MySQL/MariaDB), et un système de logging **Serilog**.
 
 ---
 
@@ -64,8 +64,8 @@ Configurer la connexion dans `appsettings.json` :
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=50000;Database=MEDICDB;User=root;Password=yourpassword;",
-    "RemoteConnection": "Server=remote-host;Port=3306;Database=MEDICDB;User=user;Password=password;"
+    "DefaultConnection": "Server=127.0.0.1;Database=MEDICDB;User Id=medwin;Password=0101;Port=3306;AllowZeroDateTime=True;ConvertZeroDateTime=True;",
+    "RemoteConnection": "Server=remote-host;Database=MEDICDB;User Id=user;Password=password;Port=3306;AllowZeroDateTime=True;ConvertZeroDateTime=True;"
   },
   "AppSettings": {
     "UseRemoteDatabase": false
@@ -73,11 +73,24 @@ Configurer la connexion dans `appsettings.json` :
 }
 ```
 
+> **Note :** `AllowZeroDateTime=True;ConvertZeroDateTime=True` sont requis pour éviter les erreurs MySQL sur les dates "0000-00-00".
+
 L'application supporte la bascule entre base de données locale et distante via le paramètre `UseRemoteDatabase`.
 
 ### Thème
 
-Thèmes clair et sombre avec bascule en un clic (bouton soleil/lune dans la barre latérale). Le thème système est détecté automatiquement au démarrage.
+Thèmes clair et sombre avec bascule via la page **Paramètres** (ComboBox Clair/Sombre/Système).
+
+### Paramètres
+
+Page de configuration à deux colonnes :
+
+- **Apparence** : sélection du thème (Clair, Sombre, Système)
+- **Alertes** : seuil de stock bas (unités), alerte péremption (jours)
+- **Base de données** : serveur, port, nom de base, utilisateur, mot de passe, bouton "Tester la connexion" (test réel via `MySqlConnection.OpenAsync()`), sauvegarde directe dans `appsettings.json`
+- **À propos** : version, framework, copyright
+- Bouton **Enregistrer** persistant en bas de page, **Réinitialiser** en haut
+- Redémarrage requis après modification des paramètres de connexion
 
 ---
 
@@ -110,7 +123,7 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### Navigation
 
-Barre latérale rétractable (260px → 60px) avec les sections :
+Barre latérale rétractable avec **auto-hide** (survol pour déplier, 260px → 60px) avec les sections :
 
 | Section | Icône | Description |
 | ------- | ----- | ----------- |
@@ -121,7 +134,7 @@ Barre latérale rétractable (260px → 60px) avec les sections :
 | Paramètres | Cog | Configuration de l'application |
 | Outils | Tools | Utilitaires et diagnostics |
 
-La barre de titre globale est **masquée automatiquement** sur les pages Accueil, Bibliothèque et Base de données (qui possèdent leurs propres en-têtes intégrés).
+La barre de titre globale est **masquée sur toutes les pages** — chaque vue possède son propre en-tête intégré.
 
 ### Tableau de bord (Accueil)
 
@@ -184,13 +197,15 @@ La barre de titre globale est **masquée automatiquement** sur les pages Accueil
 | DCI (dci1–dci4) | ✅ | ✅ | ✅ |
 | Familles (fam1–fam3, family) | ✅ | ✅ | ✅ |
 | Laboratoires | ✅ | ✅ | ✅ |
-| Formes | ✅ | ✅ (service prêt) | ✅ (service prêt) |
-| Voies | ✅ | ✅ (service prêt) | ✅ (service prêt) |
+| Formes | ✅ | ✅ | ✅ |
+| Voies | ✅ | ✅ | ✅ |
 
 ### Import/Export
 
 - ✅ Import Excel avec validation stricte (`IStrictExcelSyncService<T>`)
 - ✅ Export Excel (toutes les tables de référence)
+- ✅ **Export sélectif** : checkbox de sélection dans chaque DataGrid — exporte uniquement les lignes cochées, ou tout si aucune sélection
+- ✅ Exclusion automatique des propriétés `[NotMapped]` à l'export (ex: `IsChecked`)
 - ✅ Génération de modèles Excel téléchargeables
 - ✅ Export PDF (fiches médicaments, rapports)
 
@@ -202,9 +217,26 @@ La barre de titre globale est **masquée automatiquement** sur les pages Accueil
 
 ### Interactions médicamenteuses
 
-- ✅ Analyse multi-DCI
-- ✅ Niveaux de gravité
-- ✅ Export rapport
+- ✅ Panneau de sélection multi-DCI (recherche + ajout/retrait par chips)
+- ✅ Analyse croisée de toutes les paires de DCI sélectionnées
+- ✅ Cartes de résultats avec niveaux de gravité colorés (Contre-indication, Association déconseillée, Précaution d'emploi)
+- ✅ Affichage de la description, du mécanisme et de la conduite à tenir
+- ✅ Export PDF du rapport d'interactions
+
+### Page Outils (ToolsViewModel)
+
+- ✅ **Export Excel global** : exporte tous les médicaments en un clic
+- ✅ **Import Excel global** : import de données médicaments avec confirmation
+- ✅ **Rapport PDF** : génération d'un rapport complet de la base
+- ✅ **Sauvegarde SQL** : dump de la base via `mysqldump` (détection automatique du binaire)
+- ✅ **Restauration SQL** : restauration depuis un fichier `.sql` avec confirmation de sécurité
+- ✅ **Statistiques** : panneau overlay affichant les compteurs (médicaments, DCI, familles, labos, formes, voies)
+
+### Thème sombre
+
+- ✅ Tous les styles partagés (CardStyles, TextStyles, DataGridStyles) utilisent `DynamicResource` avec les clés Material Design (`MaterialDesignBody`, `MaterialDesignCardBackground`, `MaterialDesignDivider`, etc.)
+- ✅ Adaptation automatique clair/sombre sans couleurs codées en dur
+- ✅ Bascule instantanée via la page Paramètres (Clair / Sombre / Système)
 
 ---
 

@@ -13,313 +13,373 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
-        <StackPanel MaxWidth="800" HorizontalAlignment="Left">
-            
-            <!-- Titre -->
-            <TextBlock Text="Paramètres" 
-                       Style="{StaticResource TitleH1Style}"
-                       Margin="0,0,0,24"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- ============================================
-                 SECTION APPARENCE
-            ============================================ -->
-            <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
-                <StackPanel>
-                    <TextBlock Text="🎨 Apparence" 
-                               Style="{StaticResource TitleH3Style}"
-                               Margin="0,0,0,20"/>
-
-                    <!-- Thème -->
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Thème de l'application"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Choisissez entre le mode clair et le mode sombre"
-                                       Style="{StaticResource SubtitleStyle}"/>
-                        </StackPanel>
-
-                        <ComboBox Grid.Column="1"
-                                  Width="200"
-                                  SelectedItem="{Binding SelectedTheme}"
-                                  Style="{StaticResource MaterialDesignOutlinedComboBox}">
-                            <ComboBoxItem Content="Clair"/>
-                            <ComboBoxItem Content="Sombre"/>
-                            <ComboBoxItem Content="Système"/>
-                        </ComboBox>
-                    </Grid>
-
-                    <Separator Margin="0,8"/>
-
-                    <!-- Couleur primaire -->
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Couleur primaire"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Couleur principale de l'interface"
-                                       Style="{StaticResource SubtitleStyle}"/>
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Border Width="32" Height="32" 
-                                    CornerRadius="16" 
-                                    Background="#1976D2" 
-                                    BorderBrush="{StaticResource BorderBrush}"
-                                    BorderThickness="2"
-                                    Margin="4"/>
-                            <Border Width="32" Height="32" 
-                                    CornerRadius="16" 
-                                    Background="#2E7D32" 
-                                    Margin="4"/>
-                            <Border Width="32" Height="32" 
-                                    CornerRadius="16" 
-                                    Background="#7B1FA2" 
-                                    Margin="4"/>
-                            <Border Width="32" Height="32" 
-                                    CornerRadius="16" 
-                                    Background="#D32F2F" 
-                                    Margin="4"/>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- ============================================
-                 SECTION BASE DE DONNÉES
-            ============================================ -->
-            <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
-                <StackPanel>
-                    <TextBlock Text="🗄️ Base de données" 
-                               Style="{StaticResource TitleH3Style}"
-                               Margin="0,0,0,20"/>
-
-                    <!-- Serveur -->
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding DatabaseServer, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Serveur"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="0,0,8,0"/>
-
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding DatabasePort, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Port"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="8,0,0,0"/>
-                    </Grid>
-
-                    <!-- Base et utilisateur -->
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBox Grid.Column="0"
-                                 Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Nom de la base"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="0,0,8,0"/>
-
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding DatabaseUser, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Utilisateur"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                 Margin="8,0,0,0"/>
-                    </Grid>
-
-                    <!-- Mot de passe -->
-                    <PasswordBox materialDesign:HintAssist.Hint="Mot de passe"
-                                 Style="{StaticResource MaterialDesignOutlinedPasswordBox}"
-                                 Margin="0,0,0,16"/>
-
-                    <!-- Bouton test -->
-                    <StackPanel Orientation="Horizontal">
-                        <Button Command="{Binding TestConnectionCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                Margin="0,0,16,0">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="DatabaseCheck" Width="18" Height="18" VerticalAlignment="Center"/>
-                                <TextBlock Text="Tester la connexion" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-
-                        <!-- Statut connexion -->
-                        <Border CornerRadius="4" 
-                                Padding="12,8"
-                                Visibility="{Binding ConnectionTested, Converter={StaticResource BoolToVis}}">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ConnectionSuccess}" Value="True">
-                                            <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <TextBlock>
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Text" Value="❌ Échec de connexion"/>
-                                        <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ConnectionSuccess}" Value="True">
-                                                <Setter Property="Text" Value="✓ Connexion réussie"/>
-                                                <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </Border>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- ============================================
-                 SECTION ALERTES
-            ============================================ -->
-            <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,24">
-                <StackPanel>
-                    <TextBlock Text="🔔 Alertes" 
-                               Style="{StaticResource TitleH3Style}"
-                               Margin="0,0,0,20"/>
-
-                    <!-- Seuil stock bas -->
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="150"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Seuil d'alerte stock"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Nombre d'unités en dessous duquel une alerte est déclenchée"
-                                       Style="{StaticResource SubtitleStyle}"/>
-                        </StackPanel>
-
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding StockAlertThreshold, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Seuil"
-                                 materialDesign:TextFieldAssist.SuffixText="unités"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                    </Grid>
-
-                    <Separator Margin="0,8"/>
-
-                    <!-- Jours avant péremption -->
-                    <Grid Margin="0,16,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="150"/>
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Alerte péremption"
-                                       FontWeight="SemiBold"/>
-                            <TextBlock Text="Nombre de jours avant la date de péremption pour déclencher l'alerte"
-                                       Style="{StaticResource SubtitleStyle}"/>
-                        </StackPanel>
-
-                        <TextBox Grid.Column="1"
-                                 Text="{Binding ExpiryAlertDays, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Jours"
-                                 materialDesign:TextFieldAssist.SuffixText="jours"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- ============================================
-                 SECTION À PROPOS
-            ============================================ -->
-            <Border Style="{StaticResource ElevatedCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="ℹ️ À propos" 
-                               Style="{StaticResource TitleH3Style}"
-                               Margin="0,0,0,20"/>
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Logo -->
-                        <Border Grid.Column="0"
-                                Background="{StaticResource PrimaryBrush}"
-                                CornerRadius="12"
-                                Padding="20"
-                                Margin="0,0,24,0">
-                            <TextBlock Text="🏥" 
-                                       FontSize="48"
-                                       Foreground="White"/>
-                        </Border>
-
-                        <!-- Informations -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="AVICENNA DB"
-                                       FontSize="24"
-                                       FontWeight="Bold"
-                                       Foreground="{StaticResource PrimaryDarkBrush}"/>
-                            <TextBlock Text="Base de Données Pharmaceutique"
-                                       Style="{StaticResource SubtitleStyle}"
-                                       Margin="0,4,0,12"/>
-
-                            <TextBlock Margin="0,0,0,4">
-                                <Run Text="Version :" FontWeight="SemiBold"/>
-                                <Run Text="2.0.0"/>
-                            </TextBlock>
-                            
-                            <TextBlock Margin="0,0,0,4">
-                                <Run Text="Framework :" FontWeight="SemiBold"/>
-                                <Run Text=".NET 8.0 + WPF"/>
-                            </TextBlock>
-
-                            <TextBlock Margin="0,0,0,4">
-                                <Run Text="Développé par :" FontWeight="SemiBold"/>
-                                <Run Text="AVCNA Team"/>
-                            </TextBlock>
-
-                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
-                                       Margin="0,8,0,0">
-                                <Run Text="© 2024 - Tous droits réservés"/>
-                            </TextBlock>
-                        </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
-
-            <!-- Bouton sauvegarder -->
-            <Button Command="{Binding SaveSettingsCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    Background="{StaticResource SuccessBrush}"
-                    Foreground="White"
-                    HorizontalAlignment="Right"
-                    Margin="0,24,0,0"
-                    Padding="24,12">
+        <!-- Titre -->
+        <Border Grid.Row="0" Padding="24,16" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
-                    <TextBlock Text="Enregistrer les paramètres" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <materialDesign:PackIcon Kind="Cog" Width="28" Height="28" 
+                                             VerticalAlignment="Center"
+                                             Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                    <TextBlock Text="Paramètres" 
+                               Style="{StaticResource TitleH2Style}"
+                               VerticalAlignment="Center"
+                               Margin="12,0,0,0"/>
                 </StackPanel>
-            </Button>
-        </StackPanel>
-    </ScrollViewer>
+
+                <Button Grid.Column="1"
+                        Command="{Binding ResetSettingsCommand}"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        Foreground="#F44336"
+                        BorderBrush="#F44336"
+                        ToolTip="Réinitialiser tous les paramètres">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Restore" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Réinitialiser" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Contenu principal — deux colonnes -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="24"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ═══════════ COLONNE GAUCHE ═══════════ -->
+                <StackPanel Grid.Column="0">
+
+                    <!-- APPARENCE -->
+                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <materialDesign:PackIcon Kind="Palette" Width="22" Height="22"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                <TextBlock Text="Apparence" 
+                                           Style="{StaticResource TitleH3Style}"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Thème -->
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Thème de l'application" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Mode clair, sombre ou système"
+                                               Style="{StaticResource SubtitleStyle}"/>
+                                </StackPanel>
+
+                                <ComboBox Grid.Column="1"
+                                          Width="160"
+                                          SelectedItem="{Binding SelectedTheme}"
+                                          Style="{StaticResource MaterialDesignOutlinedComboBox}">
+                                    <ComboBoxItem Content="Clair"/>
+                                    <ComboBoxItem Content="Sombre"/>
+                                    <ComboBoxItem Content="Système"/>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- ALERTES -->
+                    <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <materialDesign:PackIcon Kind="BellAlert" Width="22" Height="22"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="#FF9800"/>
+                                <TextBlock Text="Alertes" 
+                                           Style="{StaticResource TitleH3Style}"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Seuil stock -->
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="130"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Seuil d'alerte stock" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Unités en dessous duquel l'alerte se déclenche"
+                                               Style="{StaticResource SubtitleStyle}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding StockAlertThreshold, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Seuil"
+                                         materialDesign:TextFieldAssist.SuffixText="unités"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+
+                            <Separator Margin="0,0,0,16"/>
+
+                            <!-- Péremption -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="130"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Alerte péremption" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Jours avant péremption pour l'alerte"
+                                               Style="{StaticResource SubtitleStyle}"
+                                               TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <TextBox Grid.Column="1"
+                                         Text="{Binding ExpiryAlertDays, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Jours"
+                                         materialDesign:TextFieldAssist.SuffixText="jours"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- À PROPOS -->
+                    <Border Style="{StaticResource ElevatedCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="{DynamicResource PrimaryHueMidBrush}"
+                                    CornerRadius="12"
+                                    Width="80" Height="80"
+                                    Margin="0,0,20,0">
+                                <materialDesign:PackIcon Kind="Pill" 
+                                                         Width="40" Height="40"
+                                                         Foreground="White"
+                                                         HorizontalAlignment="Center"
+                                                         VerticalAlignment="Center"/>
+                            </Border>
+
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="AVICENNA DB"
+                                           FontSize="20" FontWeight="Bold"
+                                           Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                <TextBlock Text="Base de Données Médicamenteuse"
+                                           Style="{StaticResource SubtitleStyle}"
+                                           Margin="0,2,0,8"/>
+                                <TextBlock FontSize="12">
+                                    <Run Text="Version" FontWeight="SemiBold"/>
+                                    <Run Text="{Binding AppVersion, Mode=OneWay}"/>
+                                    <Run Text="  •  .NET 8.0 + WPF"/>
+                                </TextBlock>
+                                <TextBlock Text="© 2024 AVCNA Team — Tous droits réservés"
+                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                           FontSize="11"
+                                           Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <!-- ═══════════ COLONNE DROITE ═══════════ -->
+                <StackPanel Grid.Column="2">
+
+                    <!-- BASE DE DONNÉES -->
+                    <Border Style="{StaticResource ElevatedCardStyle}">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <materialDesign:PackIcon Kind="Database" Width="22" Height="22"
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                <TextBlock Text="Base de données" 
+                                           Style="{StaticResource TitleH3Style}"
+                                           Margin="8,0,0,0"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Serveur + Port -->
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding DatabaseServer, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Serveur"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                                <TextBox Grid.Column="2"
+                                         Text="{Binding DatabasePort, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Port"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+
+                            <!-- Base + Utilisateur -->
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Nom de la base"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+
+                                <TextBox Grid.Column="2"
+                                         Text="{Binding DatabaseUser, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Utilisateur"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            </Grid>
+
+                            <!-- Mot de passe -->
+                            <TextBox Text="{Binding DatabasePassword, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Mot de passe"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                     Margin="0,0,0,16"/>
+
+                            <!-- Bouton test + statut -->
+                            <StackPanel Orientation="Horizontal">
+                                <Button Command="{Binding TestConnectionCommand}"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        Margin="0,0,12,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="DatabaseCheck" Width="18" Height="18" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Tester la connexion" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Statut connexion -->
+                                <Border CornerRadius="6" 
+                                        Padding="12,6"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding ConnectionTested, Converter={StaticResource BoolToVis}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ConnectionSuccess}" Value="True">
+                                                    <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,6,0">
+                                            <materialDesign:PackIcon.Style>
+                                                <Style TargetType="materialDesign:PackIcon">
+                                                    <Setter Property="Kind" Value="CloseCircle"/>
+                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ConnectionSuccess}" Value="True">
+                                                            <Setter Property="Kind" Value="CheckCircle"/>
+                                                            <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </materialDesign:PackIcon.Style>
+                                        </materialDesign:PackIcon>
+                                        <TextBlock Text="{Binding ConnectionMessage}" FontSize="12" VerticalAlignment="Center">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ConnectionSuccess}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Info connexion active -->
+                            <Border Background="{DynamicResource MaterialDesignBackground}"
+                                    CornerRadius="6"
+                                    Padding="12,10"
+                                    Margin="0,16,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="InformationOutline" 
+                                                             Width="16" Height="16" 
+                                                             VerticalAlignment="Center"
+                                                             Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                             Margin="0,0,8,0"/>
+                                    <TextBlock Text="{Binding DatabaseInfo}" 
+                                               FontSize="12"
+                                               Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Barre du bas — Enregistrer -->
+        <Border Grid.Row="2" 
+                Padding="24,14"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{DynamicResource MaterialDesignDivider}"
+                BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="False">
+                <!-- Loading à gauche -->
+                <ProgressBar DockPanel.Dock="Left"
+                             IsIndeterminate="True"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                             VerticalAlignment="Center"
+                             Width="200"
+                             Margin="0,0,24,0"/>
+
+                <!-- Bouton à droite -->
+                <Button DockPanel.Dock="Right"
+                        Command="{Binding SaveSettingsCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        Background="{DynamicResource PrimaryHueMidBrush}"
+                        Foreground="{DynamicResource PrimaryHueMidForegroundBrush}"
+                        materialDesign:ElevationAssist.Elevation="Dp2"
+                        Height="42"
+                        Padding="24,0"
+                        FontSize="14"
+                        FontWeight="Medium"
+                        Cursor="Hand">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ContentSave" Width="20" Height="20" 
+                                                 VerticalAlignment="Center"/>
+                        <TextBlock Text="Enregistrer les paramètres" 
+                                   Margin="10,0,0,0" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </DockPanel>
+        </Border>
+    </Grid>
 </UserControl>

@@ -8,7 +8,7 @@
     
     <!-- Carte de base -->
     <Style x:Key="BaseCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignCardBackground}"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="16"/>
@@ -36,10 +36,10 @@
     
     <!-- Carte avec bordure -->
     <Style x:Key="OutlinedCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignCardBackground}"/>
         <Setter Property="CornerRadius" Value="12"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
         <Setter Property="Padding" Value="16"/>
     </Style>
     
@@ -49,7 +49,7 @@
     
     <!-- Conteneur principal de la fiche médicament -->
     <Style x:Key="MedicCardContainerStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignCardBackground}"/>
         <Setter Property="CornerRadius" Value="16"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Margin" Value="8"/>
@@ -86,7 +86,7 @@
     <Style x:Key="MedicCardSectionStyle" TargetType="Border">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
         <Setter Property="Padding" Value="16,12"/>
     </Style>
     
@@ -119,10 +119,10 @@
     
     <!-- Panel de groupe avec titre -->
     <Style x:Key="GroupPanelStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
         <Setter Property="Padding" Value="12"/>
         <Setter Property="Margin" Value="0,8"/>
     </Style>
@@ -133,7 +133,7 @@
     
     <!-- Item de liste (pour DataGrid alternatif) -->
     <Style x:Key="ListItemCardStyle" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignCardBackground}"/>
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Padding" Value="16,12"/>
@@ -148,7 +148,7 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{StaticResource BorderLightBrush}"/>
+                <Setter Property="Background" Value="{DynamicResource MaterialDesignDivider}"/>
             </Trigger>
         </Style.Triggers>
     </Style>

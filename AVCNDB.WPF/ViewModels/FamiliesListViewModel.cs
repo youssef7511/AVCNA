@@ -179,9 +179,23 @@ public partial class FamiliesListViewModel : ViewModelBase
 
         await ExecuteAsync(async () =>
         {
-            var allItems = await _repository.GetAllAsync();
-            await _excelService.ExportAsync(allItems, filePath, "Familles");
-            await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
+            var checkedItems = Families.Where(f => f.IsChecked).ToList();
+            IEnumerable<Families> dataToExport;
+            string exportInfo;
+
+            if (checkedItems.Count > 0)
+            {
+                dataToExport = checkedItems;
+                exportInfo = $"{checkedItems.Count} élément(s) sélectionné(s) exporté(s)";
+            }
+            else
+            {
+                dataToExport = await _repository.GetAllAsync();
+                exportInfo = $"Tous les éléments exportés ({dataToExport.Count()})";
+            }
+
+            await _excelService.ExportAsync(dataToExport, filePath, "Familles");
+            await _dialogService.ShowSuccessAsync("Export réussi", $"{exportInfo}\n{filePath}");
         }, "Export en cours...");
     }
 

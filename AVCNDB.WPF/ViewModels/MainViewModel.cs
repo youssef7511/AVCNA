@@ -169,7 +169,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void NavigateToTools()
     {
-        _navigationService.NavigateToView("ToolsView");
+        _navigationService.NavigateTo<ToolsViewModel>();
         CurrentPageTitle = "Outils";
     }
 

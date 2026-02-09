@@ -179,9 +179,23 @@ public partial class LabosListViewModel : ViewModelBase
 
         await ExecuteAsync(async () =>
         {
-            var allItems = await _repository.GetAllAsync();
-            await _excelService.ExportAsync(allItems, filePath, "Laboratoires");
-            await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
+            var checkedItems = Labos.Where(l => l.IsChecked).ToList();
+            IEnumerable<Labos> dataToExport;
+            string exportInfo;
+
+            if (checkedItems.Count > 0)
+            {
+                dataToExport = checkedItems;
+                exportInfo = $"{checkedItems.Count} élément(s) sélectionné(s) exporté(s)";
+            }
+            else
+            {
+                dataToExport = await _repository.GetAllAsync();
+                exportInfo = $"Tous les éléments exportés ({dataToExport.Count()})";
+            }
+
+            await _excelService.ExportAsync(dataToExport, filePath, "Laboratoires");
+            await _dialogService.ShowSuccessAsync("Export réussi", $"{exportInfo}\n{filePath}");
         }, "Export en cours...");
     }
 

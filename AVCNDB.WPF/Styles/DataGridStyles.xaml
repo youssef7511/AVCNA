@@ -17,16 +17,19 @@
         <Setter Property="IsReadOnly" Value="True"/>
         <Setter Property="GridLinesVisibility" Value="None"/>
         <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Background" Value="{StaticResource BackgroundBrush}"/>
-        <Setter Property="RowBackground" Value="{StaticResource CardBackgroundBrush}"/>
-        <Setter Property="AlternatingRowBackground" Value="{StaticResource BorderLightBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
+        <Setter Property="RowBackground" Value="{DynamicResource MaterialDesignPaper}"/>
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource MaterialDesignCardBackground}"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
         <Setter Property="RowHeight" Value="48"/>
         <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
         <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="ColumnHeaderStyle" Value="{DynamicResource DataGridColumnHeaderStyle}"/>
+        <Setter Property="RowStyle" Value="{DynamicResource DataGridRowStyle}"/>
+        <Setter Property="CellStyle" Value="{DynamicResource DataGridCellStyle}"/>
     </Style>
     
     <!-- Style des colonnes d'en-tête -->
@@ -80,10 +83,10 @@
     
     <!-- Style des lignes -->
     <Style x:Key="DataGridRowStyle" TargetType="DataGridRow">
-        <Setter Property="Background" Value="{StaticResource CardBackgroundBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
         <Setter Property="BorderThickness" Value="0,0,0,1"/>
-        <Setter Property="BorderBrush" Value="{StaticResource BorderLightBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="Template">
             <Setter.Value>
@@ -125,7 +128,7 @@
                             <Setter TargetName="DGR_Border" Property="Background" Value="{StaticResource PrimaryLightBrush}"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="DGR_Border" Property="Background" Value="{StaticResource BorderLightBrush}"/>
+                            <Setter TargetName="DGR_Border" Property="Background" Value="{DynamicResource MaterialDesignDivider}"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
@@ -159,7 +162,7 @@
         </Setter>
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
-                <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
+                <Setter Property="Foreground" Value="White"/>
             </Trigger>
         </Style.Triggers>
     </Style>

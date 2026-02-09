@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using System.ComponentModel.DataAnnotations.Schema;
 using ClosedXML.Excel;
 using AVCNDB.WPF.Contracts.Services;
 
@@ -89,7 +90,9 @@ public class ExcelService : IExcelService
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add(sheetName);
             
-            var properties = typeof(T).GetProperties().Where(p => p.CanRead).ToList();
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead && !Attribute.IsDefined(p, typeof(NotMappedAttribute)))
+                .ToList();
             
             // En-têtes
             for (int i = 0; i < properties.Count; i++)
@@ -140,7 +143,9 @@ public class ExcelService : IExcelService
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add(sheetName);
             
-            var properties = typeof(T).GetProperties().Where(p => p.CanRead).ToList();
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead && !Attribute.IsDefined(p, typeof(NotMappedAttribute)))
+                .ToList();
             
             // En-têtes
             for (int i = 0; i < properties.Count; i++)

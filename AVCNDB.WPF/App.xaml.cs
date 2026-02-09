@@ -194,6 +194,7 @@ public partial class App : Application
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<DatabaseViewModel>();
         services.AddTransient<LibraryShellViewModel>();
+        services.AddTransient<ToolsViewModel>();
 
         // ============================================
         // VIEWS

@@ -29,8 +29,11 @@
         <!-- ============================================
              MENU LATÉRAL (Navigation)
         ============================================ -->
-        <Border Grid.Column="0" 
+        <Border x:Name="SidebarBorder"
+                Grid.Column="0" 
                 Background="{StaticResource PrimaryDarkBrush}"
+                MouseEnter="Sidebar_MouseEnter"
+                MouseLeave="Sidebar_MouseLeave"
                 Width="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}, ConverterParameter=260}">
             <Border.Style>
                 <Style TargetType="Border">

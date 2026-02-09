@@ -225,9 +225,23 @@ public partial class DciListViewModel : ViewModelBase
         {
             await ExecuteAsync(async () =>
             {
-                var allDcis = await _repository.GetAllAsync();
-                await _excelService.ExportAsync(allDcis, filePath, "DCI");
-                await _dialogService.ShowSuccessAsync("Export réussi", $"Données exportées vers {filePath}");
+                var checkedItems = Dcis.Where(d => d.IsChecked).ToList();
+                IEnumerable<Dci> dataToExport;
+                string exportInfo;
+
+                if (checkedItems.Count > 0)
+                {
+                    dataToExport = checkedItems;
+                    exportInfo = $"{checkedItems.Count} élément(s) sélectionné(s) exporté(s)";
+                }
+                else
+                {
+                    dataToExport = await _repository.GetAllAsync();
+                    exportInfo = $"Tous les éléments exportés ({dataToExport.Count()})";
+                }
+
+                await _excelService.ExportAsync(dataToExport, filePath, "DCI");
+                await _dialogService.ShowSuccessAsync("Export réussi", $"{exportInfo}\n{filePath}");
             }, "Export en cours...");
         }
     }
