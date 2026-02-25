@@ -134,5 +134,14 @@
         <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
         <Setter Property="Padding" Value="6,2"/>
     </Style>
+
+    <!-- Titres des formulaires popup (édition/nouveau) -->
+    <Style x:Key="TabDialogTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="FontSize" Value="24"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+    </Style>
     
 </ResourceDictionary>

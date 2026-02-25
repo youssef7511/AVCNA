@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AVCNDB.WPF.Helpers;
 
@@ -10,6 +11,7 @@ public static class ExcelTemplateHelper
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.GetIndexParameters().Length == 0)
             .Where(p => p.CanWrite)
+            .Where(p => !Attribute.IsDefined(p, typeof(NotMappedAttribute)))
             .Select(p => p.Name)
             .ToList();
     }

@@ -11,8 +11,8 @@
     <Version>1.0.0</Version>
     <Authors>AVCNDB Team</Authors>
     <Company>AVICENNA</Company>
-    <Product>AVCNDB - Base de Données Pharmaceutique</Product>
-    <Description>Application de gestion de base de données pharmaceutique</Description>
+    <Product>AVCNDB - Base de Données médicamenteuse</Product>
+    <Description>Application de gestion de base de données médicamenteuse</Description>
   </PropertyGroup>
 
   <!-- ============================================== -->

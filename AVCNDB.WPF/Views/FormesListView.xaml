@@ -4,7 +4,9 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:controls="clr-namespace:AVCNDB.WPF.Controls"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:FormesListViewModel}"
              Background="{DynamicResource MaterialDesignBackground}">
@@ -21,7 +23,7 @@
 
         <Border Grid.Row="0"
                 Background="{DynamicResource MaterialDesignPaper}"
-                Padding="16,10"
+                Padding="10,6"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,0,0,1">
             <Grid>
@@ -30,18 +32,22 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0"
+                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                          Width="280"
+                         Height="36"
+                         Padding="10,6"
+                         VerticalContentAlignment="Center"
+                         FontSize="13"
                          HorizontalAlignment="Left"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          materialDesign:HintAssist.Hint="Rechercher une forme..."
+                         materialDesign:HintAssist.IsFloating="False"
+                         materialDesign:TextFieldAssist.DecorationVisibility="Visible"
                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Command="{Binding AddNewCommand}"
-                            Style="{StaticResource MaterialDesignRaisedButton}"
-                            Background="{StaticResource SuccessBrush}"
-                            Foreground="White">
+                            Style="{StaticResource TabToolbarPrimaryButtonStyle}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Nouvelle forme" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -58,32 +64,67 @@
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
-                  Margin="24,16">
+                  Margin="0,4,0,0">
+
+            <DataGrid.Resources>
+                <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+            </DataGrid.Resources>
+
             <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding recordid}" Width="80" IsReadOnly="True"/>
-                <DataGridTextColumn Header="Nom" Binding="{Binding itemname}" Width="*"/>
-                <DataGridTextColumn Header="Categorie" Binding="{Binding subvalue}" Width="220"/>
-                <DataGridTemplateColumn Header="Actions" Width="120">
+                <DataGridTemplateColumn Width="45" CanUserResize="False" CanUserSort="False">
+                    <DataGridTemplateColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Focusable" Value="False"/>
+                        </Style>
+                    </DataGridTemplateColumn.CellStyle>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Command="{Binding DataContext.EditCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource MaterialDesignIconButton}"
-                                        Foreground="{StaticResource PrimaryBrush}"
-                                        ToolTip="Modifier"
-                                        Width="32" Height="32">
-                                    <materialDesign:PackIcon Kind="Pencil" Width="18" Height="18"/>
-                                </Button>
-                                <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource MaterialDesignIconButton}"
-                                        Foreground="{StaticResource ErrorBrush}"
-                                        ToolTip="Supprimer"
-                                        Width="32" Height="32">
-                                    <materialDesign:PackIcon Kind="Delete" Width="18" Height="18"/>
-                                </Button>
-                            </StackPanel>
+                            <CheckBox IsChecked="{Binding IsChecked, UpdateSourceTrigger=PropertyChanged}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="recordid" Visibility="Collapsed" Binding="{Binding recordid}" Width="80" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Forme" Binding="{Binding itemname}" Width="3*" MinWidth="180"/>
+                <DataGridTextColumn Header="Sous-valeur" Binding="{Binding subvalue}" Width="1.4*" MinWidth="120"/>
+                <DataGridTextColumn Header="Groupe" Binding="{Binding formgroup}" Width="1.2*" MinWidth="110"/>
+                <DataGridTextColumn Header="Abréviation" Binding="{Binding abname}" Width="2*" MinWidth="140"/>
+                <DataGridTextColumn Header="Poso form" Binding="{Binding posoform}" Width="1.2*" MinWidth="110"/>
+                <DataGridTextColumn Header="Poso name" Binding="{Binding posoname}" Width="1.2*" MinWidth="110"/>
+                <DataGridTextColumn Header="addedat" Visibility="Collapsed" Binding="{Binding addedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
+                <DataGridTextColumn Header="updatedat" Visibility="Collapsed" Binding="{Binding updatedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
+                <!-- Actions (⋮ menu) -->
+                <DataGridTemplateColumn Header="" Width="50" CanUserResize="False" CanUserSort="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <materialDesign:PopupBox PlacementMode="BottomAndAlignRightEdges"
+                                                     StaysOpen="False" ToolTip="Actions" Padding="0"
+                                                     HorizontalAlignment="Center">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <materialDesign:PackIcon Kind="DotsVertical" Width="20" Height="20"
+                                                             Foreground="{DynamicResource MaterialDesignBody}"/>
+                                </materialDesign:PopupBox.ToggleContent>
+                                <StackPanel MinWidth="160">
+                                    <Button Command="{Binding Data.EditCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Pencil" Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBrush}"/>
+                                            <TextBlock Text="Modifier" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding Data.DeleteCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{StaticResource ErrorBrush}"/>
+                                            <TextBlock Text="Supprimer" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </materialDesign:PopupBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -94,7 +135,7 @@
                      IsIndeterminate="True"
                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                      VerticalAlignment="Top"
-                     Margin="24,0"/>
+                     Margin="0"/>
 
         <Border Grid.RowSpan="2"
                 Background="#80000000"
@@ -102,35 +143,69 @@
             <Border Background="{DynamicResource MaterialDesignPaper}"
                     CornerRadius="8"
                     Padding="24"
-                    MaxWidth="700"
+                    MaxWidth="860"
+                    MinWidth="700"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
                 <StackPanel>
-                    <TextBlock Text="Edition Forme"
-                               Style="{StaticResource MaterialDesignHeadline6TextBlock}"
-                               Margin="0,0,0,16"/>
+                    <TextBlock Margin="0,0,0,16">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource TabDialogTitleStyle}">
+                                <Setter Property="Text" Value="Édition Forme"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedForme}" Value="{x:Null}">
+                                        <Setter Property="Text" Value="Nouvelle forme"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
 
-                    <TextBox Text="{Binding EditItemName, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding EditItemName, UpdateSourceTrigger=PropertyChanged}"
                              materialDesign:HintAssist.Hint="Nom *"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
                              Margin="0,0,0,12"/>
 
-                    <TextBox Text="{Binding EditSubValue, UpdateSourceTrigger=PropertyChanged}"
-                             materialDesign:HintAssist.Hint="Categorie"
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding EditSubValue, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Sous-valeur"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                             Margin="0,0,0,16"/>
+                             Margin="0,0,0,12"/>
+
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding EditFormGroup, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Groupe"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,12"/>
+
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding EditAbName, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Abreviation"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,0,12"/>
+
+                    <controls:FilterableComboBox FilterableItemsSource="{Binding PosoFormOptions}"
+                                                 Text="{Binding EditPosoForm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 materialDesign:HintAssist.Hint="Poso form"
+                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                                 Margin="0,0,0,12"/>
+
+                    <controls:FilterableComboBox FilterableItemsSource="{Binding PosoNameOptions}"
+                                                 Text="{Binding EditPosoName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 materialDesign:HintAssist.Hint="Poso name"
+                                                 Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                                 Margin="0,0,0,16"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Command="{Binding CancelEditCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Style="{StaticResource TabDialogSecondaryButtonStyle}"
                                 Margin="0,0,12,0">Annuler</Button>
                         <Button Command="{Binding SaveCommand}"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                Background="{StaticResource SuccessBrush}"
-                                Foreground="White">Enregistrer</Button>
+                                Style="{StaticResource TabDialogPrimaryButtonStyle}">Enregistrer</Button>
                     </StackPanel>
                 </StackPanel>
             </Border>
         </Border>
     </Grid>
 </UserControl>
+
+
+
+

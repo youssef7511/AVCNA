@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:controls="clr-namespace:AVCNDB.WPF.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:MedicEditViewModel}"
              Background="{DynamicResource MaterialDesignBackground}">
@@ -83,14 +84,14 @@
 
                             <!-- Nom du médicament -->
                             <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,16,16">
-                                <TextBox Text="{Binding Medic.itemname, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding Medic.itemname, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Nom du médicament *"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </StackPanel>
 
                             <!-- Code-barre -->
                             <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,16">
-                                <TextBox Text="{Binding Medic.barcode, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding Medic.barcode, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Code-barre (EAN-13)"
                                          MaxLength="13"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
@@ -98,14 +99,14 @@
 
                             <!-- AMM -->
                             <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,16,0">
-                                <TextBox Text="{Binding Medic.amm, UpdateSourceTrigger=PropertyChanged}"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding Medic.amm, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="N° AMM"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </StackPanel>
 
                             <!-- Famille 1 -->
                             <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,16,0">
-                                <ComboBox ItemsSource="{Binding Families}"
+                                <controls:FilterableComboBox FilterableItemsSource="{Binding Families}"
                                           SelectedValue="{Binding Medic.fam1}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
@@ -115,7 +116,7 @@
 
                             <!-- Laboratoire -->
                             <StackPanel Grid.Row="1" Grid.Column="2">
-                                <ComboBox ItemsSource="{Binding Labos}"
+                                <controls:FilterableComboBox FilterableItemsSource="{Binding Labos}"
                                           SelectedValue="{Binding Medic.labo}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
@@ -125,7 +126,7 @@
 
                             <!-- Famille 2 -->
                             <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,16,16,0">
-                                <ComboBox ItemsSource="{Binding Families}"
+                                <controls:FilterableComboBox FilterableItemsSource="{Binding Families}"
                                           SelectedValue="{Binding Medic.fam2}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
@@ -135,7 +136,7 @@
 
                             <!-- Famille 3 -->
                             <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,16,16,0">
-                                <ComboBox ItemsSource="{Binding Families}"
+                                <controls:FilterableComboBox FilterableItemsSource="{Binding Families}"
                                           SelectedValue="{Binding Medic.fam3}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
@@ -145,7 +146,7 @@
 
                             <!-- Famille 4 -->
                             <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,16,0,0">
-                                <ComboBox ItemsSource="{Binding Families}"
+                                <controls:FilterableComboBox FilterableItemsSource="{Binding Families}"
                                           SelectedValue="{Binding Medic.family}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
@@ -176,60 +177,60 @@
                             </Grid.RowDefinitions>
 
                             <!-- DCI 1 -->
-                            <ComboBox Grid.Row="0" Grid.Column="0"
-                                      ItemsSource="{Binding Dcis}"
+                            <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
+                                      FilterableItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci1}"
                                       SelectedValuePath="itemname"
                                       DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI Principal *"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
-                            <TextBox Grid.Row="0" Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Row="0" Grid.Column="1"
                                      Text="{Binding Medic.dose1, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 1"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
 
                             <!-- DCI 2 -->
-                            <ComboBox Grid.Row="1" Grid.Column="0"
-                                      ItemsSource="{Binding Dcis}"
+                            <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
+                                      FilterableItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci2}"
                                       SelectedValuePath="itemname"
                                       DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI Secondaire"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
-                            <TextBox Grid.Row="1" Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Row="1" Grid.Column="1"
                                      Text="{Binding Medic.dose2, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 2"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
 
                             <!-- DCI 3 -->
-                            <ComboBox Grid.Row="2" Grid.Column="0"
-                                      ItemsSource="{Binding Dcis}"
+                            <controls:FilterableComboBox Grid.Row="2" Grid.Column="0"
+                                      FilterableItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci3}"
                                       SelectedValuePath="itemname"
                                       DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI 3"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,16"/>
-                            <TextBox Grid.Row="2" Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Row="2" Grid.Column="1"
                                      Text="{Binding Medic.dose3, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 3"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
 
                             <!-- DCI 4 -->
-                            <ComboBox Grid.Row="3" Grid.Column="0"
-                                      ItemsSource="{Binding Dcis}"
+                            <controls:FilterableComboBox Grid.Row="3" Grid.Column="0"
+                                      FilterableItemsSource="{Binding Dcis}"
                                       SelectedValue="{Binding Medic.dci4}"
                                       SelectedValuePath="itemname"
                                       DisplayMemberPath="itemname"
                                       materialDesign:HintAssist.Hint="DCI 4"
                                       Style="{StaticResource MaterialDesignOutlinedComboBox}"
                                       Margin="0,0,16,0"/>
-                            <TextBox Grid.Row="3" Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Row="3" Grid.Column="1"
                                      Text="{Binding Medic.dose4, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Dosage 4"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
@@ -252,21 +253,21 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- Forme -->
-                            <TextBox Grid.Column="0"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                                      Text="{Binding Medic.forme, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Forme"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,16,0"/>
 
                             <!-- Présentation -->
-                            <TextBox Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="1"
                                      Text="{Binding Medic.present, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Présentation"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,16,0"/>
 
                             <!-- Voie d'administration -->
-                            <TextBox Grid.Column="2"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="2"
                                      Text="{Binding Medic.voie, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Voie d'administration"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
@@ -291,7 +292,7 @@
                             </Grid.ColumnDefinitions>
 
                             <!-- PFHT -->
-                            <TextBox Grid.Column="0"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                                      Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Fab. HT"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
@@ -299,7 +300,7 @@
                                      Margin="0,0,12,0"/>
 
                             <!-- PH -->
-                            <TextBox Grid.Column="1"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="1"
                                      Text="{Binding Medic.refprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Hospitalier"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
@@ -307,7 +308,7 @@
                                      Margin="0,0,12,0"/>
 
                             <!-- PGross -->
-                            <TextBox Grid.Column="2"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="2"
                                      Text="{Binding Medic.pctprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix de Gros"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
@@ -315,7 +316,7 @@
                                      Margin="0,0,12,0"/>
 
                             <!-- PBR -->
-                            <TextBox Grid.Column="3"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="3"
                                      Text="{Binding Medic.netprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Base Remb."
                                      materialDesign:TextFieldAssist.SuffixText="DH"
@@ -323,7 +324,7 @@
                                      Margin="0,0,12,0"/>
 
                             <!-- PPV -->
-                            <TextBox Grid.Column="4"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="4"
                                      Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                                      materialDesign:HintAssist.Hint="Prix Public (PPV) *"
                                      materialDesign:TextFieldAssist.SuffixText="DH"
@@ -374,7 +375,7 @@
                                       Margin="0,0,0,16"/>
 
                             <!-- Taux de remboursement -->
-                            <TextBox Grid.Row="0" Grid.Column="3"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Row="0" Grid.Column="3"
                                      Text="{Binding Medic.ictx, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Taux remb. (%)"
                                      materialDesign:TextFieldAssist.SuffixText="%"
@@ -403,7 +404,7 @@
                                    Style="{StaticResource TitleH3Style}"
                                    Margin="0,0,0,20"/>
 
-                        <TextBox Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
                                  materialDesign:HintAssist.Hint="Indications, notes..."
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  TextWrapping="Wrap"
@@ -431,7 +432,7 @@
 
                 <!-- Bouton Annuler -->
                 <Button Grid.Column="0"
-                        Command="{Binding CancelAsyncCommand}"
+                        Command="{Binding CancelCommand}"
                         Style="{StaticResource MaterialDesignOutlinedButton}"
                         HorizontalAlignment="Left">
                     <StackPanel Orientation="Horizontal">
@@ -451,10 +452,8 @@
                         </StackPanel>
                     </Button>
 
-                    <Button Command="{Binding SaveAsyncCommand}"
-                            Style="{StaticResource MaterialDesignRaisedButton}"
-                            Background="{StaticResource SuccessBrush}"
-                            Foreground="White">
+                    <Button Command="{Binding SaveCommand}"
+                            Style="{StaticResource TabDialogPrimaryButtonStyle}">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
                             <TextBlock Text="Enregistrer" Margin="8,0,0,0" VerticalAlignment="Center"/>
@@ -480,4 +479,5 @@
         </Border>
     </Grid>
 </UserControl>
+
 

@@ -27,6 +27,8 @@ public partial class MedicListViewModel : ViewModelBase
     [ObservableProperty]
     private Medic? _selectedMedic;
 
+    private bool _isInitializing = true;
+
     [ObservableProperty]
     private string _searchText = string.Empty;
 
@@ -97,17 +99,28 @@ public partial class MedicListViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
+        _isInitializing = true;
         await LoadFiltersAsync();
+        _isInitializing = false;
         await LoadDataAsync();
     }
 
     private async Task LoadFiltersAsync()
     {
-        var families = await _familyRepository.GetAllAsync();
-        Families = new ObservableCollection<Families>(families);
+        await ExecuteAsync(async () =>
+        {
+            var families = await _familyRepository.GetAllAsync();
+            Families = new ObservableCollection<Families>(families);
 
-        var labos = await _laboRepository.GetAllAsync();
-        Labos = new ObservableCollection<Labos>(labos);
+            var labos = await _laboRepository.GetAllAsync();
+            Labos = new ObservableCollection<Labos>(labos);
+
+            // Ensure the first load starts with no active lookup filters.
+            SelectedFamily = null;
+            SelectedLabo = null;
+            FilterFamily = string.Empty;
+            FilterLabo = string.Empty;
+        }, "Chargement des filtres...");
     }
 
     partial void OnSearchTextChanged(string value)
@@ -118,6 +131,12 @@ public partial class MedicListViewModel : ViewModelBase
 
     partial void OnSelectedFamilyChanged(Families? value)
     {
+        if (_isInitializing)
+        {
+            FilterFamily = string.Empty;
+            return;
+        }
+
         FilterFamily = value?.itemname ?? string.Empty;
         CurrentPage = 1;
         _ = LoadDataAsync();
@@ -125,6 +144,12 @@ public partial class MedicListViewModel : ViewModelBase
 
     partial void OnSelectedLaboChanged(Labos? value)
     {
+        if (_isInitializing)
+        {
+            FilterLabo = string.Empty;
+            return;
+        }
+
         FilterLabo = value?.itemname ?? string.Empty;
         CurrentPage = 1;
         _ = LoadDataAsync();
@@ -149,6 +174,22 @@ public partial class MedicListViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(StartIndex));
         OnPropertyChanged(nameof(EndIndex));
+    }
+
+    partial void OnPageSizeChanged(int value)
+    {
+        if (value <= 0)
+        {
+            return;
+        }
+
+        if (CurrentPage != 1)
+        {
+            CurrentPage = 1;
+            return;
+        }
+
+        _ = LoadDataAsync();
     }
 
     private async Task LoadDataAsync()

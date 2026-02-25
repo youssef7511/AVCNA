@@ -1,0 +1,261 @@
+using System.Collections.ObjectModel;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Models;
+
+namespace AVCNDB.WPF.ViewModels;
+
+public partial class PosoListViewModel : ViewModelBase
+{
+    private readonly IRepository<Poso> _repository;
+    private readonly IDialogService _dialogService;
+    private readonly IExcelService _excelService;
+    private readonly IStrictExcelSyncService<Poso> _strictExcelSyncService;
+
+    [ObservableProperty]
+    private ObservableCollection<Poso> _posos = new();
+
+    [ObservableProperty]
+    private Poso? _selectedPoso;
+
+    [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isEditing;
+
+    [ObservableProperty]
+    private string _editItemName = string.Empty;
+
+    [ObservableProperty]
+    private decimal _editQty;
+
+    [ObservableProperty]
+    private string _editPosoForm = string.Empty;
+
+    [ObservableProperty]
+    private decimal _editPrises;
+
+    [ObservableProperty]
+    private string _editPeriode = string.Empty;
+
+    [ObservableProperty]
+    private string _editConditions = string.Empty;
+
+    [ObservableProperty]
+    private string _editNameFormul = string.Empty;
+
+    [ObservableProperty]
+    private string _editSubValue = string.Empty;
+
+    public PosoListViewModel(
+        IRepository<Poso> repository,
+        IDialogService dialogService,
+        IExcelService excelService,
+        IStrictExcelSyncService<Poso> strictExcelSyncService)
+    {
+        _repository = repository;
+        _dialogService = dialogService;
+        _excelService = excelService;
+        _strictExcelSyncService = strictExcelSyncService;
+        _ = LoadDataAsync();
+    }
+
+    partial void OnSearchTextChanged(string value) => _ = LoadDataAsync();
+
+    private async Task LoadDataAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            var items = string.IsNullOrWhiteSpace(SearchText)
+                ? await _repository.GetAllAsync()
+                : await _repository.FindAsync(p =>
+                    p.itemname.Contains(SearchText) ||
+                    p.posoform.Contains(SearchText) ||
+                    p.nameformul.Contains(SearchText) ||
+                    p.subvalue.Contains(SearchText));
+
+            Posos = new ObservableCollection<Poso>(items.OrderBy(p => p.itemname));
+        }, "Chargement des posologies...");
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync() => await LoadDataAsync();
+
+    [RelayCommand]
+    private async Task SearchAsync() => await LoadDataAsync();
+
+    [RelayCommand]
+    private void AddNew()
+    {
+        SelectedPoso = null;
+        EditItemName = string.Empty;
+        EditQty = 0m;
+        EditPosoForm = string.Empty;
+        EditPrises = 0m;
+        EditPeriode = string.Empty;
+        EditConditions = string.Empty;
+        EditNameFormul = string.Empty;
+        EditSubValue = string.Empty;
+        IsEditing = true;
+    }
+
+    [RelayCommand]
+    private void Edit(Poso? poso)
+    {
+        if (poso == null) return;
+
+        SelectedPoso = poso;
+        EditItemName = poso.itemname;
+        EditQty = poso.qty;
+        EditPosoForm = poso.posoform;
+        EditPrises = poso.prises;
+        EditPeriode = poso.periode;
+        EditConditions = poso.conditions;
+        EditNameFormul = poso.nameformul;
+        EditSubValue = poso.subvalue;
+        IsEditing = true;
+    }
+
+    [RelayCommand]
+    private void CancelEdit() => IsEditing = false;
+
+    [RelayCommand]
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(EditItemName))
+        {
+            await _dialogService.ShowWarningAsync("Validation", "itemname est obligatoire.");
+            return;
+        }
+
+        await ExecuteAsync(async () =>
+        {
+            if (SelectedPoso != null)
+            {
+                SelectedPoso.itemname = EditItemName;
+                SelectedPoso.qty = EditQty;
+                SelectedPoso.posoform = EditPosoForm;
+                SelectedPoso.prises = EditPrises;
+                SelectedPoso.periode = EditPeriode;
+                SelectedPoso.conditions = EditConditions;
+                SelectedPoso.nameformul = EditNameFormul;
+                SelectedPoso.subvalue = EditSubValue;
+                await _repository.UpdateAsync(SelectedPoso);
+            }
+            else
+            {
+                await _repository.AddAsync(new Poso
+                {
+                    itemname = EditItemName,
+                    qty = EditQty,
+                    posoform = EditPosoForm,
+                    prises = EditPrises,
+                    periode = EditPeriode,
+                    conditions = EditConditions,
+                    nameformul = EditNameFormul,
+                    subvalue = EditSubValue
+                });
+            }
+
+            IsEditing = false;
+            await LoadDataAsync();
+        }, "Sauvegarde...");
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync(Poso? poso)
+    {
+        if (poso == null) return;
+
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Confirmer la suppression",
+            $"Supprimer '{poso.itemname}' ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            await _repository.DeleteAsync(poso);
+            await LoadDataAsync();
+        }, "Suppression...");
+    }
+
+    [RelayCommand]
+    private async Task ExportAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Poso_{DateTime.Now:yyyyMMdd}",
+            "Exporter les posologies");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var checkedItems = Posos.Where(p => p.IsChecked).ToList();
+            IEnumerable<Poso> dataToExport;
+            string exportInfo;
+
+            if (checkedItems.Count > 0)
+            {
+                dataToExport = checkedItems;
+                exportInfo = $"{checkedItems.Count} element(s) selectionne(s) exporte(s)";
+            }
+            else
+            {
+                dataToExport = await _repository.GetAllAsync();
+                exportInfo = $"{dataToExport.Count()} element(s) exporte(s)";
+            }
+
+            await _excelService.ExportAsync(dataToExport, filePath, "Poso");
+            await _dialogService.ShowSuccessAsync("Export reussi", $"{exportInfo}\n{filePath}");
+        }, "Export en cours...");
+    }
+
+    [RelayCommand]
+    private async Task DownloadExcelTemplateAsync()
+    {
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "Excel Files|*.xlsx",
+            $"Poso_Template_{DateTime.Now:yyyyMMdd}",
+            "Telecharger le modele Excel");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            await _strictExcelSyncService.CreateTemplateAsync(filePath, "Poso");
+            await _dialogService.ShowSuccessAsync(
+                "Modele genere",
+                $"Modele Excel cree : {filePath}\nNe modifiez pas les en-tetes de colonnes.");
+        }, "Generation du modele...");
+    }
+
+    [RelayCommand]
+    private async Task ImportFromExcelAsync()
+    {
+        var filePath = _dialogService.ShowOpenFileDialog(
+            "Excel Files|*.xlsx;*.xls",
+            "Importer les posologies depuis Excel");
+
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _strictExcelSyncService.ImportAndSyncAsync(filePath, "Poso");
+
+            if (!result.IsValid)
+            {
+                await _dialogService.ShowErrorAsync("Erreur de validation", string.Join("\n", result.Errors));
+                return;
+            }
+
+            await LoadDataAsync();
+            await _dialogService.ShowSuccessAsync(
+                "Import Excel termine",
+                $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
+        }, "Import en cours...");
+    }
+}

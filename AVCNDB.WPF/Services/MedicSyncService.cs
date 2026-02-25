@@ -167,6 +167,41 @@ public class MedicSyncService
     }
 
     /// <summary>
+    /// Renomme une DCI dans la table des interactions (champs dci1, dci2).
+    /// </summary>
+    public async Task<int> RenameDciInInteractionsAsync(string oldName, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) return 0;
+        if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) return 0;
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            var interactions = await ctx.Interacts
+                .Where(i => i.dci1 == oldName || i.dci2 == oldName)
+                .ToListAsync();
+
+            foreach (var i in interactions)
+            {
+                if (i.dci1 == oldName) i.dci1 = newName;
+                if (i.dci2 == oldName) i.dci2 = newName;
+                i.updatedat = DateTime.Now;
+            }
+
+            await ctx.SaveChangesAsync();
+            _logger.LogInformation(
+                "DCI renommee '{Old}' -> '{New}' dans {Count} interaction(s)",
+                oldName, newName, interactions.Count);
+            return interactions.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors du renommage DCI interactions '{Old}' -> '{New}'", oldName, newName);
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Efface une DCI des champs de tous les médicaments (avant suppression).
     /// </summary>
     public async Task<int> ClearDciFromMedicsAsync(string dciName)
@@ -199,6 +234,144 @@ public class MedicSyncService
         {
             _logger.LogError(ex, "Erreur lors de l'effacement DCI '{Name}'", dciName);
             return 0;
+        }
+    }
+
+    /// <summary>
+    /// Efface une DCI de la table des interactions (avant suppression).
+    /// </summary>
+    public async Task<int> ClearDciFromInteractionsAsync(string dciName)
+    {
+        if (string.IsNullOrWhiteSpace(dciName)) return 0;
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            var interactions = await ctx.Interacts
+                .Where(i => i.dci1 == dciName || i.dci2 == dciName)
+                .ToListAsync();
+
+            foreach (var i in interactions)
+            {
+                if (i.dci1 == dciName) i.dci1 = string.Empty;
+                if (i.dci2 == dciName) i.dci2 = string.Empty;
+                i.updatedat = DateTime.Now;
+            }
+
+            await ctx.SaveChangesAsync();
+            _logger.LogInformation("DCI '{Name}' effacee de {Count} interaction(s)", dciName, interactions.Count);
+            return interactions.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors de l'effacement DCI interactions '{Name}'", dciName);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Applique les substituts DCI: pour chaque ligne DCI avec subvalue renseigne,
+    /// remplace itemname par subvalue et propage dans medic (dci1..dci4 + dci) et interact.
+    /// </summary>
+    public async Task<DciSubstituteApplyResult> ApplyDciSubstitutsAsync()
+    {
+        var result = new DciSubstituteApplyResult();
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+
+            var candidates = await ctx.Dcis
+                .Where(d => !string.IsNullOrWhiteSpace(d.subvalue) && d.itemname != d.subvalue)
+                .ToListAsync();
+
+            result.CandidateCount = candidates.Count;
+            if (candidates.Count == 0)
+            {
+                return result;
+            }
+
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var d in candidates)
+            {
+                var oldName = d.itemname?.Trim();
+                var newName = d.subvalue?.Trim();
+                if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) continue;
+                map[oldName] = newName;
+            }
+
+            if (map.Count == 0)
+            {
+                return result;
+            }
+
+            var oldNames = map.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var now = DateTime.Now;
+
+            foreach (var d in candidates)
+            {
+                var oldName = d.itemname;
+                if (!map.TryGetValue(oldName, out var newName)) continue;
+
+                d.itemname = newName;
+                d.subvalue = string.Empty;
+                if (!string.IsNullOrWhiteSpace(d.iteminfo))
+                {
+                    d.iteminfo = d.iteminfo.Replace(oldName, newName, StringComparison.OrdinalIgnoreCase);
+                }
+                d.updatedat = now;
+                result.UpdatedDciCount++;
+            }
+
+            var medics = await ctx.Medics
+                .Where(m => oldNames.Contains(m.dci1) || oldNames.Contains(m.dci2) ||
+                            oldNames.Contains(m.dci3) || oldNames.Contains(m.dci4))
+                .ToListAsync();
+
+            foreach (var m in medics)
+            {
+                var changed = false;
+                if (TryMapDciValue(m.dci1, map, out var v1)) { m.dci1 = v1; changed = true; }
+                if (TryMapDciValue(m.dci2, map, out var v2)) { m.dci2 = v2; changed = true; }
+                if (TryMapDciValue(m.dci3, map, out var v3)) { m.dci3 = v3; changed = true; }
+                if (TryMapDciValue(m.dci4, map, out var v4)) { m.dci4 = v4; changed = true; }
+
+                if (!changed) continue;
+
+                m.dci = BuildCombinedDci(m);
+                m.updatedat = now;
+                result.UpdatedMedicCount++;
+            }
+
+            var interactions = await ctx.Interacts
+                .Where(i => oldNames.Contains(i.dci1) || oldNames.Contains(i.dci2))
+                .ToListAsync();
+
+            foreach (var i in interactions)
+            {
+                var changed = false;
+                if (TryMapDciValue(i.dci1, map, out var nv1)) { i.dci1 = nv1; changed = true; }
+                if (TryMapDciValue(i.dci2, map, out var nv2)) { i.dci2 = nv2; changed = true; }
+
+                if (!changed) continue;
+
+                i.updatedat = now;
+                result.UpdatedInteractCount++;
+            }
+
+            await ctx.SaveChangesAsync();
+            result.AppliedCount = map.Count;
+
+            _logger.LogInformation(
+                "Application substituts DCI terminee. DCI={Dci}, Medic={Medic}, Interact={Interact}",
+                result.UpdatedDciCount, result.UpdatedMedicCount, result.UpdatedInteractCount);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors de l'application des substituts DCI");
+            result.ErrorMessage = ex.Message;
+            return result;
         }
     }
 
@@ -571,4 +744,26 @@ public class MedicSyncService
             .Select(s => s.Trim());
         return string.Join(" + ", parts);
     }
+
+    private static bool TryMapDciValue(
+        string currentValue,
+        IReadOnlyDictionary<string, string> map,
+        out string mappedValue)
+    {
+        mappedValue = currentValue;
+        if (string.IsNullOrWhiteSpace(currentValue)) return false;
+        if (!map.TryGetValue(currentValue.Trim(), out var v)) return false;
+        mappedValue = v;
+        return true;
+    }
+}
+
+public sealed class DciSubstituteApplyResult
+{
+    public int CandidateCount { get; set; }
+    public int AppliedCount { get; set; }
+    public int UpdatedDciCount { get; set; }
+    public int UpdatedMedicCount { get; set; }
+    public int UpdatedInteractCount { get; set; }
+    public string? ErrorMessage { get; set; }
 }

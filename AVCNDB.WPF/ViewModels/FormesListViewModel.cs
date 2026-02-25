@@ -10,6 +10,7 @@ namespace AVCNDB.WPF.ViewModels;
 public partial class FormesListViewModel : ViewModelBase
 {
     private readonly IRepository<Formes> _repository;
+    private readonly IRepository<Poso> _posoRepository;
     private readonly IDialogService _dialogService;
     private readonly MedicSyncService _syncService;
 
@@ -31,11 +32,34 @@ public partial class FormesListViewModel : ViewModelBase
     [ObservableProperty]
     private string _editSubValue = string.Empty;
 
+    [ObservableProperty]
+    private string _editFormGroup = string.Empty;
+
+    [ObservableProperty]
+    private string _editAbName = string.Empty;
+
+    [ObservableProperty]
+    private string _editPosoForm = string.Empty;
+
+    [ObservableProperty]
+    private string _editPosoName = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<string> _posoFormOptions = new();
+
+    [ObservableProperty]
+    private ObservableCollection<string> _posoNameOptions = new();
+
     private string? _originalItemName;
 
-    public FormesListViewModel(IRepository<Formes> repository, IDialogService dialogService, MedicSyncService syncService)
+    public FormesListViewModel(
+        IRepository<Formes> repository,
+        IRepository<Poso> posoRepository,
+        IDialogService dialogService,
+        MedicSyncService syncService)
     {
         _repository = repository;
+        _posoRepository = posoRepository;
         _dialogService = dialogService;
         _syncService = syncService;
 
@@ -56,7 +80,24 @@ public partial class FormesListViewModel : ViewModelBase
                 : await _repository.FindAsync(f => f.itemname.Contains(SearchText));
 
             Formes = new ObservableCollection<Formes>(items.OrderBy(f => f.itemname));
+            await LoadPosoLookupsAsync();
         }, "Chargement des formes...");
+    }
+
+    private async Task LoadPosoLookupsAsync()
+    {
+        var posos = await _posoRepository.GetAllAsync();
+        PosoFormOptions = new ObservableCollection<string>(
+            posos.Select(p => p.posoform)
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v));
+
+        PosoNameOptions = new ObservableCollection<string>(
+            posos.Select(p => p.nameformul)
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(v => v));
     }
 
     [RelayCommand]
@@ -68,6 +109,10 @@ public partial class FormesListViewModel : ViewModelBase
         SelectedForme = null;
         EditItemName = string.Empty;
         EditSubValue = string.Empty;
+        EditFormGroup = string.Empty;
+        EditAbName = string.Empty;
+        EditPosoForm = string.Empty;
+        EditPosoName = string.Empty;
         IsEditing = true;
     }
 
@@ -79,6 +124,10 @@ public partial class FormesListViewModel : ViewModelBase
         SelectedForme = forme;
         EditItemName = forme.itemname;
         EditSubValue = forme.subvalue;
+        EditFormGroup = forme.formgroup;
+        EditAbName = forme.abname;
+        EditPosoForm = forme.posoform;
+        EditPosoName = forme.posoname;
         _originalItemName = forme.itemname;
         IsEditing = true;
     }
@@ -92,6 +141,32 @@ public partial class FormesListViewModel : ViewModelBase
             return;
         }
 
+        if (!string.IsNullOrWhiteSpace(EditPosoForm))
+        {
+            var posoFormExists = await _posoRepository.ExistsAsync(
+                p => p.posoform == EditPosoForm);
+            if (!posoFormExists)
+            {
+                await _dialogService.ShowWarningAsync(
+                    "Validation",
+                    "Poso form doit exister dans la table Poso.");
+                return;
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(EditPosoName))
+        {
+            var posoNameExists = await _posoRepository.ExistsAsync(
+                p => p.nameformul == EditPosoName);
+            if (!posoNameExists)
+            {
+                await _dialogService.ShowWarningAsync(
+                    "Validation",
+                    "Poso name doit exister dans la table Poso (Nom formule).");
+                return;
+            }
+        }
+
         await ExecuteAsync(async () =>
         {
             if (SelectedForme != null)
@@ -99,6 +174,10 @@ public partial class FormesListViewModel : ViewModelBase
                 var oldName = _originalItemName;
                 SelectedForme.itemname = EditItemName;
                 SelectedForme.subvalue = EditSubValue;
+                SelectedForme.formgroup = EditFormGroup;
+                SelectedForme.abname = EditAbName;
+                SelectedForme.posoform = EditPosoForm;
+                SelectedForme.posoname = EditPosoName;
                 await _repository.UpdateAsync(SelectedForme);
 
                 // Propagate rename to medic.forme field
@@ -117,7 +196,11 @@ public partial class FormesListViewModel : ViewModelBase
                 await _repository.AddAsync(new Formes
                 {
                     itemname = EditItemName,
-                    subvalue = EditSubValue
+                    subvalue = EditSubValue,
+                    formgroup = EditFormGroup,
+                    abname = EditAbName,
+                    posoform = EditPosoForm,
+                    posoname = EditPosoName
                 });
             }
 

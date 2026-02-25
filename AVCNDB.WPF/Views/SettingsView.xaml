@@ -94,7 +94,8 @@
 
                                 <ComboBox Grid.Column="1"
                                           Width="160"
-                                          SelectedItem="{Binding SelectedTheme}"
+                                          SelectedValue="{Binding SelectedTheme}"
+                                          SelectedValuePath="Content"
                                           Style="{StaticResource MaterialDesignOutlinedComboBox}">
                                     <ComboBoxItem Content="Clair"/>
                                     <ComboBoxItem Content="Sombre"/>
@@ -131,7 +132,7 @@
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
 
-                                <TextBox Grid.Column="1"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="1"
                                          Text="{Binding StockAlertThreshold, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Seuil"
                                          materialDesign:TextFieldAssist.SuffixText="unités"
@@ -154,7 +155,7 @@
                                                TextWrapping="Wrap"/>
                                 </StackPanel>
 
-                                <TextBox Grid.Column="1"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="1"
                                          Text="{Binding ExpiryAlertDays, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Jours"
                                          materialDesign:TextFieldAssist.SuffixText="jours"
@@ -228,12 +229,12 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBox Grid.Column="0"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                                          Text="{Binding DatabaseServer, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Serveur"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
-                                <TextBox Grid.Column="2"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="2"
                                          Text="{Binding DatabasePort, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Port"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
@@ -247,19 +248,19 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBox Grid.Column="0"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                                          Text="{Binding DatabaseName, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Nom de la base"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
 
-                                <TextBox Grid.Column="2"
+                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="2"
                                          Text="{Binding DatabaseUser, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Utilisateur"
                                          Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                             </Grid>
 
                             <!-- Mot de passe -->
-                            <TextBox Text="{Binding DatabasePassword, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding DatabasePassword, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Mot de passe"
                                      Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                      Margin="0,0,0,16"/>
@@ -383,3 +384,4 @@
         </Border>
     </Grid>
 </UserControl>
+

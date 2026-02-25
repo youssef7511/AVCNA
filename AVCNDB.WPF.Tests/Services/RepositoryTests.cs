@@ -276,4 +276,94 @@ public class RepositoryTests : IDisposable
     }
 
     #endregion
+
+    #region New Library Models CRUD
+
+    [Fact]
+    public async Task SpecialitesRepository_Crud_Works()
+    {
+        var repository = new Repository<Specialites>(_context);
+
+        var created = await repository.AddAsync(new Specialites
+        {
+            recordid = 101,
+            itemname = "Specialite test",
+            abname = "SPT",
+            subvalue = "A"
+        });
+
+        created.recordid.Should().Be(101);
+
+        created.itemname = "Specialite test MAJ";
+        await repository.UpdateAsync(created);
+
+        var updated = await repository.GetByIdAsync(101);
+        updated.Should().NotBeNull();
+        updated!.itemname.Should().Be("Specialite test MAJ");
+
+        await repository.DeleteAsync(updated);
+        var deleted = await repository.GetByIdAsync(101);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PresentsRepository_Crud_Works()
+    {
+        var repository = new Repository<Presents>(_context);
+
+        var created = await repository.AddAsync(new Presents
+        {
+            recordid = 102,
+            itemname = "Present test",
+            abname = "PRT",
+            subvalue = "B"
+        });
+
+        created.recordid.Should().Be(102);
+
+        created.itemname = "Present test MAJ";
+        await repository.UpdateAsync(created);
+
+        var updated = await repository.GetByIdAsync(102);
+        updated.Should().NotBeNull();
+        updated!.itemname.Should().Be("Present test MAJ");
+
+        await repository.DeleteAsync(updated);
+        var deleted = await repository.GetByIdAsync(102);
+        deleted.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PosoRepository_Crud_Works()
+    {
+        var repository = new Repository<Poso>(_context);
+
+        var created = await repository.AddAsync(new Poso
+        {
+            recordid = 103,
+            itemname = "Poso test",
+            qty = 1.5m,
+            posoform = "cp",
+            prises = 2m,
+            periode = "jour",
+            conditions = "repas",
+            nameformul = "F",
+            subvalue = "S"
+        });
+
+        created.recordid.Should().Be(103);
+
+        created.itemname = "Poso test MAJ";
+        await repository.UpdateAsync(created);
+
+        var updated = await repository.GetByIdAsync(103);
+        updated.Should().NotBeNull();
+        updated!.itemname.Should().Be("Poso test MAJ");
+
+        await repository.DeleteAsync(updated);
+        var deleted = await repository.GetByIdAsync(103);
+        deleted.Should().BeNull();
+    }
+
+    #endregion
 }

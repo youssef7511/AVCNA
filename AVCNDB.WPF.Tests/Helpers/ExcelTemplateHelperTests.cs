@@ -1,5 +1,6 @@
 using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
+using FluentAssertions;
 using Xunit;
 
 namespace AVCNDB.WPF.Tests.Helpers;
@@ -18,6 +19,20 @@ public class ExcelTemplateHelperTests
         Assert.Contains("voie", cols);
         Assert.Contains("present", cols);
         Assert.Contains("labo", cols);
+        Assert.DoesNotContain("IsChecked", cols);
+    }
+
+    [Fact]
+    public void GetStrictColumns_NewLibraryModels_ContainExpectedColumns()
+    {
+        var specialitesCols = ExcelTemplateHelper.GetStrictColumns<Specialites>();
+        specialitesCols.Should().Contain(new[] { "recordid", "itemname", "abname", "subvalue", "addedat", "updatedat" });
+
+        var presentsCols = ExcelTemplateHelper.GetStrictColumns<Presents>();
+        presentsCols.Should().Contain(new[] { "recordid", "itemname", "abname", "subvalue", "addedat", "updatedat" });
+
+        var posoCols = ExcelTemplateHelper.GetStrictColumns<Poso>();
+        posoCols.Should().Contain(new[] { "recordid", "itemname", "qty", "posoform", "prises", "periode", "conditions", "nameformul", "subvalue", "addedat", "updatedat" });
     }
 
     [Fact]

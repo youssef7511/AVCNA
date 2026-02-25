@@ -13,6 +13,10 @@ public class Voies : ITrackable
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int recordid { get; set; }
 
+    /// <summary>UI-only: sélection par checkbox</summary>
+    [NotMapped]
+    public bool IsChecked { get; set; }
+
     [Required]
     [StringLength(40)]
     public string itemname { get; set; } = string.Empty;

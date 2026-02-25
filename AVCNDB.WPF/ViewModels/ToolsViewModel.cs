@@ -24,6 +24,7 @@ public partial class ToolsViewModel : ViewModelBase
     private readonly IPdfService _pdfService;
     private readonly IDialogService _dialogService;
     private readonly IConfiguration _configuration;
+    private const string DockerDbContainerName = "avcndb-db";
 
     // ============================================
     // STATISTIQUES
@@ -171,46 +172,21 @@ public partial class ToolsViewModel : ViewModelBase
             var connectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
             var parts = ParseConnectionString(connectionString);
 
-            var mysqldumpPath = FindMysqlDump();
-            if (string.IsNullOrEmpty(mysqldumpPath))
+            var localBackup = await TryBackupWithLocalClientAsync(parts, filePath);
+            if (!localBackup.Success)
             {
-                await _dialogService.ShowErrorAsync("Erreur",
-                    "mysqldump introuvable.\nVérifiez que MySQL est installé et que le chemin est dans le PATH système.");
-                return;
-            }
-
-            var args = $"--host={parts.host} --port={parts.port} --user={parts.user} --password={parts.password} {parts.database}";
-
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
+                var dockerBackup = await TryBackupWithDockerAsync(parts, filePath);
+                if (!dockerBackup.Success)
                 {
-                    FileName = mysqldumpPath,
-                    Arguments = args,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
+                    await _dialogService.ShowErrorAsync("Erreur de sauvegarde",
+                        $"La sauvegarde a échoué.\n\nLocal:\n{localBackup.Error}\n\nDocker:\n{dockerBackup.Error}");
+                    return;
                 }
-            };
-
-            process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode == 0)
-            {
-                await File.WriteAllTextAsync(filePath, output);
-                LastBackupInfo = $"Dernière sauvegarde: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                await _dialogService.ShowSuccessAsync("Sauvegarde réussie",
-                    $"Base de données sauvegardée avec succès.\n{filePath}");
             }
-            else
-            {
-                await _dialogService.ShowErrorAsync("Erreur de sauvegarde",
-                    $"La sauvegarde a échoué.\n{error}");
-            }
+
+            LastBackupInfo = $"Dernière sauvegarde: {DateTime.Now:dd/MM/yyyy HH:mm}";
+            await _dialogService.ShowSuccessAsync("Sauvegarde réussie",
+                $"Base de données sauvegardée avec succès.\n{filePath}");
         }, "Sauvegarde en cours...");
     }
 
@@ -238,49 +214,22 @@ public partial class ToolsViewModel : ViewModelBase
         {
             var connectionString = _configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
             var parts = ParseConnectionString(connectionString);
-
-            var mysqlPath = FindMysql();
-            if (string.IsNullOrEmpty(mysqlPath))
-            {
-                await _dialogService.ShowErrorAsync("Erreur",
-                    "mysql introuvable.\nVérifiez que MySQL est installé et que le chemin est dans le PATH système.");
-                return;
-            }
-
-            var args = $"--host={parts.host} --port={parts.port} --user={parts.user} --password={parts.password} {parts.database}";
-
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = mysqlPath,
-                    Arguments = args,
-                    RedirectStandardInput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-
-            process.Start();
-
             var sqlContent = await File.ReadAllTextAsync(filePath);
-            await process.StandardInput.WriteAsync(sqlContent);
-            process.StandardInput.Close();
 
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
+            var localRestore = await TryRestoreWithLocalClientAsync(parts, sqlContent);
+            if (!localRestore.Success)
+            {
+                var dockerRestore = await TryRestoreWithDockerAsync(parts, sqlContent);
+                if (!dockerRestore.Success)
+                {
+                    await _dialogService.ShowErrorAsync("Erreur de restauration",
+                        $"La restauration a échoué.\n\nLocal:\n{localRestore.Error}\n\nDocker:\n{dockerRestore.Error}");
+                    return;
+                }
+            }
 
-            if (process.ExitCode == 0)
-            {
-                await _dialogService.ShowSuccessAsync("Restauration réussie",
-                    "La base de données a été restaurée avec succès.\nRedémarrez l'application pour appliquer les changements.");
-            }
-            else
-            {
-                await _dialogService.ShowErrorAsync("Erreur de restauration",
-                    $"La restauration a échoué.\n{error}");
-            }
+            await _dialogService.ShowSuccessAsync("Restauration réussie",
+                "La base de données a été restaurée avec succès.\nRedémarrez l'application pour appliquer les changements.");
         }, "Restauration en cours...");
     }
 
@@ -313,6 +262,180 @@ public partial class ToolsViewModel : ViewModelBase
     // ============================================
     // HELPERS
     // ============================================
+    private static async Task<(bool Success, string Error)> TryBackupWithLocalClientAsync(
+        (string host, string port, string user, string password, string database) parts,
+        string filePath)
+    {
+        var mysqldumpPath = FindMysqlDump();
+        if (string.IsNullOrEmpty(mysqldumpPath))
+        {
+            return (false, "mysqldump introuvable (installation locale/PATH).");
+        }
+
+        try
+        {
+            var args = $"--host={parts.host} --port={parts.port} --user={parts.user} --password={parts.password} {parts.database}";
+            var result = await RunProcessAsync(mysqldumpPath, args, null);
+
+            if (result.ExitCode != 0)
+            {
+                return (false, result.StandardError.Trim());
+            }
+
+            await File.WriteAllTextAsync(filePath, result.StandardOutput);
+            return (true, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private static async Task<(bool Success, string Error)> TryBackupWithDockerAsync(
+        (string host, string port, string user, string password, string database) parts,
+        string filePath)
+    {
+        var running = await IsDockerContainerRunningAsync(DockerDbContainerName);
+        if (!running)
+        {
+            return (false, $"Conteneur Docker '{DockerDbContainerName}' non démarré.");
+        }
+
+        try
+        {
+            var dumpArgs = $"exec {DockerDbContainerName} mariadb-dump --user={parts.user} --password={parts.password} --databases {parts.database}";
+            var dumpResult = await RunProcessAsync("docker", dumpArgs, null);
+
+            if (dumpResult.ExitCode != 0)
+            {
+                // Fallback for images exposing mysqldump instead of mariadb-dump.
+                dumpArgs = $"exec {DockerDbContainerName} mysqldump --user={parts.user} --password={parts.password} --databases {parts.database}";
+                dumpResult = await RunProcessAsync("docker", dumpArgs, null);
+            }
+
+            if (dumpResult.ExitCode != 0)
+            {
+                return (false, dumpResult.StandardError.Trim());
+            }
+
+            await File.WriteAllTextAsync(filePath, dumpResult.StandardOutput);
+            return (true, string.Empty);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private static async Task<(bool Success, string Error)> TryRestoreWithLocalClientAsync(
+        (string host, string port, string user, string password, string database) parts,
+        string sqlContent)
+    {
+        var mysqlPath = FindMysql();
+        if (string.IsNullOrEmpty(mysqlPath))
+        {
+            return (false, "mysql introuvable (installation locale/PATH).");
+        }
+
+        try
+        {
+            var args = $"--host={parts.host} --port={parts.port} --user={parts.user} --password={parts.password} {parts.database}";
+            var result = await RunProcessAsync(mysqlPath, args, sqlContent);
+            return result.ExitCode == 0
+                ? (true, string.Empty)
+                : (false, result.StandardError.Trim());
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private static async Task<(bool Success, string Error)> TryRestoreWithDockerAsync(
+        (string host, string port, string user, string password, string database) parts,
+        string sqlContent)
+    {
+        var running = await IsDockerContainerRunningAsync(DockerDbContainerName);
+        if (!running)
+        {
+            return (false, $"Conteneur Docker '{DockerDbContainerName}' non démarré.");
+        }
+
+        try
+        {
+            var restoreArgs = $"exec -i {DockerDbContainerName} mariadb --user={parts.user} --password={parts.password} {parts.database}";
+            var restoreResult = await RunProcessAsync("docker", restoreArgs, sqlContent);
+
+            if (restoreResult.ExitCode != 0)
+            {
+                // Fallback for images exposing mysql client.
+                restoreArgs = $"exec -i {DockerDbContainerName} mysql --user={parts.user} --password={parts.password} {parts.database}";
+                restoreResult = await RunProcessAsync("docker", restoreArgs, sqlContent);
+            }
+
+            return restoreResult.ExitCode == 0
+                ? (true, string.Empty)
+                : (false, restoreResult.StandardError.Trim());
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private static async Task<bool> IsDockerContainerRunningAsync(string containerName)
+    {
+        try
+        {
+            var inspectArgs = $"inspect -f \"{{{{.State.Running}}}}\" {containerName}";
+            var result = await RunProcessAsync("docker", inspectArgs, null);
+            return result.ExitCode == 0 &&
+                   result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static async Task<(int ExitCode, string StandardOutput, string StandardError)> RunProcessAsync(
+        string fileName,
+        string arguments,
+        string? standardInput)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                Arguments = arguments,
+                RedirectStandardInput = standardInput is not null,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+
+        process.Start();
+
+        var outputTask = process.StandardOutput.ReadToEndAsync();
+        var errorTask = process.StandardError.ReadToEndAsync();
+
+        if (standardInput is not null)
+        {
+            await process.StandardInput.WriteAsync(standardInput);
+            process.StandardInput.Close();
+        }
+
+        await process.WaitForExitAsync();
+
+        var output = await outputTask;
+        var error = await errorTask;
+
+        return (process.ExitCode, output, error);
+    }
+
     private static string? FindMysqlDump()
     {
         var paths = new[]

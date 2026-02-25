@@ -42,6 +42,15 @@ public partial class DatabaseViewModel : ViewModelBase
     [ObservableProperty]
     private VoiesListViewModel? _voiesListViewModel;
 
+    [ObservableProperty]
+    private SpecialitesListViewModel? _specialitesListViewModel;
+
+    [ObservableProperty]
+    private PresentsListViewModel? _presentsListViewModel;
+
+    [ObservableProperty]
+    private PosoListViewModel? _posoListViewModel;
+
     public DatabaseViewModel(
         IRepository<Medic> medicRepository,
         IRepository<Dci> dciRepository,
@@ -70,7 +79,10 @@ public partial class DatabaseViewModel : ViewModelBase
         LabosListViewModel labosListViewModel,
         InteractionsViewModel interactionsViewModel,
         FormesListViewModel formesListViewModel,
-        VoiesListViewModel voiesListViewModel)
+        VoiesListViewModel voiesListViewModel,
+        SpecialitesListViewModel specialitesListViewModel,
+        PresentsListViewModel presentsListViewModel,
+        PosoListViewModel posoListViewModel)
     {
         MedicListViewModel = medicListViewModel;
         DciListViewModel = dciListViewModel;
@@ -79,6 +91,9 @@ public partial class DatabaseViewModel : ViewModelBase
         InteractionsViewModel = interactionsViewModel;
         FormesListViewModel = formesListViewModel;
         VoiesListViewModel = voiesListViewModel;
+        SpecialitesListViewModel = specialitesListViewModel;
+        PresentsListViewModel = presentsListViewModel;
+        PosoListViewModel = posoListViewModel;
     }
 
     /// <summary>

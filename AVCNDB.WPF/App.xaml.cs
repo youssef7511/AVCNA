@@ -160,7 +160,9 @@ public partial class App : Application
         services.AddTransient<IRepository<Stock>, Repository<Stock>>();
         services.AddTransient<IRepository<Formes>, Repository<Formes>>();
         services.AddTransient<IRepository<Voies>, Repository<Voies>>();
+        services.AddTransient<IRepository<Specialites>, Repository<Specialites>>();
         services.AddTransient<IRepository<Presents>, Repository<Presents>>();
+        services.AddTransient<IRepository<Poso>, Repository<Poso>>();
 
         // ============================================
         // SERVICES
@@ -190,6 +192,9 @@ public partial class App : Application
         services.AddTransient<InteractionsViewModel>();
         services.AddTransient<FormesListViewModel>();
         services.AddTransient<VoiesListViewModel>();
+        services.AddTransient<SpecialitesListViewModel>();
+        services.AddTransient<PresentsListViewModel>();
+        services.AddTransient<PosoListViewModel>();
         services.AddTransient<StockViewModel>();
         services.AddTransient<SettingsViewModel>();
         services.AddTransient<DatabaseViewModel>();
@@ -210,6 +215,9 @@ public partial class App : Application
         services.AddTransient<InteractionsView>();
         services.AddTransient<FormesListView>();
         services.AddTransient<VoiesListView>();
+        services.AddTransient<SpecialitesListView>();
+        services.AddTransient<PresentsListView>();
+        services.AddTransient<PosoListView>();
         services.AddTransient<StockView>();
         services.AddTransient<SettingsView>();
         services.AddTransient<DatabaseView>();

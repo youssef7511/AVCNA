@@ -21,22 +21,36 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task<IEnumerable<T>> GetAllAsync()
     {
-        return await _dbSet.ToListAsync();
+        return await _dbSet.AsNoTracking().ToListAsync();
     }
 
     public virtual async Task<T?> GetByIdAsync(int id)
     {
-        return await _dbSet.FindAsync(id);
+        var entityType = _context.Model.FindEntityType(typeof(T));
+        var key = entityType?.FindPrimaryKey();
+        var keyProperty = key?.Properties.FirstOrDefault();
+        if (keyProperty == null)
+        {
+            return await _dbSet.FindAsync(id);
+        }
+
+        var parameter = Expression.Parameter(typeof(T), "e");
+        var property = Expression.Property(parameter, keyProperty.Name);
+        var convertedId = Expression.Convert(Expression.Constant(id), property.Type);
+        var equals = Expression.Equal(property, convertedId);
+        var lambda = Expression.Lambda<Func<T, bool>>(equals, parameter);
+
+        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(lambda);
     }
 
     public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.Where(predicate).ToListAsync();
+        return await _dbSet.AsNoTracking().Where(predicate).ToListAsync();
     }
 
     public virtual async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate)
     {
-        return await _dbSet.FirstOrDefaultAsync(predicate);
+        return await _dbSet.AsNoTracking().FirstOrDefaultAsync(predicate);
     }
 
     public virtual async Task<T> AddAsync(T entity)
@@ -97,7 +111,7 @@ public class Repository<T> : IRepository<T> where T : class
         Expression<Func<T, object>>? orderBy = null,
         bool descending = false)
     {
-        IQueryable<T> query = _dbSet;
+        IQueryable<T> query = _dbSet.AsNoTracking();
 
         if (filter != null)
         {

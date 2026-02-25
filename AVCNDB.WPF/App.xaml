@@ -60,6 +60,18 @@
             <DataTemplate DataType="{x:Type vm:LabosListViewModel}">
                 <views:LabosListView />
             </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:SpecialitesListViewModel}">
+                <views:SpecialitesListView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:PresentsListViewModel}">
+                <views:PresentsListView />
+            </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:PosoListViewModel}">
+                <views:PosoListView />
+            </DataTemplate>
             
             <DataTemplate DataType="{x:Type vm:InteractionsViewModel}">
                 <views:InteractionsView />

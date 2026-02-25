@@ -1,3 +1,4 @@
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using AVCNDB.WPF.Services;
 
@@ -9,6 +10,14 @@ namespace AVCNDB.WPF.ViewModels;
 /// </summary>
 public abstract partial class ViewModelBase : ObservableObject, INavigationAware
 {
+    /// <summary>
+    /// Serialises all DB / async operations so that a second call
+    /// waits for the first one to finish instead of hitting the
+    /// same DbContext concurrently.
+    /// </summary>
+    private readonly SemaphoreSlim _busy = new(1, 1);
+    private readonly AsyncLocal<int> _executionDepth = new();
+
     [ObservableProperty]
     private bool _isLoading;
 
@@ -22,10 +31,29 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
     private string? _errorMessage;
 
     /// <summary>
-    /// Exécute une action de manière asynchrone avec gestion du loading
+    /// Exécute une action de manière asynchrone avec gestion du loading.
+    /// Un SemaphoreSlim garantit qu'une seule opération tourne à la fois
+    /// (évite "A second operation was started on this context instance…").
     /// </summary>
     protected async Task ExecuteAsync(Func<Task> action, string? loadingMessage = null)
     {
+        // Re-entrant call on the same async flow: do not wait on the same lock.
+        if (_executionDepth.Value > 0)
+        {
+            _executionDepth.Value++;
+            try
+            {
+                await action();
+            }
+            finally
+            {
+                _executionDepth.Value--;
+            }
+            return;
+        }
+
+        await _busy.WaitAsync();
+        _executionDepth.Value++;
         try
         {
             IsBusy = true;
@@ -44,8 +72,10 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
         }
         finally
         {
+            _executionDepth.Value--;
             IsBusy = false;
             IsLoading = false;
+            _busy.Release();
         }
     }
 
@@ -54,6 +84,22 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
     /// </summary>
     protected async Task<T?> ExecuteAsync<T>(Func<Task<T>> action, string? loadingMessage = null)
     {
+        // Re-entrant call on the same async flow: do not wait on the same lock.
+        if (_executionDepth.Value > 0)
+        {
+            _executionDepth.Value++;
+            try
+            {
+                return await action();
+            }
+            finally
+            {
+                _executionDepth.Value--;
+            }
+        }
+
+        await _busy.WaitAsync();
+        _executionDepth.Value++;
         try
         {
             IsBusy = true;
@@ -74,8 +120,10 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
         }
         finally
         {
+            _executionDepth.Value--;
             IsBusy = false;
             IsLoading = false;
+            _busy.Release();
         }
     }
 

@@ -1,0 +1,25 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: avcndb-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root0101}
+      MARIADB_DATABASE: ${DB_NAME:-MEDICDB}
+      MARIADB_USER: ${DB_USER:-medwin}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-0101}
+      TZ: ${DB_TIMEZONE:-UTC}
+    ports:
+      - "${DB_HOST_PORT:-3307}:3306"
+    volumes:
+      - avcndb_mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD:-root0101}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  avcndb_mysql_data:

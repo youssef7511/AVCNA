@@ -54,6 +54,18 @@ public partial class DciListViewModel : ViewModelBase
     [ObservableProperty]
     private string _editItemInfo = string.Empty;
 
+    [ObservableProperty]
+    private bool _isDetailsOpen;
+
+    [ObservableProperty]
+    private string _detailItemName = string.Empty;
+
+    [ObservableProperty]
+    private string _detailSubValue = string.Empty;
+
+    [ObservableProperty]
+    private string _detailItemInfo = string.Empty;
+
     public DciListViewModel(
         IRepository<Dci> repository,
         IDialogService dialogService,
@@ -74,6 +86,22 @@ public partial class DciListViewModel : ViewModelBase
     {
         CurrentPage = 1;
         _ = LoadDataAsync();
+    }
+
+    partial void OnSelectedDciChanged(Dci? value)
+    {
+        if (value == null)
+        {
+            IsDetailsOpen = false;
+        }
+    }
+
+    partial void OnIsEditingChanged(bool value)
+    {
+        if (value)
+        {
+            IsDetailsOpen = false;
+        }
     }
 
     private async Task LoadDataAsync()
@@ -133,7 +161,11 @@ public partial class DciListViewModel : ViewModelBase
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(EditItemName))
+        var normalizedItemName = EditItemName?.Trim() ?? string.Empty;
+        var normalizedSubValue = EditSubValue?.Trim() ?? string.Empty;
+        var normalizedItemInfo = EditItemInfo?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(normalizedItemName))
         {
             await _dialogService.ShowWarningAsync("Validation", "Le nom de la DCI est obligatoire.");
             return;
@@ -143,36 +175,49 @@ public partial class DciListViewModel : ViewModelBase
         {
             if (SelectedDci != null)
             {
-                // Mise à jour
-                var oldName = _editOldName;
-                SelectedDci.itemname = EditItemName;
-                SelectedDci.subvalue = EditSubValue;
-                SelectedDci.iteminfo = EditItemInfo;
-                await _repository.UpdateAsync(SelectedDci);
-
-                // Propager le renommage aux médicaments
-                if (!string.IsNullOrEmpty(oldName) && oldName != EditItemName)
+                // Mise a jour robuste via rechargement en base (evite les soucis d'entite detachee)
+                var dciToUpdate = await _repository.GetByIdAsync(SelectedDci.recordid);
+                if (dciToUpdate == null)
                 {
-                    var count = await _syncService.RenameDciInMedicsAsync(oldName, EditItemName);
-                    if (count > 0)
-                        await _dialogService.ShowSuccessAsync("Synchronisation", $"DCI renommée dans {count} médicament(s).");
+                    await _dialogService.ShowErrorAsync("Erreur", "La DCI a modifier est introuvable.");
+                    return;
+                }
+
+                var oldName = dciToUpdate.itemname;
+                dciToUpdate.itemname = normalizedItemName;
+                dciToUpdate.subvalue = normalizedSubValue;
+                dciToUpdate.iteminfo = normalizedItemInfo;
+                await _repository.UpdateAsync(dciToUpdate);
+
+                // Propager le renommage aux medicaments
+                if (!string.IsNullOrEmpty(oldName) &&
+                    !string.Equals(oldName, normalizedItemName, StringComparison.Ordinal))
+                {
+                    var medicCount = await _syncService.RenameDciInMedicsAsync(oldName, normalizedItemName);
+                    var interactCount = await _syncService.RenameDciInInteractionsAsync(oldName, normalizedItemName);
+                    if (medicCount > 0 || interactCount > 0)
+                    {
+                        await _dialogService.ShowSuccessAsync(
+                            "Synchronisation",
+                            $"Remplacement propage: {medicCount} medicament(s), {interactCount} interaction(s).");
+                    }
                 }
             }
             else
             {
-                // Création
+                // Creation
                 var newDci = new Dci
                 {
-                    itemname = EditItemName,
-                    subvalue = EditSubValue,
-                    iteminfo = EditItemInfo
+                    itemname = normalizedItemName,
+                    subvalue = normalizedSubValue,
+                    iteminfo = normalizedItemInfo
                 };
                 await _repository.AddAsync(newDci);
             }
 
             IsEditing = false;
             await LoadDataAsync();
-            await _dialogService.ShowSuccessAsync("Succès", "DCI sauvegardée avec succès.");
+            await _dialogService.ShowSuccessAsync("Succes", "DCI sauvegardee avec succes.");
         }, "Sauvegarde...");
     }
 
@@ -180,6 +225,26 @@ public partial class DciListViewModel : ViewModelBase
     private void CancelEdit()
     {
         IsEditing = false;
+    }
+
+    [RelayCommand]
+    private void CloseDetails()
+    {
+        IsDetailsOpen = false;
+        SelectedDci = null;
+    }
+
+    public void OpenDetails(Dci? dci)
+    {
+        if (dci == null || IsEditing)
+        {
+            return;
+        }
+
+        DetailItemName = dci.itemname;
+        DetailSubValue = dci.subvalue;
+        DetailItemInfo = dci.iteminfo;
+        IsDetailsOpen = true;
     }
 
     [RelayCommand]
@@ -206,11 +271,45 @@ public partial class DciListViewModel : ViewModelBase
                 if (usageCount > 0)
                     await _syncService.ClearDciFromMedicsAsync(dci.itemname);
 
+                await _syncService.ClearDciFromInteractionsAsync(dci.itemname);
+
                 await _repository.DeleteAsync(dci);
                 await LoadDataAsync();
                 await _dialogService.ShowSuccessAsync("Succès", "DCI supprimée avec succès.");
             });
         }
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination DCI par son substitut dans DCI, Médicaments et Interactions. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplyDciSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Lignes DCI mises à jour: {result.UpdatedDciCount}\n" +
+                $"Médicaments synchronisés: {result.UpdatedMedicCount}\n" +
+                $"Interactions synchronisées: {result.UpdatedInteractCount}");
+        }, "Application des substituts...");
     }
 
     [RelayCommand]

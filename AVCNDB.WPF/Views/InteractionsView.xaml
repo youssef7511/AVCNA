@@ -56,8 +56,14 @@
 
                 <!-- Recherche de DCI -->
                 <Border Grid.Row="1" Padding="16,0,16,10">
-                    <TextBox Text="{Binding DciSearchText, UpdateSourceTrigger=PropertyChanged}"
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Height="36"
+                             Padding="10,6"
+                             VerticalContentAlignment="Center"
+                             FontSize="13"
+                             Text="{Binding DciSearchText, UpdateSourceTrigger=PropertyChanged}"
                              materialDesign:HintAssist.Hint="Rechercher une DCI..."
+                             materialDesign:HintAssist.IsFloating="False"
+                             materialDesign:TextFieldAssist.DecorationVisibility="Visible"
                              Style="{StaticResource MaterialDesignOutlinedTextBox}">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding SearchDciCommand}"/>
@@ -146,9 +152,7 @@
                         </ItemsControl>
 
                         <Button Command="{Binding AnalyzeCommand}"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                Background="{StaticResource SuccessBrush}"
-                                Foreground="White"
+                                Style="{StaticResource TabToolbarPrimaryButtonStyle}"
                                 Margin="0,12,0,0"
                                 IsEnabled="{Binding CanAnalyze}">
                             <StackPanel Orientation="Horizontal">
@@ -192,7 +196,7 @@
 
                     <Button Grid.Column="1"
                             Command="{Binding ExportPdfCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
                             ToolTip="Exporter en PDF"
                             IsEnabled="{Binding HasResults}">
                         <StackPanel Orientation="Horizontal">
@@ -376,3 +380,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

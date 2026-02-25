@@ -5,6 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:StockViewModel}"
              Background="{DynamicResource MaterialDesignBackground}">
@@ -35,11 +36,17 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Recherche -->
-                <TextBox Grid.Column="0"
+                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="0"
                          Width="280"
+                         Height="36"
+                         Padding="10,6"
+                         VerticalContentAlignment="Center"
+                         FontSize="13"
                          HorizontalAlignment="Left"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          materialDesign:HintAssist.Hint="Rechercher un médicament..."
+                         materialDesign:HintAssist.IsFloating="False"
+                         materialDesign:TextFieldAssist.DecorationVisibility="Visible"
                          Style="{StaticResource MaterialDesignOutlinedTextBox}">
                     <TextBox.InputBindings>
                         <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
@@ -163,7 +170,11 @@
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"
                   Margin="24,16">
-            
+
+            <DataGrid.Resources>
+                <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+            </DataGrid.Resources>
+
             <DataGrid.Columns>
                 <!-- Code-barre -->
                 <DataGridTextColumn Header="Code-barre" 
@@ -292,28 +303,36 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Actions -->
-                <DataGridTemplateColumn Header="Actions" Width="100">
+                <!-- Actions (⋮ menu) -->
+                <DataGridTemplateColumn Header="" Width="50" CanUserResize="False" CanUserSort="False">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Command="{Binding DataContext.EditStockCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource MaterialDesignIconButton}"
-                                        Foreground="{StaticResource PrimaryBrush}"
-                                        ToolTip="Modifier le stock"
-                                        Width="32" Height="32">
-                                    <materialDesign:PackIcon Kind="Pencil" Width="18" Height="18"/>
-                                </Button>
-                                
-                                <Button Command="{Binding DataContext.ViewHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding}"
-                                        Style="{StaticResource MaterialDesignIconButton}"
-                                        ToolTip="Historique"
-                                        Width="32" Height="32">
-                                    <materialDesign:PackIcon Kind="History" Width="18" Height="18"/>
-                                </Button>
-                            </StackPanel>
+                            <materialDesign:PopupBox PlacementMode="BottomAndAlignRightEdges"
+                                                     StaysOpen="False" ToolTip="Actions" Padding="0"
+                                                     HorizontalAlignment="Center">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <materialDesign:PackIcon Kind="DotsVertical" Width="20" Height="20"
+                                                             Foreground="{DynamicResource MaterialDesignBody}"/>
+                                </materialDesign:PopupBox.ToggleContent>
+                                <StackPanel MinWidth="160">
+                                    <Button Command="{Binding Data.EditStockCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Pencil" Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBrush}"/>
+                                            <TextBlock Text="Modifier le stock" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding Data.ViewHistoryCommand, Source={StaticResource vmProxy}}"
+                                            CommandParameter="{Binding}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="History" Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Historique" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </materialDesign:PopupBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -328,3 +347,4 @@
                      Margin="24,0"/>
     </Grid>
 </UserControl>
+

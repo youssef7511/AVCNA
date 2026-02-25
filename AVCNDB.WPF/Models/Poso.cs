@@ -13,6 +13,10 @@ public class Poso : ITrackable
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int recordid { get; set; }
 
+    /// <summary>UI-only: sélection par checkbox</summary>
+    [NotMapped]
+    public bool IsChecked { get; set; }
+
     [Required]
     [StringLength(100)]
     public string itemname { get; set; } = string.Empty;

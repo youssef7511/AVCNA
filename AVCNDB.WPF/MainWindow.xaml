@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
         mc:Ignorable="d"
-        Title="AVICENNA DB - Base de Données Pharmaceutique"
+        Title="AVICENNA DB - Base de Données médicamenteuse"
         Height="800" Width="1400"
         MinHeight="600" MinWidth="1000"
         WindowStartupLocation="CenterScreen"
@@ -33,8 +33,7 @@
                 Grid.Column="0" 
                 Background="{StaticResource PrimaryDarkBrush}"
                 MouseEnter="Sidebar_MouseEnter"
-                MouseLeave="Sidebar_MouseLeave"
-                Width="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}, ConverterParameter=260}">
+                MouseLeave="Sidebar_MouseLeave">
             <Border.Style>
                 <Style TargetType="Border">
                     <Style.Triggers>
@@ -199,9 +198,18 @@
                             HorizontalContentAlignment="Left"
                             Height="48">
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="{Binding IsDarkTheme, Converter={StaticResource BoolToVisibility}, ConverterParameter=WeatherSunny}" 
-                                                     Width="24" Height="24" 
-                                                     VerticalAlignment="Center"/>
+                            <materialDesign:PackIcon Width="24" Height="24" VerticalAlignment="Center">
+                                <materialDesign:PackIcon.Style>
+                                    <Style TargetType="materialDesign:PackIcon">
+                                        <Setter Property="Kind" Value="WeatherSunny"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDarkTheme}" Value="True">
+                                                <Setter Property="Kind" Value="WeatherNight"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </materialDesign:PackIcon.Style>
+                            </materialDesign:PackIcon>
                             <TextBlock Text="Thème" 
                                        Margin="16,0,0,0" 
                                        VerticalAlignment="Center"
@@ -216,8 +224,18 @@
                             HorizontalContentAlignment="Center"
                             Height="40"
                             Margin="0,8,0,0">
-                        <materialDesign:PackIcon Kind="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}, ConverterParameter=ChevronLeft}" 
-                                                 Width="24" Height="24"/>
+                        <materialDesign:PackIcon Width="24" Height="24">
+                            <materialDesign:PackIcon.Style>
+                                <Style TargetType="materialDesign:PackIcon">
+                                    <Setter Property="Kind" Value="ChevronRight"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMenuExpanded}" Value="True">
+                                            <Setter Property="Kind" Value="ChevronLeft"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </materialDesign:PackIcon.Style>
+                        </materialDesign:PackIcon>
                     </Button>
                 </StackPanel>
             </Grid>
@@ -265,7 +283,7 @@
 
                     <!-- Actions rapides -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <TextBox Width="200"
+                        <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Width="200"
                                  materialDesign:HintAssist.Hint="Rechercher..."
                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                  Margin="0,0,12,0"/>
@@ -311,3 +329,4 @@
         </Grid>
     </Grid>
 </Window>
+

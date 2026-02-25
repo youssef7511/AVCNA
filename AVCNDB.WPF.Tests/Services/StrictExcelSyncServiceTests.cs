@@ -335,6 +335,180 @@ public class StrictExcelSyncServiceTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task ImportAndSyncAsync_Specialites_UpdatesExistingAndInsertsNew()
+    {
+        var repo = new Repository<Specialites>(_context);
+        await repo.AddAsync(new Specialites
+        {
+            recordid = 1,
+            itemname = "Cardiologie",
+            abname = "CARD",
+            subvalue = "spec"
+        });
+
+        var excel = new ExcelService();
+        var svc = new StrictExcelSyncService<Specialites>(repo, excel);
+
+        var headers = svc.ExpectedColumns.ToList();
+        var path = CreateTempWorkbook("Specialites", ws =>
+        {
+            WriteHeaders(ws, headers);
+
+            SetRow(ws, 2, headers, new Dictionary<string, object?>
+            {
+                ["recordid"] = 1,
+                ["itemname"] = "Cardiologie (MAJ)",
+                ["abname"] = "CARD",
+                ["subvalue"] = "spec"
+            });
+
+            SetRow(ws, 3, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "Dermatologie",
+                ["abname"] = "DERM",
+                ["subvalue"] = "spec"
+            });
+        });
+
+        try
+        {
+            var result = await svc.ImportAndSyncAsync(path, "Specialites");
+            result.IsValid.Should().BeTrue();
+            result.UpdatedCount.Should().Be(1);
+            result.InsertedCount.Should().Be(1);
+
+            var all = await repo.GetAllAsync();
+            all.Should().Contain(x => x.itemname == "Cardiologie (MAJ)");
+            all.Should().Contain(x => x.itemname == "Dermatologie");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ImportAndSyncAsync_Presents_UpdatesExistingAndInsertsNew()
+    {
+        var repo = new Repository<Presents>(_context);
+        await repo.AddAsync(new Presents
+        {
+            recordid = 1,
+            itemname = "Boite",
+            abname = "BTE",
+            subvalue = "present"
+        });
+
+        var excel = new ExcelService();
+        var svc = new StrictExcelSyncService<Presents>(repo, excel);
+
+        var headers = svc.ExpectedColumns.ToList();
+        var path = CreateTempWorkbook("Presents", ws =>
+        {
+            WriteHeaders(ws, headers);
+
+            SetRow(ws, 2, headers, new Dictionary<string, object?>
+            {
+                ["recordid"] = 1,
+                ["itemname"] = "Boite (MAJ)",
+                ["abname"] = "BTE",
+                ["subvalue"] = "present"
+            });
+
+            SetRow(ws, 3, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "Flacon",
+                ["abname"] = "FLC",
+                ["subvalue"] = "present"
+            });
+        });
+
+        try
+        {
+            var result = await svc.ImportAndSyncAsync(path, "Presents");
+            result.IsValid.Should().BeTrue();
+            result.UpdatedCount.Should().Be(1);
+            result.InsertedCount.Should().Be(1);
+
+            var all = await repo.GetAllAsync();
+            all.Should().Contain(x => x.itemname == "Boite (MAJ)");
+            all.Should().Contain(x => x.itemname == "Flacon");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ImportAndSyncAsync_Poso_UpdatesExistingAndInsertsNew()
+    {
+        var repo = new Repository<Poso>(_context);
+        await repo.AddAsync(new Poso
+        {
+            recordid = 1,
+            itemname = "Poso A",
+            qty = 1,
+            posoform = "cp",
+            prises = 2,
+            periode = "jour",
+            conditions = "repas",
+            nameformul = "F1",
+            subvalue = "standard"
+        });
+
+        var excel = new ExcelService();
+        var svc = new StrictExcelSyncService<Poso>(repo, excel);
+
+        var headers = svc.ExpectedColumns.ToList();
+        var path = CreateTempWorkbook("Poso", ws =>
+        {
+            WriteHeaders(ws, headers);
+
+            SetRow(ws, 2, headers, new Dictionary<string, object?>
+            {
+                ["recordid"] = 1,
+                ["itemname"] = "Poso A (MAJ)",
+                ["qty"] = 1.5m,
+                ["posoform"] = "cp",
+                ["prises"] = 3m,
+                ["periode"] = "jour",
+                ["conditions"] = "repas",
+                ["nameformul"] = "F1",
+                ["subvalue"] = "standard"
+            });
+
+            SetRow(ws, 3, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "Poso B",
+                ["qty"] = 2m,
+                ["posoform"] = "sirop",
+                ["prises"] = 2m,
+                ["periode"] = "soir",
+                ["conditions"] = "apres repas",
+                ["nameformul"] = "F2",
+                ["subvalue"] = "custom"
+            });
+        });
+
+        try
+        {
+            var result = await svc.ImportAndSyncAsync(path, "Poso");
+            result.IsValid.Should().BeTrue();
+            result.UpdatedCount.Should().Be(1);
+            result.InsertedCount.Should().Be(1);
+
+            var all = await repo.GetAllAsync();
+            all.Should().Contain(x => x.itemname == "Poso A (MAJ)");
+            all.Should().Contain(x => x.itemname == "Poso B");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
     private static string CreateTempWorkbook(string sheetName, Action<IXLWorksheet> configure)
     {
         var path = Path.Combine(Path.GetTempPath(), $"strict-sync-test-{Guid.NewGuid():N}.xlsx");
