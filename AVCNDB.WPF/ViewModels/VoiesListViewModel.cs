@@ -1,7 +1,9 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
@@ -47,7 +49,7 @@ public partial class VoiesListViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value)
     {
-        _ = LoadDataAsync();
+        DebounceSearch(LoadDataAsync);
     }
 
     private async Task LoadDataAsync()
@@ -131,6 +133,8 @@ public partial class VoiesListViewModel : ViewModelBase
             _originalItemName = null;
             IsEditing = false;
             await LoadDataAsync();
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Voies", SelectedVoie != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
         }, "Sauvegarde...");
     }
 
@@ -157,7 +161,40 @@ public partial class VoiesListViewModel : ViewModelBase
                 }
                 await _repository.DeleteAsync(voie);
                 await LoadDataAsync();
+                WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                    new DataChangeInfo("Voies", ChangeOperation.Deleted)));
             });
         }
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination Voie par son substitut dans Voies et Médicaments. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplyVoiesSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Voies mises à jour: {result.UpdatedEntityCount}\n" +
+                $"Médicaments synchronisés: {result.UpdatedMedicCount}");
+        }, "Application des substituts...");
     }
 }

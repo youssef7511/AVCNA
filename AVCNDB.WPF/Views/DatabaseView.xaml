@@ -48,91 +48,41 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Flask" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="DCI" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:DciListView DataContext="{Binding DciListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="FamilyTree" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Familles" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:FamiliesListView DataContext="{Binding FamiliesListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Factory" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Labos" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="ShapeOutline" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Formes" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:FormesListView DataContext="{Binding FormesListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Directions" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Voies" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:VoiesListView DataContext="{Binding VoiesListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Stethoscope" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Specialites" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:SpecialitesListView DataContext="{Binding SpecialitesListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="PackageVariant" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Presents" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:PresentsListView DataContext="{Binding PresentsListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="ClipboardText" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Poso" Style="{StaticResource DbTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:PosoListView DataContext="{Binding PosoListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
                         <materialDesign:PackIcon Kind="AlertCircle" Width="18" Height="18" VerticalAlignment="Center"/>
                         <TextBlock Text="Interactions" Style="{StaticResource DbTabHeaderText}"/>
                     </StackPanel>
                 </TabItem.Header>
                 <views:InteractionsView DataContext="{Binding InteractionsViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="RenameBox" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Dénominations" Style="{StaticResource DbTabHeaderText}"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:DenominationView DataContext="{Binding DenominationViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="CurrencyUsd" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Prix" Style="{StaticResource DbTabHeaderText}"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:PrixView DataContext="{Binding PrixViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource DbTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="BookOpenPageVariant" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Monographies" Style="{StaticResource DbTabHeaderText}"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:MonographieView DataContext="{Binding MonographieViewModel}"/>
             </TabItem>
         </TabControl>
     </Grid>

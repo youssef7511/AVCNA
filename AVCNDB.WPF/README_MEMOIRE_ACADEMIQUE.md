@@ -1,232 +1,317 @@
-﻿# CHAPITRE I. CADRE GENERAL DU PROJET / PRESENTATION GENERALE
+﻿# CHAPITRE I — CADRE GÉNÉRAL DU PROJET
 
 ## Introduction
-Dans le secteur de la sante, la donnee medicamenteuse joue un role critique dans la qualite des soins, la securite therapeutique et l'efficacite operationnelle. Lorsqu'elle est dispersee entre plusieurs fichiers ou geree sans regles homogenes, le risque d'erreurs augmente rapidement: doublons, informations contradictoires, mises a jour partielles, et difficulte de controle.
 
-Le projet AVICENNA DB (AVCNDB) s'inscrit dans ce contexte. Il propose une application desktop orientee gestion de base de donnees medicamenteuses, avec une architecture technique modulaire, des workflows de saisie/edition robustes, et une strategie claire d'evolution vers des fonctionnalites intelligentes (AI/ML) a moyen terme.
+Dans le secteur de la santé, la donnée médicamenteuse joue un rôle critique dans la qualité des soins, la sécurité thérapeutique et l'efficacité opérationnelle. Lorsqu'elle est dispersée entre plusieurs fichiers ou gérée sans règles homogènes, le risque d'erreurs augmente rapidement : doublons, informations contradictoires, mises à jour partielles et difficulté de contrôle.
+
+Le projet **AVICENNA DB (AVCNDB)** s'inscrit dans ce contexte. Il propose une application desktop orientée gestion de base de données médicamenteuses, avec une architecture technique modulaire, des workflows de saisie/édition robustes, et une stratégie claire d'évolution vers des fonctionnalités intelligentes (AI/ML) à moyen terme.
+
+---
+
+## 1.1 Présentation de l'organisme
+
+**Expertises & Logiciels pour Particuliers & Entreprises (ESIB)**, fondée en 1996 et basée à Bizerte, Tunisie, est une entreprise innovante spécialisée dans le développement de solutions logicielles, avec une expertise particulière dans le domaine médical. Dirigée par M. Mounir Jerbi, ESIB s'est imposée comme un acteur clé grâce à **MEDWIN**, un logiciel de gestion de cabinet médical adopté par plus de 3 000 médecins tunisiens.
+
+MEDWIN est conçu pour simplifier le quotidien des professionnels de santé en automatisant les tâches administratives et en organisant efficacement les informations des patients. Il offre des fonctionnalités avancées telles que l'optimisation de la gestion des rendez-vous, permettant une planification fluide et une gestion précise de l'agenda médical. Le logiciel facilite également la tenue des dossiers médicaux électroniques en garantissant un enregistrement structuré et un suivi détaillé des informations des patients.
+
+En matière de facturation, MEDWIN automatise les transactions financières liées aux consultations, assurant ainsi une gestion rapide et transparente. Il simplifie également la coordination des ressources internes et la gestion des stocks, contribuant à une organisation optimale du cabinet médical.
+
+En complément, ESIB a étendu les capacités de MEDWIN en proposant des services de publicité médicale et pharmaceutique via la même plateforme. Cette initiative permet aux entreprises partenaires de promouvoir leurs produits et services auprès de la communauté médicale, avec deux niveaux de partenariat : le niveau **PREMIUM**, qui inclut des espaces publicitaires privilégiés, et le niveau **BASIC**, axé sur la diffusion de messages promotionnels standards.
+
+Cette approche innovante combine technologie et marketing médical, positionnant MEDWIN non seulement comme un outil de gestion, mais aussi comme une plateforme stratégique facilitant la collaboration entre les professionnels de la santé et leurs partenaires.
+
+---
 
 ## 1.2 Cadre de Projet
 
 ### 1.2.1 Contexte de Projet
-Le besoin initial vient d'un constat metier simple: la gestion quotidienne des medicaments (denomination, DCI, labo, forme, voie, posologie, etc.) necessite une base fiable, centralisee et facilement exploitable. Or, dans les pratiques classiques, les donnees sont souvent:
-- stockees dans des tableaux bureautiques heterogenes;
-- modifiees sans trace claire des operations;
-- non synchronisees entre tables de reference et donnees medicaments;
-- difficiles a auditer apres plusieurs cycles de mise a jour.
 
-La consequence directe est une perte de temps sur la verification manuelle et un risque accru d'incoherence des informations medicales.
+Le besoin initial vient d'un constat métier simple : la gestion quotidienne des médicaments (dénomination, DCI, labo, forme, voie, posologie, etc.) nécessite une base fiable, centralisée et facilement exploitable. Or, dans les pratiques classiques, les données sont souvent :
 
-### 1.2.2 Analyse de l'existant
+- stockées dans des tableaux bureautiques hétérogènes ;
+- modifiées sans trace claire des opérations ;
+- non synchronisées entre tables de référence et données médicaments ;
+- difficiles à auditer après plusieurs cycles de mise à jour.
 
-#### 1.2.2.1 Etude de l'existant
-L'etude preliminaire a mis en evidence les points suivants:
-- Multiplicite des sources: plusieurs fichiers pour des domaines proches.
-- Qualite variable des colonnes: noms non standardises et formats differents.
-- Saisie non controlee: peu de validation stricte avant integration.
-- Maintenance difficile: corrections repetitives et peu industrialisees.
-- Faible lisibilite globale: absence d'un point de verite unique.
-
-#### 1.2.2.2 Critiques de l'existant
-Les limites majeures identifiees sont:
-- **Redondance**: une meme valeur peut exister sous plusieurs variantes.
-- **Incoherence**: valeurs non synchronisees entre references et medicaments.
-- **Traçabilite insuffisante**: difficile de reconstruire l'historique des changements.
-- **Risque metier**: informations inexactes pouvant impacter l'interpretation therapeutique.
-- **Scalabilite faible**: le systeme devient instable lorsque le volume augmente.
-
-#### 1.2.2.3 Solution proposee
-La solution retenue repose sur une application WPF .NET 8, structuree en couches, avec:
-- une interface de consultation/edition ergonomique;
-- un modele de donnees centralise sur MySQL/MariaDB (Docker);
-- un acces donnees via EF Core + Repository;
-- des services metier de synchronisation entre tables;
-- un import Excel strict avec validation de structure;
-- une base technique evolutive pour futures extensions AI/ML.
-
-Cette solution traite prioritairement la robustesse des flux de donnees avant l'ajout de fonctions avancees.
-
-## 1.3 Methodologies de travail
-
-### 1.3.1 Les Methodologies agile : La methodologie SCRUM
-Le projet est mene avec une logique iterative proche de Scrum:
-- decoupage des objectifs en increments fonctionnels;
-- priorisation continue selon les retours metier;
-- livraisons progressives (socle, CRUD, sync, import/export, UX);
-- stabilisation rapide des anomalies par cycle court.
-
-Cette approche a permis de maintenir un bon compromis entre vitesse d'execution et qualite technique.
-
-### 1.3.2 Langages de modelisation
-La modelisation sert a clarifier:
-- les besoins fonctionnels et non fonctionnels;
-- les acteurs et leurs interactions avec le systeme;
-- la frontiere entre logique metier, logique technique et persistance.
-
-L'objectif n'est pas uniquement documentaire: la modelisation guide les choix d'implementation (couches, responsabilites, points de controle).
-
-## Conclusion
-Le cadre general confirme que la valeur du projet AVCNDB repose d'abord sur la qualite de la base de donnees et la maitrise des flux de mise a jour. Les choix de stack, d'architecture et de methodologie etablissent une fondation solide pour les phases de preparation et d'evolution vers des fonctions d'aide intelligente.
+La conséquence directe est une perte de temps sur la vérification manuelle et un risque accru d'incohérence des informations médicales.
 
 ---
 
-# CHAPITRE 2. PREPARATION DE PROJET
+### 1.2.2 Analyse de l'existant
+
+#### 1.2.2.1 Étude de l'existant
+
+Le système actuel, connu sous le nom de **Medic 5X**, est une application de bureau développée en **Windows Forms (.NET Framework)**. Il a été conçu pour répondre aux besoins de gestion de la base de données médicamenteuse au sein de l'organisme. Son architecture repose sur les éléments suivants :
+
+- **Base de données locale au format `.dbf`** (dBASE) : les données sont stockées dans des fichiers plats sur le poste de l'utilisateur, sans serveur centralisé.
+- **Interface WinForms** : l'interface graphique utilise les composants standards de Windows Forms, avec des grilles de données, des formulaires de saisie et des menus classiques.
+- **Export Excel au format `.xls`** : les données sont exportées vers des fichiers Excel pour transmission à la CNAM (Caisse Nationale d'Assurance Maladie), utilisés comme support officiel d'échange.
+- **Mise à jour par FTP** : les nouvelles versions de la base de données sont distribuées sous forme de fichiers `.dbf` déposés sur un serveur FTP. L'utilisateur doit manuellement télécharger et remplacer les fichiers locaux.
+
+Ce système assure les fonctions de base — consultation, recherche, édition et export des médicaments. Toutefois, son architecture monolithique et sa dépendance aux fichiers locaux limitent fortement ses capacités d'évolution.
+
+#### 1.2.2.2 Critiques de l'existant
+
+L'analyse du système **Medic 5X** met en évidence plusieurs limites structurelles :
+
+| Axe | Limite identifiée |
+|-----|-------------------|
+| **Isolation des données** | Le format `.dbf` est archaïque et ne supporte ni les relations entre tables, ni les contraintes d'intégrité, ni les transactions. Chaque poste travaille sur une copie locale, sans synchronisation. |
+| **Expérience utilisateur limitée** | Windows Forms offre une interface rigide, peu personnalisable et visuellement dépassée. L'ergonomie n'a pas évolué avec les standards modernes. |
+| **Mise à jour lourde** | Le processus de mise à jour par FTP est entièrement manuel : téléchargement, décompression et remplacement des fichiers `.dbf`. Toute erreur de manipulation peut corrompre la base locale. |
+| **Absence d'assistance intelligente** | Aucun mécanisme d'aide à la saisie, de détection d'incohérences ou d'analyse prédictive n'est intégré. Le contrôle qualité repose entièrement sur l'opérateur humain. |
+| **Interopérabilité limitée** | L'export `.xls` est figé et ne permet pas d'adaptation dynamique aux exigences changeantes de la CNAM ou d'autres partenaires. |
+| **Traçabilité insuffisante** | Aucun historique des modifications n'est conservé. Il est impossible de savoir qui a modifié quoi, ni quand. |
+
+#### 1.2.2.3 Solution proposée
+
+La solution retenue est le développement d'un nouveau système de gestion de la base de données, **Medic 6X (AVCNDB)**, qui remplace intégralement Medic 5X. Les axes de modernisation sont les suivants :
+
+| Axe | Solution apportée par Medic 6X |
+|-----|-------------------------------|
+| **Base de données centralisée** | Migration vers **MySQL/MariaDB** déployé via **Docker**, avec un schéma relationnel complet (clés étrangères, contraintes, index). Accès aux données via **Entity Framework Core** et le pattern **Repository**. |
+| **Interface moderne** | Réécriture complète en **WPF (.NET 8)** avec **Material Design In XAML**, offrant une expérience utilisateur fluide, moderne et personnalisable (thèmes, DataGrid interactif, filtres dynamiques, ComboBox filtrables). |
+| **Mise à jour automatisée** | Remplacement du FTP par une synchronisation directe avec la base MySQL. Les mises à jour sont appliquées via des scripts SQL versionnés, sans intervention manuelle. |
+| **Intelligence intégrée** | Préparation d'une couche **AI/ML** pour l'aide à l'import Excel, la détection d'interactions médicamenteuses et l'assistance thérapeutique — conçue comme module d'assistance, pas comme remplacement du contrôle métier. |
+| **Interopérabilité Excel** | Import/Export structuré via **ClosedXML**, avec validation stricte des colonnes, mapping intelligent et gestion des erreurs explicite. |
+| **Traçabilité complète** | Chaque enregistrement dispose de champs `addedat` et `updatedat` gérés automatiquement via l'interface `ITrackable`, assurant un suivi complet des modifications. |
+
+Cette solution traite prioritairement la robustesse des flux de données avant l'ajout de fonctions avancées.
+
+---
+
+## 1.3 Méthodologies de travail
+
+### 1.3.1 Méthodologie agile — SCRUM
+
+Le projet est mené avec une logique itérative proche de Scrum :
+
+- Découpage des objectifs en incréments fonctionnels.
+- Priorisation continue selon les retours métier.
+- Livraisons progressives (socle, CRUD, synchronisation, import/export, UX).
+- Stabilisation rapide des anomalies par cycle court.
+
+Cette approche a permis de maintenir un bon compromis entre vitesse d'exécution et qualité technique.
+
+### 1.3.2 Langages de modélisation
+
+La modélisation sert à clarifier :
+
+- les besoins fonctionnels et non fonctionnels ;
+- les acteurs et leurs interactions avec le système ;
+- la frontière entre logique métier, logique technique et persistance.
+
+L'objectif n'est pas uniquement documentaire : la modélisation guide les choix d'implémentation (couches, responsabilités, points de contrôle).
+
+---
+
+## Conclusion du Chapitre I
+
+Le cadre général confirme que la valeur du projet AVCNDB repose d'abord sur la qualité de la base de données et la maîtrise des flux de mise à jour. Les choix de stack, d'architecture et de méthodologie établissent une fondation solide pour les phases de préparation et d'évolution vers des fonctions d'aide intelligente.
+
+---
+---
+
+# CHAPITRE II — PRÉPARATION DU PROJET
 
 ## Introduction
-Ce chapitre formalise la preparation du projet sous quatre angles: besoins, pilotage, environnement et architecture. Il integre egalement l'orientation future AI/ML, en precisant comment ces fonctions seront ajoutees sans casser le socle applicatif actuel.
+
+Ce chapitre formalise la préparation du projet sous quatre angles : besoins, pilotage, environnement et architecture. Il intègre également l'orientation future AI/ML, en précisant comment ces fonctions seront ajoutées sans compromettre le socle applicatif actuel.
+
+---
 
 ## 2.1 Capture du Besoin
 
-### 2.1.1 Specifications des besoins
+### 2.1.1 Spécifications des besoins
 
-#### 2.1.1.1 Specifications des Besoins Fonctionnels
-Le systeme doit couvrir les fonctions suivantes:
-- Gestion CRUD des medicaments.
-- Gestion CRUD des references (DCI, Familles, Labos, Formes, Voies, Specialites, Presents, Poso).
-- Recherche, filtrage et tri pour accelerer l'acces aux informations.
-- Import/Export Excel avec regles strictes sur les colonnes.
-- Synchronisation metier lors des renommages/suppressions des references.
-- Mise a jour coherente de l'UI apres operations critiques.
+#### 2.1.1.1 Spécifications des Besoins Fonctionnels
+
+Le système doit couvrir les fonctions suivantes :
+
+- Gestion CRUD des médicaments.
+- Gestion CRUD des références (DCI, Familles, Labos, Formes, Voies, Spécialités, Présentations, Posologies).
+- Recherche, filtrage et tri pour accélérer l'accès aux informations.
+- Import/Export Excel avec règles strictes sur les colonnes.
+- Synchronisation métier lors des renommages/suppressions des références.
+- Mise à jour cohérente de l'UI après opérations critiques.
 - Exploitation de la base dans un environnement Docker reproductible.
 
-#### 2.1.1.2 Specification des Besoins non fonctionnels
-Le systeme doit satisfaire:
-- **Performance**: operations courantes fluides sur un volume significatif.
-- **Fiabilite**: coherence des donnees et reduction des ecarts entre tables.
-- **Robustesse**: gestion explicite des erreurs et feedback utilisateur clair.
-- **Maintenabilite**: architecture en couches et services injectables.
-- **Evolutivite**: capacite d'integrer des modules AI/ML de maniere controlee.
-- **Lisibilite UI**: coherence visuelle et parcours de saisie clairs.
+#### 2.1.1.2 Spécification des Besoins non Fonctionnels
 
-### 2.1.2 Modelisation des besoins
+Le système doit satisfaire :
+
+- **Performance** : opérations courantes fluides sur un volume significatif.
+- **Fiabilité** : cohérence des données et réduction des écarts entre tables.
+- **Robustesse** : gestion explicite des erreurs et feedback utilisateur clair.
+- **Maintenabilité** : architecture en couches et services injectables.
+- **Évolutivité** : capacité d'intégrer des modules AI/ML de manière contrôlée.
+- **Lisibilité UI** : cohérence visuelle et parcours de saisie clairs.
+
+### 2.1.2 Modélisation des besoins
 
 #### 2.1.2.1 Identification des acteurs
-Acteurs principaux:
-- **Utilisateur metier**: gere les references et les medicaments, importe/exporte les donnees, corrige les ecarts.
-- **Administrateur technique**: configure l'environnement (DB, Docker), supervise l'integrite, et accompagne les evolutions.
+
+Acteurs principaux :
+
+- **Utilisateur métier** : gère les références et les médicaments, importe/exporte les données, corrige les écarts.
+- **Administrateur technique** : configure l'environnement (DB, Docker), supervise l'intégrité et accompagne les évolutions.
 
 #### 2.1.2.2 Diagramme de cas d'utilisation global
-Le cas d'utilisation global (decrit textuellement) inclut:
-- consulter/rechercher des donnees medicamenteuses;
-- creer/modifier/supprimer des entites;
-- importer un fichier Excel et controler sa conformite;
-- exporter des donnees pour diffusion/analyse;
-- synchroniser les references avec les enregistrements medicaments;
-- preparer des extensions analytiques futures.
+
+Le cas d'utilisation global inclut :
+
+- Consulter/rechercher des données médicamenteuses.
+- Créer/modifier/supprimer des entités.
+- Importer un fichier Excel et contrôler sa conformité.
+- Exporter des données pour diffusion/analyse.
+- Synchroniser les références avec les enregistrements médicaments.
+- Préparer des extensions analytiques futures.
+
+---
 
 ## 2.2 Pilotage du Projet avec Scrum
 
-### 2.2.1 Equipe et role
-Organisation type:
-- **Role produit**: priorise les besoins metier.
-- **Role coordination**: suit l'avancement et fluidifie les iterations.
-- **Role developpement**: implemente, teste et stabilise les modules.
+### 2.2.1 Équipe et rôles
 
-### 2.2.2 Le Backlog du produit
-Le backlog est structure autour de themes:
-- Qualite CRUD et synchronisation.
-- Stabilite import/export Excel.
-- Alignement UI/VM/DB.
+Organisation type :
+
+- **Rôle produit** : priorise les besoins métier.
+- **Rôle coordination** : suit l'avancement et fluidifie les itérations.
+- **Rôle développement** : implémente, teste et stabilise les modules.
+
+### 2.2.2 Backlog du produit
+
+Le backlog est structuré autour de thèmes :
+
+- Qualité CRUD et synchronisation.
+- Stabilité import/export Excel.
+- Alignement UI / ViewModel / DB.
 - Maintenance Docker/SQL.
-- Preparation de la couche AI/ML.
+- Préparation de la couche AI/ML.
 
-### 2.2.3 Planification de Release [ou Sprint ]
-Plan de release progressif:
-- **Sprint 1**: socle technique, navigation, DI, configuration.
-- **Sprint 2**: CRUD principal et references.
-- **Sprint 3**: import/export strict + synchronisation metier.
-- **Sprint 4**: optimisation UI/UX, robustesse, documentation.
-- **Sprint 5 (cible future)**: pre-integration AI/ML en mode assiste.
+### 2.2.3 Planification de Release
+
+Plan de release progressif :
+
+| Sprint | Objectif |
+|--------|----------|
+| **Sprint 1** | Socle technique, navigation, injection de dépendances, configuration. |
+| **Sprint 2** | CRUD principal et références. |
+| **Sprint 3** | Import/Export strict + synchronisation métier. |
+| **Sprint 4** | Optimisation UI/UX, robustesse, documentation. |
+| **Sprint 5** *(cible future)* | Pré-intégration AI/ML en mode assisté. |
+| **Sprint 6**  | Authentification 
+
+---
 
 ## 2.3 Environnement de travail
 
-### 2.3.1 Environnement materiel
-- Poste Windows de developpement.
+### 2.3.1 Environnement matériel
+
+- Poste Windows de développement.
 - Ressources suffisantes pour IDE + runtime .NET + Docker + MySQL.
 
 ### 2.3.2 Environnement Logiciel
 
-#### 2.3.2.1 Outils de developpement et modelisation :
+#### 2.3.2.1 Outils de développement et modélisation
+
 - Visual Studio / VS Code.
 - Git + plateforme de versioning.
 - Docker Desktop.
 - Outils de documentation/planification.
 
 #### 2.3.2.2 Langages de programmation
-- C# (logique applicative et metier).
-- XAML (presentation WPF).
-- SQL (persistence et scripts de migration).
 
-#### 2.3.2.3 Framework utilise
-- .NET 8 WPF.
-- CommunityToolkit.Mvvm.
-- EF Core + Pomelo MySQL.
-- MaterialDesignInXAML.
-- ClosedXML.
-- Serilog.
+- **C#** — logique applicative et métier.
+- **XAML** — présentation WPF.
+- **SQL** — persistance et scripts de migration.
+
+#### 2.3.2.3 Frameworks et bibliothèques
+
+| Composant | Rôle |
+|-----------|------|
+| **.NET 8 WPF** | Framework applicatif desktop. |
+| **CommunityToolkit.Mvvm** | Pattern MVVM (ObservableProperty, RelayCommand). |
+| **EF Core + Pomelo MySQL** | ORM et connecteur MySQL/MariaDB. |
+| **MaterialDesignInXAML** | Thème Material Design pour WPF. |
+| **ClosedXML** | Lecture/écriture de fichiers Excel. |
+| **Serilog** | Journalisation structurée. |
+
+---
 
 ## 2.4 Architecture
-L'architecture est organisee pour separer clairement les responsabilites:
-- **Presentation**: vues WPF et experience utilisateur.
-- **Presentation logique**: ViewModels (etat, commandes, orchestration).
-- **Services**: synchronisation, import Excel, navigation, dialogues.
-- **Acces donnees**: Repository + AppDbContext EF Core.
-- **Persistance**: MySQL/MariaDB dans Docker.
 
-Cette architecture permet d'introduire des fonctions avancees sans fragiliser le noyau metier.
+L'architecture est organisée pour séparer clairement les responsabilités :
 
-### 2.4.1 Apercu AI/ML (orientation future, non encore activee)
-L'AI/ML est prevue comme **couche d'assistance**, pas comme remplacement du controle metier. Le principe est:
-- conserver les validations strictes existantes;
-- ajouter une pre-analyse intelligente en amont;
-- exiger une validation humaine quand la confiance est insuffisante;
-- tracer toutes les propositions AI pour audit.
+| Couche | Responsabilité |
+|--------|---------------|
+| **Présentation** | Vues WPF et expérience utilisateur. |
+| **Présentation logique** | ViewModels (état, commandes, orchestration). |
+| **Services** | Synchronisation, import Excel, navigation, dialogues. |
+| **Accès données** | Repository + `AppDbContext` (EF Core). |
+| **Persistance** | MySQL/MariaDB dans Docker. |
 
-### 2.4.2 Notation AI/ML - Import intelligent d'Excel
-Objectif: reconnaitre automatiquement les colonnes et mapper correctement les enregistrements medicaments.
+Cette architecture permet d'introduire des fonctions avancées sans fragiliser le noyau métier.
 
-Fonctions cibles:
-- detection de variantes de noms de colonnes (alias, synonymes, fautes frequentes);
-- normalisation des valeurs (noms, abreviations, unites, formats);
-- scoring de correspondance avec la base existante (match exact, match probable, conflit);
-- proposition d'action: inserer, mettre a jour, fusionner, ignorer.
+### 2.4.1 Aperçu AI/ML *(orientation future, non encore activée)*
 
-Sortie attendue:
-- une integration plus rapide de fichiers externes,
-- moins d'erreurs de mapping,
-- conservation de la gouvernance metier grace a la validation finale.
+L'AI/ML est prévue comme **couche d'assistance**, pas comme remplacement du contrôle métier. Le principe est :
 
-### 2.4.3 Notation AI/ML - Modele d'analyse des interactions (DCI x Formes)
-Objectif: etendre l'analyse des interactions en croisant non seulement les DCI, mais aussi la forme galenique et le contexte de combinaison.
+- Conserver les validations strictes existantes.
+- Ajouter une pré-analyse intelligente en amont.
+- Exiger une validation humaine quand la confiance est insuffisante.
+- Tracer toutes les propositions AI pour audit.
 
-Approche cible:
-- extraction de caracteristiques (paires DCI, groupe de DCI, forme, severite historique);
-- modele de classification du niveau de risque;
-- generation d'explications exploitables par l'utilisateur (raison, gravite, conduite a tenir).
+### 2.4.2 Notation AI/ML — Import intelligent d'Excel
 
-Valeur metier:
-- meilleure priorisation des alertes,
-- interpretation plus rapide des associations sensibles,
-- support plus coherent pour les actions therapeutiques.
+**Objectif** : reconnaître automatiquement les colonnes et mapper correctement les enregistrements médicaments.
 
-### 2.4.4 Notation AI/ML - Aide a la decision therapeutique
-Objectif: fournir un assistant de recommandation base sur les contraintes de traitement.
+Fonctions cibles :
 
-Principe:
-- agreger les signaux (interaction, contre-indication, forme, contexte patient lorsqu'il sera disponible);
-- proposer des options therapeutiques ordonnees par pertinence;
-- expliciter pourquoi une option est recommandee ou deconseillee.
+- Détection de variantes de noms de colonnes (alias, synonymes, fautes fréquentes).
+- Normalisation des valeurs (noms, abréviations, unités, formats).
+- Scoring de correspondance avec la base existante (match exact, match probable, conflit).
+- Proposition d'action : insérer, mettre à jour, fusionner, ignorer.
 
-Regle de gouvernance:
-- la decision finale reste humaine;
-- le module est un outil d'aide, non un moteur de prescription autonome.
+**Sortie attendue** : intégration plus rapide de fichiers externes, moins d'erreurs de mapping, conservation de la gouvernance métier grâce à la validation finale.
 
-### 2.4.5 Strategie d'integration progressive AI/ML
-Plan prudent recommande:
-1. Stabiliser la qualite des donnees (schema, contraintes, sync, import strict).
+### 2.4.3 Notation AI/ML — Modèle d'analyse des interactions (DCI × Formes)
+
+**Objectif** : étendre l'analyse des interactions en croisant non seulement les DCI, mais aussi la forme galénique et le contexte de combinaison.
+
+Approche cible :
+
+- Extraction de caractéristiques (paires DCI, groupe de DCI, forme, sévérité historique).
+- Modèle de classification du niveau de risque.
+- Génération d'explications exploitables par l'utilisateur (raison, gravité, conduite à tenir).
+
+**Valeur métier** : meilleure priorisation des alertes, interprétation plus rapide des associations sensibles, support plus cohérent pour les actions thérapeutiques.
+
+### 2.4.4 Notation AI/ML — Aide à la décision thérapeutique
+
+**Objectif** : fournir un assistant de recommandation basé sur les contraintes de traitement.
+
+Principe :
+
+- Agréger les signaux (interaction, contre-indication, forme, contexte patient lorsqu'il sera disponible).
+- Proposer des options thérapeutiques ordonnées par pertinence.
+- Expliciter pourquoi une option est recommandée ou déconseillée.
+
+**Règle de gouvernance** : la décision finale reste humaine ; le module est un outil d'aide, non un moteur de prescription autonome.
+
+### 2.4.5 Stratégie d'intégration progressive AI/ML
+
+Plan prudent recommandé :
+
+1. Stabiliser la qualité des données (schéma, contraintes, synchronisation, import strict).
 2. Ajouter l'AI en mode lecture/assistance uniquement.
-3. Mesurer precision et faux positifs sur un corpus controle.
+3. Mesurer précision et faux positifs sur un corpus contrôlé.
 4. Activer progressivement par seuil de confiance.
-5. Industrialiser monitoring, audit, et rollback fonctionnel.
+5. Industrialiser monitoring, audit et rollback fonctionnel.
 
-## Conclusion
-La preparation du projet consolide une base technique robuste et exploitable immediatement. L'architecture actuelle repond aux besoins operationnels de gestion de base medicamenteuse, tout en ouvrant un chemin realiste vers des fonctionnalites AI/ML explicables, controlees et utiles en pratique.
+---
+
+## Conclusion du Chapitre II
+
+La préparation du projet consolide une base technique robuste et exploitable immédiatement. L'architecture actuelle répond aux besoins opérationnels de gestion de base médicamenteuse, tout en ouvrant un chemin réaliste vers des fonctionnalités AI/ML explicables, contrôlées et utiles en pratique.
+

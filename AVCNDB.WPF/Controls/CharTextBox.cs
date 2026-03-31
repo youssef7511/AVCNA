@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -69,8 +69,8 @@ public class CharTextBox : TextBox
         {
             CharPattern.Numeric => @"^[0-9]+$",
             CharPattern.Decimal => @"^[0-9.,]+$",
-            CharPattern.Alpha => @"^[a-zA-ZàâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ\s]+$",
-            CharPattern.AlphaNumeric => @"^[a-zA-Z0-9àâäéèêëïîôùûüçÀÂÄÉÈÊËÏÎÔÙÛÜÇ\s]+$",
+            CharPattern.Alpha => @"^[a-zA-Z����������������������������\s]+$",
+            CharPattern.AlphaNumeric => @"^[a-zA-Z0-9����������������������������\s]+$",
             CharPattern.Phone => @"^[0-9+\-\s()]+$",
             CharPattern.Email => @"^[a-zA-Z0-9@._\-]+$",
             CharPattern.Barcode => @"^[0-9]+$",

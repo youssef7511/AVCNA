@@ -1,8 +1,11 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -12,6 +15,9 @@ public partial class PresentsListViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
     private readonly IStrictExcelSyncService<Presents> _strictExcelSyncService;
+    private readonly MedicSyncService _syncService;
+
+    private string? _originalItemName;
 
     [ObservableProperty]
     private ObservableCollection<Presents> _presents = new();
@@ -38,16 +44,18 @@ public partial class PresentsListViewModel : ViewModelBase
         IRepository<Presents> repository,
         IDialogService dialogService,
         IExcelService excelService,
-        IStrictExcelSyncService<Presents> strictExcelSyncService)
+        IStrictExcelSyncService<Presents> strictExcelSyncService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _dialogService = dialogService;
         _excelService = excelService;
         _strictExcelSyncService = strictExcelSyncService;
+        _syncService = syncService;
         _ = LoadDataAsync();
     }
 
-    partial void OnSearchTextChanged(string value) => _ = LoadDataAsync();
+    partial void OnSearchTextChanged(string value) => DebounceSearch(LoadDataAsync);
 
     private async Task LoadDataAsync()
     {
@@ -89,6 +97,7 @@ public partial class PresentsListViewModel : ViewModelBase
         EditItemName = present.itemname;
         EditAbName = present.abname;
         EditSubValue = present.subvalue;
+        _originalItemName = present.itemname;
         IsEditing = true;
     }
 
@@ -108,10 +117,22 @@ public partial class PresentsListViewModel : ViewModelBase
         {
             if (SelectedPresent != null)
             {
+                var oldName = _originalItemName;
                 SelectedPresent.itemname = EditItemName;
                 SelectedPresent.abname = EditAbName;
                 SelectedPresent.subvalue = EditSubValue;
                 await _repository.UpdateAsync(SelectedPresent);
+
+                // Propager le renommage aux médicaments
+                if (!string.IsNullOrEmpty(oldName) && oldName != EditItemName)
+                {
+                    var updated = await _syncService.RenamePresentInMedicsAsync(oldName, EditItemName);
+                    if (updated > 0)
+                    {
+                        await _dialogService.ShowInfoAsync("Synchronisation",
+                            $"Présentation renominée dans {updated} médicament(s).");
+                    }
+                }
             }
             else
             {
@@ -123,8 +144,11 @@ public partial class PresentsListViewModel : ViewModelBase
                 });
             }
 
+            _originalItemName = null;
             IsEditing = false;
             await LoadDataAsync();
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Presents", SelectedPresent != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
         }, "Sauvegarde...");
     }
 
@@ -133,17 +157,25 @@ public partial class PresentsListViewModel : ViewModelBase
     {
         if (present == null) return;
 
-        var confirm = await _dialogService.ShowConfirmAsync(
-            "Confirmer la suppression",
-            $"Supprimer '{present.itemname}' ?");
+        var usageCount = await _syncService.CountMedicsUsingPresentAsync(present.itemname);
+        var message = usageCount > 0
+            ? $"La présentation '{present.itemname}' est utilisée par {usageCount} médicament(s).\nLa supprimer effacera cette référence dans tous ces médicaments.\n\nContinuer ?"
+            : $"Supprimer la présentation '{present.itemname}' ?";
 
-        if (!confirm) return;
-
-        await ExecuteAsync(async () =>
+        if (await _dialogService.ShowConfirmAsync("Confirmer la suppression", message))
         {
-            await _repository.DeleteAsync(present);
-            await LoadDataAsync();
-        }, "Suppression...");
+            await ExecuteAsync(async () =>
+            {
+                if (usageCount > 0)
+                {
+                    await _syncService.ClearPresentFromMedicsAsync(present.itemname);
+                }
+                await _repository.DeleteAsync(present);
+                await LoadDataAsync();
+                WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                    new DataChangeInfo("Presents", ChangeOperation.Deleted)));
+            }, "Suppression...");
+        }
     }
 
     [RelayCommand]
@@ -221,5 +253,36 @@ public partial class PresentsListViewModel : ViewModelBase
                 "Import Excel termine",
                 $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
         }, "Import en cours...");
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination Présentation par son substitut dans Présentations et Médicaments. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplyPresentsSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Présentations mises à jour: {result.UpdatedEntityCount}\n" +
+                $"Médicaments synchronisés: {result.UpdatedMedicCount}");
+        }, "Application des substituts...");
     }
 }

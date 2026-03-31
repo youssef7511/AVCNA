@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Windows;
 using AVCNDB.WPF.DAL;
@@ -163,6 +163,7 @@ public partial class App : Application
         services.AddTransient<IRepository<Specialites>, Repository<Specialites>>();
         services.AddTransient<IRepository<Presents>, Repository<Presents>>();
         services.AddTransient<IRepository<Poso>, Repository<Poso>>();
+        services.AddTransient<IRepository<Catveic>, Repository<Catveic>>();
 
         // ============================================
         // SERVICES
@@ -189,7 +190,11 @@ public partial class App : Application
         services.AddTransient<MedicListViewModel>();
         services.AddTransient<MedicDetailViewModel>();
         services.AddTransient<MedicEditViewModel>();
+        services.AddTransient<MedicUpsertDialogViewModel>();
         services.AddTransient<InteractionsViewModel>();
+        services.AddTransient<DenominationViewModel>();
+        services.AddTransient<PrixViewModel>();
+        services.AddTransient<MonographieViewModel>();
         services.AddTransient<FormesListViewModel>();
         services.AddTransient<VoiesListViewModel>();
         services.AddTransient<SpecialitesListViewModel>();
@@ -212,7 +217,11 @@ public partial class App : Application
         services.AddTransient<MedicListView>();
         services.AddTransient<MedicDetailView>();
         services.AddTransient<MedicEditView>();
+        services.AddTransient<MedicUpsertDialog>();
         services.AddTransient<InteractionsView>();
+        services.AddTransient<DenominationView>();
+        services.AddTransient<PrixView>();
+        services.AddTransient<MonographieView>();
         services.AddTransient<FormesListView>();
         services.AddTransient<VoiesListView>();
         services.AddTransient<SpecialitesListView>();

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
@@ -66,6 +66,27 @@ public partial class MedicDetailViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isActive;
 
+    [ObservableProperty]
+    private string _formattedTimbre = "—";
+
+    [ObservableProperty]
+    private string _formattedPamount = "—";
+
+    [ObservableProperty]
+    private bool _hasPosology;
+
+    [ObservableProperty]
+    private bool _isOtc;
+
+    [ObservableProperty]
+    private bool _hasSpecialite;
+
+    [ObservableProperty]
+    private string _formattedAddedDate = "—";
+
+    [ObservableProperty]
+    private string _formattedUpdatedDate = "—";
+
     public MedicDetailViewModel(
         IRepository<Medic> repository,
         INavigationService navigationService,
@@ -118,6 +139,17 @@ public partial class MedicDetailViewModel : ViewModelBase
                 // Conduite
                 VeicDescription = GetVeicDescription(Medic.veic);
                 HasNotes = !string.IsNullOrWhiteSpace(Medic.indication);
+                HasPosology = !string.IsNullOrWhiteSpace(Medic.posology);
+                IsOtc = Medic.isotc == 1;
+                HasSpecialite = !string.IsNullOrWhiteSpace(Medic.specialite);
+
+                // Prix supplémentaires
+                FormattedTimbre = Medic.timbrepct > 0 ? $"{Medic.timbrepct / 1000.0:N3} DT" : "—";
+                FormattedPamount = Medic.pamount > 0 ? $"{Medic.pamount / 1000.0:N3} DT" : "—";
+
+                // Dates
+                FormattedAddedDate = Medic.addedat?.ToString("dd/MM/yyyy") ?? "—";
+                FormattedUpdatedDate = Medic.updatedat?.ToString("dd/MM/yyyy") ?? "—";
             }
         }, "Chargement de la fiche...");
     }

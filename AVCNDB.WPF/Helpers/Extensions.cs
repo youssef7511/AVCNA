@@ -1,4 +1,4 @@
-namespace AVCNDB.WPF.Helpers;
+﻿namespace AVCNDB.WPF.Helpers;
 
 /// <summary>
 /// Helper pour les extensions de chaînes de caractères

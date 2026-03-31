@@ -1,8 +1,9 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Views;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -15,6 +16,12 @@ public partial class MedicListViewModel : ViewModelBase
     private readonly IRepository<Medic> _repository;
     private readonly IRepository<Families> _familyRepository;
     private readonly IRepository<Labos> _laboRepository;
+    private readonly IRepository<Dci> _dciRepository;
+    private readonly IRepository<Formes> _formeRepository;
+    private readonly IRepository<Presents> _presentRepository;
+    private readonly IRepository<Voies> _voieRepository;
+    private readonly IRepository<Catveic> _catveicRepository;
+    private readonly IRepository<Specialites> _specialiteRepository;
     private readonly INavigationService _navigationService;
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
@@ -64,6 +71,24 @@ public partial class MedicListViewModel : ViewModelBase
     private ObservableCollection<Labos> _labos = new();
 
     [ObservableProperty]
+    private ObservableCollection<Dci> _dcis = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Formes> _formes = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Presents> _presents = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Voies> _voies = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Catveic> _catveics = new();
+
+    [ObservableProperty]
+    private ObservableCollection<Specialites> _specialites = new();
+
+    [ObservableProperty]
     private Families? _selectedFamily;
 
     [ObservableProperty]
@@ -79,6 +104,12 @@ public partial class MedicListViewModel : ViewModelBase
         IRepository<Medic> repository,
         IRepository<Families> familyRepository,
         IRepository<Labos> laboRepository,
+        IRepository<Dci> dciRepository,
+        IRepository<Formes> formeRepository,
+        IRepository<Presents> presentRepository,
+        IRepository<Voies> voieRepository,
+        IRepository<Catveic> catveicRepository,
+        IRepository<Specialites> specialiteRepository,
         INavigationService navigationService,
         IDialogService dialogService,
         IExcelService excelService,
@@ -88,6 +119,12 @@ public partial class MedicListViewModel : ViewModelBase
         _repository = repository;
         _familyRepository = familyRepository;
         _laboRepository = laboRepository;
+        _dciRepository = dciRepository;
+        _formeRepository = formeRepository;
+        _presentRepository = presentRepository;
+        _voieRepository = voieRepository;
+        _catveicRepository = catveicRepository;
+        _specialiteRepository = specialiteRepository;
         _navigationService = navigationService;
         _dialogService = dialogService;
         _excelService = excelService;
@@ -115,6 +152,24 @@ public partial class MedicListViewModel : ViewModelBase
             var labos = await _laboRepository.GetAllAsync();
             Labos = new ObservableCollection<Labos>(labos);
 
+            var dcis = await _dciRepository.GetAllAsync();
+            Dcis = new ObservableCollection<Dci>(dcis);
+
+            var formes = await _formeRepository.GetAllAsync();
+            Formes = new ObservableCollection<Formes>(formes);
+
+            var presents = await _presentRepository.GetAllAsync();
+            Presents = new ObservableCollection<Presents>(presents);
+
+            var voies = await _voieRepository.GetAllAsync();
+            Voies = new ObservableCollection<Voies>(voies);
+
+            var catveics = await _catveicRepository.GetAllAsync();
+            Catveics = new ObservableCollection<Catveic>(catveics);
+
+            var specialites = await _specialiteRepository.GetAllAsync();
+            Specialites = new ObservableCollection<Specialites>(specialites);
+
             // Ensure the first load starts with no active lookup filters.
             SelectedFamily = null;
             SelectedLabo = null;
@@ -126,7 +181,7 @@ public partial class MedicListViewModel : ViewModelBase
     partial void OnSearchTextChanged(string value)
     {
         CurrentPage = 1;
-        _ = LoadDataAsync();
+        DebounceSearch(LoadDataAsync);
     }
 
     partial void OnSelectedFamilyChanged(Families? value)
@@ -190,6 +245,20 @@ public partial class MedicListViewModel : ViewModelBase
         }
 
         _ = LoadDataAsync();
+    }
+
+    [RelayCommand]
+    private async Task SaveInlineEdit(Medic? medic)
+    {
+        if (medic == null || medic.recordid == 0) return;
+        try
+        {
+            await _repository.UpdateAsync(medic);
+        }
+        catch
+        {
+            // Silently ignore — user can retry or use the edit dialog
+        }
     }
 
     private async Task LoadDataAsync()
@@ -301,7 +370,14 @@ public partial class MedicListViewModel : ViewModelBase
     {
         try
         {
-            _navigationService.NavigateTo<MedicEditViewModel>(null);
+            var dialog = App.GetService<MedicUpsertDialog>();
+            dialog.Owner = System.Windows.Application.Current.MainWindow;
+            await dialog.InitializeAsync(null);
+            var result = dialog.ShowDialog();
+            if (result == true)
+            {
+                await LoadDataAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -319,7 +395,14 @@ public partial class MedicListViewModel : ViewModelBase
 
         try
         {
-            _navigationService.NavigateTo<MedicEditViewModel>(target.recordid);
+            var dialog = App.GetService<MedicUpsertDialog>();
+            dialog.Owner = System.Windows.Application.Current.MainWindow;
+            await dialog.InitializeAsync(target.recordid);
+            var result = dialog.ShowDialog();
+            if (result == true)
+            {
+                await LoadDataAsync();
+            }
         }
         catch (Exception ex)
         {

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using AVCNDB.WPF.Models;
 
 namespace AVCNDB.WPF.DAL;
@@ -66,9 +66,34 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // ============================================
+        // GLOBAL QUERY FILTER (soft-delete)
+        // ============================================
+        modelBuilder.Entity<Medic>()
+            .HasQueryFilter(m => m.deletedat == null);
+
+        // ============================================
+        // FOREIGN KEY RELATIONSHIPS
+        // ============================================
+        modelBuilder.Entity<Stock>()
+            .HasIndex(s => s.medicid)
+            .HasDatabaseName("IX_Stock_MedicId");
+
+        modelBuilder.Entity<Cilist>()
+            .HasIndex(c => c.medicid)
+            .HasDatabaseName("IX_Cilist_MedicId");
+
+        modelBuilder.Entity<Specmedic>()
+            .HasIndex(s => s.medicid)
+            .HasDatabaseName("IX_Specmedic_MedicId");
+
+        modelBuilder.Entity<Localites>()
+            .HasIndex(l => l.gouvernid)
+            .HasDatabaseName("IX_Localites_GouvernId");
+
+        // ============================================
         // CONFIGURATION DES INDEX
         // ============================================
-        
+
         // Index sur Medic pour recherche rapide
         modelBuilder.Entity<Medic>()
             .HasIndex(m => m.itemname)
@@ -102,10 +127,6 @@ public class AppDbContext : DbContext
             .HasDatabaseName("IX_Labos_ItemName");
 
         // Index sur Stock pour alertes
-        modelBuilder.Entity<Stock>()
-            .HasIndex(s => s.medicid)
-            .HasDatabaseName("IX_Stock_MedicId");
-        
         modelBuilder.Entity<Stock>()
             .HasIndex(s => s.expirydate)
             .HasDatabaseName("IX_Stock_ExpiryDate");

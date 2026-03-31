@@ -1,4 +1,4 @@
-using System.Linq.Expressions;
+﻿using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.DAL;
@@ -70,7 +70,12 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task UpdateAsync(T entity)
     {
-        _dbSet.Update(entity);
+        var entry = _context.Entry(entity);
+        if (entry.State == EntityState.Detached)
+        {
+            _dbSet.Attach(entity);
+            entry.State = EntityState.Modified;
+        }
         await _context.SaveChangesAsync();
     }
 

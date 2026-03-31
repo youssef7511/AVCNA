@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
@@ -66,7 +66,7 @@ public partial class InteractionsViewModel : ViewModelBase
 
     partial void OnDciSearchTextChanged(string value)
     {
-        _ = FilterDcisAsync(value);
+        DebounceSearch(() => FilterDcisAsync(value));
     }
 
     private async Task FilterDcisAsync(string search)

@@ -1,7 +1,6 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
-using AVCNDB.WPF.Models;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -11,89 +10,40 @@ namespace AVCNDB.WPF.ViewModels;
 /// </summary>
 public partial class DatabaseViewModel : ViewModelBase
 {
-    private readonly IRepository<Medic> _medicRepository;
-    private readonly IRepository<Dci> _dciRepository;
-    private readonly IRepository<Families> _familiesRepository;
-    private readonly IRepository<Labos> _labosRepository;
-    private readonly IRepository<Interact> _interactRepository;
     private readonly INavigationService _navigationService;
 
     [ObservableProperty]
     private int _selectedTabIndex;
 
     [ObservableProperty]
-    private MedicListViewModel? _medicListViewModel;
+    private MedicListViewModel _medicListViewModel;
 
     [ObservableProperty]
-    private DciListViewModel? _dciListViewModel;
+    private InteractionsViewModel _interactionsViewModel;
 
     [ObservableProperty]
-    private FamiliesListViewModel? _familiesListViewModel;
+    private DenominationViewModel _denominationViewModel;
 
     [ObservableProperty]
-    private LabosListViewModel? _labosListViewModel;
+    private PrixViewModel _prixViewModel;
 
     [ObservableProperty]
-    private InteractionsViewModel? _interactionsViewModel;
-
-    [ObservableProperty]
-    private FormesListViewModel? _formesListViewModel;
-
-    [ObservableProperty]
-    private VoiesListViewModel? _voiesListViewModel;
-
-    [ObservableProperty]
-    private SpecialitesListViewModel? _specialitesListViewModel;
-
-    [ObservableProperty]
-    private PresentsListViewModel? _presentsListViewModel;
-
-    [ObservableProperty]
-    private PosoListViewModel? _posoListViewModel;
+    private MonographieViewModel _monographieViewModel;
 
     public DatabaseViewModel(
-        IRepository<Medic> medicRepository,
-        IRepository<Dci> dciRepository,
-        IRepository<Families> familiesRepository,
-        IRepository<Labos> labosRepository,
-        IRepository<Interact> interactRepository,
-        INavigationService navigationService)
-    {
-        _medicRepository = medicRepository;
-        _dciRepository = dciRepository;
-        _familiesRepository = familiesRepository;
-        _labosRepository = labosRepository;
-        _interactRepository = interactRepository;
-        _navigationService = navigationService;
-
-        // Les ViewModels seront injectés via le conteneur DI
-    }
-
-    /// <summary>
-    /// Initialise les sous-ViewModels
-    /// </summary>
-    public void InitializeSubViewModels(
+        INavigationService navigationService,
         MedicListViewModel medicListViewModel,
-        DciListViewModel dciListViewModel,
-        FamiliesListViewModel familiesListViewModel,
-        LabosListViewModel labosListViewModel,
         InteractionsViewModel interactionsViewModel,
-        FormesListViewModel formesListViewModel,
-        VoiesListViewModel voiesListViewModel,
-        SpecialitesListViewModel specialitesListViewModel,
-        PresentsListViewModel presentsListViewModel,
-        PosoListViewModel posoListViewModel)
+        DenominationViewModel denominationViewModel,
+        PrixViewModel prixViewModel,
+        MonographieViewModel monographieViewModel)
     {
+        _navigationService = navigationService;
         MedicListViewModel = medicListViewModel;
-        DciListViewModel = dciListViewModel;
-        FamiliesListViewModel = familiesListViewModel;
-        LabosListViewModel = labosListViewModel;
         InteractionsViewModel = interactionsViewModel;
-        FormesListViewModel = formesListViewModel;
-        VoiesListViewModel = voiesListViewModel;
-        SpecialitesListViewModel = specialitesListViewModel;
-        PresentsListViewModel = presentsListViewModel;
-        PosoListViewModel = posoListViewModel;
+        DenominationViewModel = denominationViewModel;
+        PrixViewModel = prixViewModel;
+        MonographieViewModel = monographieViewModel;
     }
 
     /// <summary>

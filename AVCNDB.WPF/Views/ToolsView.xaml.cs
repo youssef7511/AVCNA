@@ -1,4 +1,4 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using AVCNDB.WPF.ViewModels;
 
 namespace AVCNDB.WPF.Views;

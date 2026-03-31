@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using AVCNDB.WPF.Services;
 
@@ -8,7 +8,7 @@ namespace AVCNDB.WPF.ViewModels;
 /// Classe de base pour tous les ViewModels
 /// Fournit les fonctionnalités communes MVVM
 /// </summary>
-public abstract partial class ViewModelBase : ObservableObject, INavigationAware
+public abstract partial class ViewModelBase : ObservableObject, INavigationAware, IDisposable
 {
     /// <summary>
     /// Serialises all DB / async operations so that a second call
@@ -17,6 +17,12 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
     /// </summary>
     private readonly SemaphoreSlim _busy = new(1, 1);
     private readonly AsyncLocal<int> _executionDepth = new();
+
+    /// <summary>
+    /// CancellationTokenSource used for search debouncing.
+    /// Each new keystroke cancels the previous pending search.
+    /// </summary>
+    private CancellationTokenSource? _debounceCts;
 
     [ObservableProperty]
     private bool _isLoading;
@@ -136,4 +142,40 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
     /// Appelé lors de la navigation depuis ce ViewModel
     /// </summary>
     public virtual void OnNavigatedFrom() { }
+
+    /// <summary>
+    /// Debounce a search action: cancels any pending search and
+    /// waits <paramref name="delayMs"/> ms before executing <paramref name="action"/>.
+    /// Typical usage: call from OnSearchTextChanged partial method.
+    /// </summary>
+    protected void DebounceSearch(Func<Task> action, int delayMs = 300)
+    {
+        _debounceCts?.Cancel();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delayMs, token);
+                if (!token.IsCancellationRequested)
+                {
+                    await App.Current.Dispatcher.InvokeAsync(async () => await action());
+                }
+            }
+            catch (TaskCanceledException) { /* expected when user types fast */ }
+        }, token);
+    }
+
+    /// <summary>
+    /// Dispose managed resources (SemaphoreSlim, CancellationTokenSource).
+    /// </summary>
+    public virtual void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _busy.Dispose();
+        GC.SuppressFinalize(this);
+    }
 }

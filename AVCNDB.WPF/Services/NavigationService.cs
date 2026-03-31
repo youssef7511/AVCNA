@@ -1,4 +1,4 @@
-using AVCNDB.WPF.Contracts.Services;
+﻿using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Views;
 using Microsoft.Extensions.DependencyInjection;
 

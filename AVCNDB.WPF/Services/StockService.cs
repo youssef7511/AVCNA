@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Models;

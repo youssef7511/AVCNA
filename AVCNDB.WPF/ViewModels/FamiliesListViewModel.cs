@@ -1,7 +1,9 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
@@ -56,7 +58,7 @@ public partial class FamiliesListViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value)
     {
-        _ = LoadDataAsync();
+        DebounceSearch(LoadDataAsync);
     }
 
     private async Task LoadDataAsync()
@@ -135,6 +137,8 @@ public partial class FamiliesListViewModel : ViewModelBase
 
             IsEditing = false;
             await LoadDataAsync();
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Families", SelectedFamily != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
         }, "Sauvegarde...");
     }
 
@@ -163,6 +167,8 @@ public partial class FamiliesListViewModel : ViewModelBase
 
                 await _repository.DeleteAsync(family);
                 await LoadDataAsync();
+                WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                    new DataChangeInfo("Families", ChangeOperation.Deleted)));
             });
         }
     }
@@ -242,5 +248,36 @@ public partial class FamiliesListViewModel : ViewModelBase
                 "Import Excel terminé",
                 $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
         }, "Import en cours...");
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination Famille par son substitut dans Familles et Médicaments. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplyFamiliesSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Familles mises à jour: {result.UpdatedEntityCount}\n" +
+                $"Médicaments synchronisés: {result.UpdatedMedicCount}");
+        }, "Application des substituts...");
     }
 }

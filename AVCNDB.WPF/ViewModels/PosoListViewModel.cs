@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -12,6 +13,7 @@ public partial class PosoListViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
     private readonly IStrictExcelSyncService<Poso> _strictExcelSyncService;
+    private readonly MedicSyncService _syncService;
 
     [ObservableProperty]
     private ObservableCollection<Poso> _posos = new();
@@ -53,16 +55,18 @@ public partial class PosoListViewModel : ViewModelBase
         IRepository<Poso> repository,
         IDialogService dialogService,
         IExcelService excelService,
-        IStrictExcelSyncService<Poso> strictExcelSyncService)
+        IStrictExcelSyncService<Poso> strictExcelSyncService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _dialogService = dialogService;
         _excelService = excelService;
         _strictExcelSyncService = strictExcelSyncService;
+        _syncService = syncService;
         _ = LoadDataAsync();
     }
 
-    partial void OnSearchTextChanged(string value) => _ = LoadDataAsync();
+    partial void OnSearchTextChanged(string value) => DebounceSearch(LoadDataAsync);
 
     private async Task LoadDataAsync()
     {
@@ -257,5 +261,35 @@ public partial class PosoListViewModel : ViewModelBase
                 "Import Excel termine",
                 $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
         }, "Import en cours...");
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination Posologie par son substitut. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplyPosoSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Posologies mises à jour: {result.UpdatedEntityCount}");
+        }, "Application des substituts...");
     }
 }

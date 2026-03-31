@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AVCNDB.WPF.Models;
@@ -199,8 +199,8 @@ public class Medic : ITrackable
     // ============================================
     // DATES & STATUT
     // ============================================
-    public DateTime monogat { get; set; }
-    public DateTime ciat { get; set; }
+    public DateTime? monogat { get; set; }
+    public DateTime? ciat { get; set; }
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
     public DateTime? deletedat { get; set; }

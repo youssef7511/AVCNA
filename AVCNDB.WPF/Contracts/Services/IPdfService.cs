@@ -1,4 +1,4 @@
-namespace AVCNDB.WPF.Contracts.Services;
+﻿namespace AVCNDB.WPF.Contracts.Services;
 
 /// <summary>
 /// Interface du service de génération de rapports PDF

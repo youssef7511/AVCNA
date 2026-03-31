@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace AVCNDB.WPF.ViewModels;
 
-public partial class LibraryShellViewModel : ObservableObject
+public partial class LibraryShellViewModel : ViewModelBase
 {
     [ObservableProperty]
     private int _selectedTabIndex;

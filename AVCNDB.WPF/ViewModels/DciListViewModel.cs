@@ -1,7 +1,9 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
@@ -85,7 +87,7 @@ public partial class DciListViewModel : ViewModelBase
     partial void OnSearchTextChanged(string value)
     {
         CurrentPage = 1;
-        _ = LoadDataAsync();
+        DebounceSearch(LoadDataAsync);
     }
 
     partial void OnSelectedDciChanged(Dci? value)
@@ -217,6 +219,8 @@ public partial class DciListViewModel : ViewModelBase
 
             IsEditing = false;
             await LoadDataAsync();
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Dci", SelectedDci != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
             await _dialogService.ShowSuccessAsync("Succes", "DCI sauvegardee avec succes.");
         }, "Sauvegarde...");
     }
@@ -275,6 +279,8 @@ public partial class DciListViewModel : ViewModelBase
 
                 await _repository.DeleteAsync(dci);
                 await LoadDataAsync();
+                WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                    new DataChangeInfo("Dci", ChangeOperation.Deleted)));
                 await _dialogService.ShowSuccessAsync("Succès", "DCI supprimée avec succès.");
             });
         }

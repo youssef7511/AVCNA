@@ -1,8 +1,9 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -12,6 +13,7 @@ public partial class SpecialitesListViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly IExcelService _excelService;
     private readonly IStrictExcelSyncService<Specialites> _strictExcelSyncService;
+    private readonly MedicSyncService _syncService;
 
     [ObservableProperty]
     private ObservableCollection<Specialites> _specialites = new();
@@ -38,16 +40,18 @@ public partial class SpecialitesListViewModel : ViewModelBase
         IRepository<Specialites> repository,
         IDialogService dialogService,
         IExcelService excelService,
-        IStrictExcelSyncService<Specialites> strictExcelSyncService)
+        IStrictExcelSyncService<Specialites> strictExcelSyncService,
+        MedicSyncService syncService)
     {
         _repository = repository;
         _dialogService = dialogService;
         _excelService = excelService;
         _strictExcelSyncService = strictExcelSyncService;
+        _syncService = syncService;
         _ = LoadDataAsync();
     }
 
-    partial void OnSearchTextChanged(string value) => _ = LoadDataAsync();
+    partial void OnSearchTextChanged(string value) => DebounceSearch(LoadDataAsync);
 
     private async Task LoadDataAsync()
     {
@@ -221,5 +225,36 @@ public partial class SpecialitesListViewModel : ViewModelBase
                 "Import Excel termine",
                 $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
         }, "Import en cours...");
+    }
+
+    [RelayCommand]
+    private async Task ApplySubstitutsAsync()
+    {
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Appliquer les substituts",
+            "Cette action remplacera chaque dénomination Spécialité par son substitut dans Spécialités et Médicaments. Continuer ?");
+
+        if (!confirm) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var result = await _syncService.ApplySpecialitesSubstitutsAsync();
+            await LoadDataAsync();
+
+            if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Application des substituts échouée",
+                    $"Erreur: {result.ErrorMessage}");
+                return;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Substituts appliqués",
+                $"Candidats: {result.CandidateCount}\n" +
+                $"Remplacements appliqués: {result.AppliedCount}\n" +
+                $"Spécialités mises à jour: {result.UpdatedEntityCount}\n" +
+                $"Médicaments synchronisés: {result.UpdatedMedicCount}");
+        }, "Application des substituts...");
     }
 }

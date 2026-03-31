@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Models;
@@ -110,6 +110,18 @@ public class MedicSyncService
                 {
                     ctx.Voies.Add(new Voies { itemname = voieName, addedat = DateTime.Now });
                     _logger.LogInformation("Auto-ajout Voie: {Name}", voieName);
+                }
+            }
+
+            // Sync Présentation
+            if (!string.IsNullOrWhiteSpace(medic.present))
+            {
+                var presentName = medic.present.Trim();
+                var exists = await ctx.Presents.AnyAsync(p => p.itemname == presentName);
+                if (!exists)
+                {
+                    ctx.Presents.Add(new Presents { itemname = presentName, addedat = DateTime.Now });
+                    _logger.LogInformation("Auto-ajout Présentation: {Name}", presentName);
                 }
             }
 
@@ -730,14 +742,95 @@ public class MedicSyncService
         }
     }
 
+    // ----- PRÉSENTATIONS -----
+
+    /// <summary>
+    /// Renomme une présentation dans tous les médicaments.
+    /// </summary>
+    public async Task<int> RenamePresentInMedicsAsync(string oldName, string newName)
+    {
+        if (string.IsNullOrWhiteSpace(oldName) || string.IsNullOrWhiteSpace(newName)) return 0;
+        if (string.Equals(oldName, newName, StringComparison.OrdinalIgnoreCase)) return 0;
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            var medics = await ctx.Medics.Where(m => m.present == oldName).ToListAsync();
+
+            foreach (var m in medics)
+            {
+                m.present = newName;
+                m.updatedat = DateTime.Now;
+            }
+
+            await ctx.SaveChangesAsync();
+            _logger.LogInformation("Présentation renommée '{Old}' → '{New}' dans {Count} médicaments", oldName, newName, medics.Count);
+            return medics.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors du renommage Présentation '{Old}' → '{New}'", oldName, newName);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Efface la référence à une présentation de tous les médicaments.
+    /// </summary>
+    public async Task<int> ClearPresentFromMedicsAsync(string presentName)
+    {
+        if (string.IsNullOrWhiteSpace(presentName)) return 0;
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            var medics = await ctx.Medics.Where(m => m.present == presentName).ToListAsync();
+
+            foreach (var m in medics)
+            {
+                m.present = string.Empty;
+                m.updatedat = DateTime.Now;
+            }
+
+            await ctx.SaveChangesAsync();
+            _logger.LogInformation("Présentation '{Name}' effacée de {Count} médicaments", presentName, medics.Count);
+            return medics.Count;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur lors de l'effacement Présentation '{Name}'", presentName);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Compte les médicaments utilisant cette présentation.
+    /// </summary>
+    public async Task<int> CountMedicsUsingPresentAsync(string presentName)
+    {
+        if (string.IsNullOrWhiteSpace(presentName)) return 0;
+
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            return await ctx.Medics.CountAsync(m => m.present == presentName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur comptage Présentation '{Name}'", presentName);
+            return 0;
+        }
+    }
+
     // ================================================================
     // HELPERS
     // ================================================================
 
     /// <summary>
-    /// Reconstruit le champ combiné 'dci' à partir de dci1..dci4
+    /// Reconstruit le champ combiné 'dci' à partir de dci1..dci4.
+    /// Public pour être accessible depuis d'autres services/VMs.
     /// </summary>
-    private static string BuildCombinedDci(Medic m)
+    public static string BuildCombinedDci(Medic m)
     {
         var parts = new[] { m.dci1, m.dci2, m.dci3, m.dci4 }
             .Where(s => !string.IsNullOrWhiteSpace(s))
@@ -756,6 +849,248 @@ public class MedicSyncService
         mappedValue = v;
         return true;
     }
+
+    // ================================================================
+    // GENERIC "APPLY SUBSTITUTS" — For all library tables
+    // ================================================================
+
+    /// <summary>
+    /// Applies substituts for Familles: replaces itemname with subvalue,
+    /// then propagates to medic.fam1/fam2/fam3/family.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyFamiliesSubstitutsAsync()
+    {
+        return await ApplySubstitutsGenericAsync(
+            ctx => ctx.Families,
+            f => f.itemname,
+            (f, v) => f.itemname = v,
+            f => f.subvalue,
+            (f, v) => f.subvalue = v,
+            f => f.updatedat = DateTime.Now,
+            async (ctx, map, oldNames, now) =>
+            {
+                var medics = await ctx.Medics
+                    .Where(m => oldNames.Contains(m.fam1) || oldNames.Contains(m.fam2) ||
+                                oldNames.Contains(m.fam3) || oldNames.Contains(m.family))
+                    .ToListAsync();
+                int count = 0;
+                foreach (var m in medics)
+                {
+                    var changed = false;
+                    if (map.TryGetValue(m.fam1, out var v1)) { m.fam1 = v1; changed = true; }
+                    if (map.TryGetValue(m.fam2, out var v2)) { m.fam2 = v2; changed = true; }
+                    if (map.TryGetValue(m.fam3, out var v3)) { m.fam3 = v3; changed = true; }
+                    if (map.TryGetValue(m.family, out var v4)) { m.family = v4; changed = true; }
+                    if (changed) { m.updatedat = now; count++; }
+                }
+                return count;
+            },
+            "Families");
+    }
+
+    /// <summary>
+    /// Applies substituts for Labos: replaces itemname with subvalue,
+    /// then propagates to medic.labo.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyLabosSubstitutsAsync()
+    {
+        return await ApplySubstitutsSingleFieldAsync<Labos>(
+            ctx => ctx.Labos,
+            l => l.itemname, (l, v) => l.itemname = v,
+            l => l.subvalue, (l, v) => l.subvalue = v,
+            l => l.updatedat = DateTime.Now,
+            m => m.labo, (m, v) => m.labo = v,
+            "Labos");
+    }
+
+    /// <summary>
+    /// Applies substituts for Formes: replaces itemname with subvalue,
+    /// then propagates to medic.forme.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyFormesSubstitutsAsync()
+    {
+        return await ApplySubstitutsSingleFieldAsync<Formes>(
+            ctx => ctx.Formes,
+            f => f.itemname, (f, v) => f.itemname = v,
+            f => f.subvalue, (f, v) => f.subvalue = v,
+            f => f.updatedat = DateTime.Now,
+            m => m.forme, (m, v) => m.forme = v,
+            "Formes");
+    }
+
+    /// <summary>
+    /// Applies substituts for Voies: replaces itemname with subvalue,
+    /// then propagates to medic.voie.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyVoiesSubstitutsAsync()
+    {
+        return await ApplySubstitutsSingleFieldAsync<Voies>(
+            ctx => ctx.Voies,
+            v => v.itemname, (vo, val) => vo.itemname = val,
+            v => v.subvalue, (vo, val) => vo.subvalue = val,
+            v => v.updatedat = DateTime.Now,
+            m => m.voie, (m, val) => m.voie = val,
+            "Voies");
+    }
+
+    /// <summary>
+    /// Applies substituts for Presents: replaces itemname with subvalue,
+    /// then propagates to medic.present.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyPresentsSubstitutsAsync()
+    {
+        return await ApplySubstitutsSingleFieldAsync<Presents>(
+            ctx => ctx.Presents,
+            p => p.itemname, (p, v) => p.itemname = v,
+            p => p.subvalue, (p, v) => p.subvalue = v,
+            p => p.updatedat = DateTime.Now,
+            m => m.present, (m, v) => m.present = v,
+            "Presents");
+    }
+
+    /// <summary>
+    /// Applies substituts for Specialites: replaces itemname with subvalue,
+    /// then propagates to medic.specialite.
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplySpecialitesSubstitutsAsync()
+    {
+        return await ApplySubstitutsSingleFieldAsync<Specialites>(
+            ctx => ctx.Specialites,
+            s => s.itemname, (s, v) => s.itemname = v,
+            s => s.subvalue, (s, v) => s.subvalue = v,
+            s => s.updatedat = DateTime.Now,
+            m => m.specialite, (m, v) => m.specialite = v,
+            "Specialites");
+    }
+
+    /// <summary>
+    /// Applies substituts for Poso: replaces itemname with subvalue.
+    /// (Poso has no direct field in Medic, so only the entity table is updated.)
+    /// </summary>
+    public async Task<SubstituteApplyResult> ApplyPosoSubstitutsAsync()
+    {
+        return await ApplySubstitutsGenericAsync(
+            ctx => ctx.Posos,
+            p => p.itemname,
+            (p, v) => p.itemname = v,
+            p => p.subvalue,
+            (p, v) => p.subvalue = v,
+            p => p.updatedat = DateTime.Now,
+            (_, _, _, _) => Task.FromResult(0), // no medic propagation
+            "Poso");
+    }
+
+    /// <summary>
+    /// Generic helper for entities that map to a single medic string field.
+    /// </summary>
+    private async Task<SubstituteApplyResult> ApplySubstitutsSingleFieldAsync<TEntity>(
+        Func<AppDbContext, DbSet<TEntity>> getDbSet,
+        Func<TEntity, string> getItemName,
+        Action<TEntity, string> setItemName,
+        Func<TEntity, string> getSubValue,
+        Action<TEntity, string> setSubValue,
+        Action<TEntity> touchTimestamp,
+        Func<Medic, string> getMedicField,
+        Action<Medic, string> setMedicField,
+        string entityLabel) where TEntity : class
+    {
+        return await ApplySubstitutsGenericAsync(
+            getDbSet, getItemName, setItemName, getSubValue, setSubValue, touchTimestamp,
+            async (ctx, map, oldNames, now) =>
+            {
+                // Load all medics and filter in-memory (delegate can't translate to SQL)
+                var allMedics = await ctx.Medics.ToListAsync();
+                var matching = allMedics
+                    .Where(m => oldNames.Contains(getMedicField(m) ?? ""))
+                    .ToList();
+
+                int count = 0;
+                foreach (var m in matching)
+                {
+                    var oldVal = getMedicField(m)?.Trim() ?? "";
+                    if (map.TryGetValue(oldVal, out var newVal))
+                    {
+                        setMedicField(m, newVal);
+                        m.updatedat = now;
+                        count++;
+                    }
+                }
+                return count;
+            },
+            entityLabel);
+    }
+
+    /// <summary>
+    /// Generic apply-substituts engine. Handles entity table rename + optional medic propagation.
+    /// </summary>
+    private async Task<SubstituteApplyResult> ApplySubstitutsGenericAsync<TEntity>(
+        Func<AppDbContext, DbSet<TEntity>> getDbSet,
+        Func<TEntity, string> getItemName,
+        Action<TEntity, string> setItemName,
+        Func<TEntity, string> getSubValue,
+        Action<TEntity, string> setSubValue,
+        Action<TEntity> touchTimestamp,
+        Func<AppDbContext, Dictionary<string, string>, HashSet<string>, DateTime, Task<int>> propagateToMedics,
+        string entityLabel) where TEntity : class
+    {
+        var result = new SubstituteApplyResult();
+        try
+        {
+            await using var ctx = await _contextFactory.CreateDbContextAsync();
+            var dbSet = getDbSet(ctx);
+            var all = await dbSet.ToListAsync();
+
+            var candidates = all
+                .Where(e =>
+                {
+                    var sub = getSubValue(e)?.Trim();
+                    var name = getItemName(e)?.Trim();
+                    return !string.IsNullOrWhiteSpace(sub) && sub != name;
+                })
+                .ToList();
+
+            result.CandidateCount = candidates.Count;
+            if (candidates.Count == 0) return result;
+
+            var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in candidates)
+            {
+                var oldName = getItemName(e)?.Trim();
+                var newName = getSubValue(e)?.Trim();
+                if (!string.IsNullOrWhiteSpace(oldName) && !string.IsNullOrWhiteSpace(newName))
+                    map[oldName] = newName;
+            }
+
+            if (map.Count == 0) return result;
+
+            var now = DateTime.Now;
+            foreach (var e in candidates)
+            {
+                var newName = map.GetValueOrDefault(getItemName(e)?.Trim() ?? "");
+                if (newName == null) continue;
+                setItemName(e, newName);
+                setSubValue(e, string.Empty);
+                touchTimestamp(e);
+                result.UpdatedEntityCount++;
+            }
+
+            var oldNames = map.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            result.UpdatedMedicCount = await propagateToMedics(ctx, map, oldNames, now);
+
+            await ctx.SaveChangesAsync();
+            result.AppliedCount = map.Count;
+
+            _logger.LogInformation(
+                "Substituts {Entity} appliqués. Entités={Ent}, Médic={Med}",
+                entityLabel, result.UpdatedEntityCount, result.UpdatedMedicCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erreur application substituts {Entity}", entityLabel);
+            result.ErrorMessage = ex.Message;
+        }
+        return result;
+    }
 }
 
 public sealed class DciSubstituteApplyResult
@@ -765,5 +1100,14 @@ public sealed class DciSubstituteApplyResult
     public int UpdatedDciCount { get; set; }
     public int UpdatedMedicCount { get; set; }
     public int UpdatedInteractCount { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public sealed class SubstituteApplyResult
+{
+    public int CandidateCount { get; set; }
+    public int AppliedCount { get; set; }
+    public int UpdatedEntityCount { get; set; }
+    public int UpdatedMedicCount { get; set; }
     public string? ErrorMessage { get; set; }
 }

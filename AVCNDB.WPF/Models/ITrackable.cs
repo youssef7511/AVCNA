@@ -1,4 +1,4 @@
-namespace AVCNDB.WPF.Models;
+﻿namespace AVCNDB.WPF.Models;
 
 /// <summary>
 /// Interface de traçabilité implémentée par toutes les entités

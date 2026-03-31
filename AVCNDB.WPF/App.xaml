@@ -32,6 +32,23 @@
             <Style x:Key="MaterialDesignBody2TextBlock" TargetType="TextBlock" BasedOn="{StaticResource SubtitleStyle}" />
             <Style x:Key="MaterialDesignFilledTabControl" TargetType="TabControl" BasedOn="{StaticResource {x:Type TabControl}}" />
 
+            <!-- Harmonized line-style inputs for Add/Edit dialogs -->
+            <Style x:Key="DialogLineTextBoxStyle"
+                   TargetType="TextBox"
+                   BasedOn="{StaticResource MaterialDesignFloatingHintTextBox}">
+                <Setter Property="MinHeight" Value="42"/>
+                <Setter Property="VerticalContentAlignment" Value="Center"/>
+                <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
+                <Setter Property="materialDesign:TextFieldAssist.HasClearButton" Value="True"/>
+            </Style>
+
+            <Style x:Key="DialogLineComboBoxStyle"
+                   TargetType="ComboBox"
+                   BasedOn="{StaticResource MaterialDesignFloatingHintComboBox}">
+                <Setter Property="MinHeight" Value="42"/>
+                <Setter Property="materialDesign:HintAssist.IsFloating" Value="True"/>
+            </Style>
+
             <!-- ViewModel to View DataTemplates -->
             <DataTemplate DataType="{x:Type vm:HomeViewModel}">
                 <views:HomeView />

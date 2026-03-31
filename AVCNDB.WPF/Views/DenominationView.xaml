@@ -1,0 +1,397 @@
+<UserControl x:Class="AVCNDB.WPF.Views.DenominationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:DenominationViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================
+             BARRE D'OUTILS
+        ============================================ -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="10,6"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Recherche -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <!-- Erreur de chargement -->
+                    <Border Background="{StaticResource ErrorLightBrush}"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlertCircle" Width="18" Height="18"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{StaticResource ErrorDarkBrush}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource ErrorDarkBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Barre de recherche -->
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True"
+                             Width="350"
+                             Height="36"
+                             Padding="10,6"
+                             VerticalContentAlignment="Center"
+                             FontSize="13"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Rechercher par code PCT, nom, DCI, labo..."
+                             materialDesign:HintAssist.IsFloating="False"
+                             materialDesign:TextFieldAssist.DecorationVisibility="Visible"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,12,0"/>
+
+                    <!-- Afficher tout -->
+                    <Button Command="{Binding ShowAllCommand}"
+                            Style="{StaticResource MaterialDesignIconButton}"
+                            ToolTip="Afficher tout (réinitialiser le filtre)">
+                        <materialDesign:PackIcon Kind="FilterRemove" Width="20" Height="20"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- Actions toolbar -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Initialiser tout -->
+                    <Button Command="{Binding InitializeAllCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,8,0"
+                            ToolTip="Initialiser (vider) tous les noms de base">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Eraser" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Initialiser" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Restaurer -->
+                    <Button Command="{Binding RestoreAllCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,8,0"
+                            ToolTip="Restaurer depuis la base (annuler les modifications)">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Undo" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Restaurer" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Init. Pointeurs -->
+                    <Button Command="{Binding InitializePointersCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,8,0"
+                            ToolTip="Réinitialiser les champs dose et unité">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Target" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Init. Pointeurs" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Séparateur visuel -->
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="4,4,12,4"/>
+
+                    <!-- Appliquer -->
+                    <Button Command="{Binding ApplyDenominationsCommand}"
+                            Style="{StaticResource TabToolbarPrimaryButtonStyle}"
+                            ToolTip="Sauvegarder toutes les modifications dans la base">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Appliquer" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             DATAGRID EDITABLE — DÉNOMINATIONS
+        ============================================ -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding MedicsView}"
+                  SelectedItem="{Binding SelectedMedic}"
+                  Style="{StaticResource EditableDataGridStyle}"
+                  Margin="0,2,0,0"
+                  CellEditEnding="DataGrid_CellEditEnding">
+
+            <DataGrid.Resources>
+                <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <!-- Code PCT (read-only) -->
+                <DataGridTextColumn Header="Code PCT"
+                                    Binding="{Binding pctcode}"
+                                    Width="90"
+                                    IsReadOnly="True"/>
+
+                <!-- Ancienne dénomination = itemname (read-only display) -->
+                <DataGridTextColumn Header="Ancienne dénomination"
+                                    Binding="{Binding itemname}"
+                                    Width="220"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding itemname}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Nouvelle Dénomination = basename (auto-computed, manually overridable) -->
+                <DataGridTextColumn Header="Nouvelle Dénomination"
+                                    Binding="{Binding basename, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="220">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding basename}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Dose 1 -->
+                <DataGridTextColumn Header="Dose 1"
+                                    Binding="{Binding dose1, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Unité 1 -->
+                <DataGridTextColumn Header="U1"
+                                    Binding="{Binding u1, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="50"/>
+
+                <!-- Dose 2 -->
+                <DataGridTextColumn Header="Dose 2"
+                                    Binding="{Binding dose2, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Unité 2 -->
+                <DataGridTextColumn Header="U2"
+                                    Binding="{Binding u2, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="50"/>
+
+                <!-- Dose 3 -->
+                <DataGridTextColumn Header="Dose 3"
+                                    Binding="{Binding dose3, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Unité 3 -->
+                <DataGridTextColumn Header="U3"
+                                    Binding="{Binding u3, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="50"/>
+
+                <!-- Dose 4 -->
+                <DataGridTextColumn Header="Dose 4"
+                                    Binding="{Binding dose4, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Unité 4 -->
+                <DataGridTextColumn Header="U4"
+                                    Binding="{Binding u4, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="50"/>
+
+                <!-- Forme (ComboBox) -->
+                <DataGridTemplateColumn Header="Forme" Width="120" SortMemberPath="forme" CanUserSort="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding forme}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding forme}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding Data.FormesList, Source={StaticResource vmProxy}}"
+                                      Text="{Binding forme, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"
+                                      FontSize="12"
+                                      Padding="4,2"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Présentation (ComboBox) -->
+                <DataGridTemplateColumn Header="Présent." Width="130" SortMemberPath="present" CanUserSort="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding present}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding present}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding Data.PresentsList, Source={StaticResource vmProxy}}"
+                                      Text="{Binding present, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"
+                                      FontSize="12"
+                                      Padding="4,2"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Colisage -->
+                <DataGridTextColumn Header="Colisage"
+                                    Binding="{Binding colisage, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="70"/>
+
+                <!-- Unité Colisage -->
+                <DataGridTextColumn Header="Unités"
+                                    Binding="{Binding ucol, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Labo (hidden) -->
+                <DataGridTemplateColumn Header="Labo" Width="140" SortMemberPath="labo" CanUserSort="True" Visibility="Collapsed">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding labo}" VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding labo}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding Data.LabosList, Source={StaticResource vmProxy}}"
+                                      Text="{Binding labo, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEditable="True"
+                                      IsTextSearchEnabled="True"
+                                      FontSize="12"
+                                      Padding="4,2"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- VEIC (hidden) -->
+                <DataGridTextColumn Header="VEIC"
+                                    Binding="{Binding veic}"
+                                    Width="60"
+                                    IsReadOnly="True"
+                                    Visibility="Collapsed"/>
+
+                <!-- Cat. pharm (hidden) -->
+                <DataGridTextColumn Header="Cat. pharm"
+                                    Binding="{Binding specialite}"
+                                    Width="100"
+                                    IsReadOnly="True"
+                                    Visibility="Collapsed">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding specialite}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Indicateur de chargement -->
+        <ProgressBar Grid.Row="1"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                     VerticalAlignment="Top"
+                     Margin="0"/>
+
+        <!-- ============================================
+             BARRE INFÉRIEURE — Dénomination calculée + compteur
+        ============================================ -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Label -->
+                <TextBlock Grid.Column="0"
+                           Text="Dénomination :"
+                           FontWeight="SemiBold"
+                           FontSize="13"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,0,10,0"/>
+
+                <!-- Computed denomination (red text like legacy app) -->
+                <Border Grid.Column="1"
+                        Background="{StaticResource ErrorLightBrush}"
+                        CornerRadius="4"
+                        Padding="10,6"
+                        Margin="0,0,16,0">
+                    <TextBlock Text="{Binding ComputedDenomination}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource ErrorDarkBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"
+                               ToolTip="{Binding ComputedDenomination}"/>
+                </Border>
+
+                <!-- Compteurs -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Indicateur modifications non sauvegardées -->
+                    <Border Background="{StaticResource WarningLightBrush}"
+                            CornerRadius="4"
+                            Padding="8,4"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Alert" Width="14" Height="14"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{StaticResource WarningDarkBrush}"/>
+                            <TextBlock Text="Modifications non sauvegardées"
+                                       Margin="6,0,0,0"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource WarningDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock VerticalAlignment="Center" FontSize="12">
+                        <Run Text="{Binding FilteredCount, Mode=OneWay}" FontWeight="Bold"/>
+                        <Run Text=" / "/>
+                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Bold"/>
+                        <Run Text=" médicaments"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -1,4 +1,4 @@
-<UserControl x:Class="AVCNDB.WPF.Views.MedicListView"
+﻿<UserControl x:Class="AVCNDB.WPF.Views.MedicListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -13,6 +13,15 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <Style x:Key="GridComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="4,0"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -214,86 +223,193 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Code-barre -->
-                <DataGridTextColumn Header="Code-barre" 
-                                    Binding="{Binding barcode}" 
-                                    Width="120"/>
-                
-                <!-- Nom du médicament -->
-                <DataGridTemplateColumn Header="Médicament" Width="*" MinWidth="250">
+                <!-- Hidden recordid for CRUD -->
+                <DataGridTextColumn Header="recordid" Visibility="Collapsed"
+                                    Binding="{Binding recordid}"/>
+
+                <!-- Code PCT -->
+                <DataGridTextColumn Header="Code"
+                                    Binding="{Binding pctcode}"
+                                    Width="75"/>
+
+                <!-- AMM -->
+                <DataGridTextColumn Header="AMM"
+                                    Binding="{Binding amm}"
+                                    Width="70"/>
+
+                <!-- Dénomination (Nom du médicament) -->
+                <DataGridTemplateColumn Header="Dénomination" Width="*" MinWidth="220" SortMemberPath="itemname">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <StackPanel Margin="8,4">
-                                <TextBlock Text="{Binding itemname}" 
-                                           Style="{StaticResource MedicNameStyle}"
-                                           TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Text="{Binding dci}" 
-                                           Style="{StaticResource DciTextStyle}"
-                                           TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
+                            <TextBlock Text="{Binding itemname}"
+                                       Style="{StaticResource MedicNameStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding itemname}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Dosage -->
-                <DataGridTextColumn Header="Dosage" 
-                                    Binding="{Binding dose1}" 
-                                    Width="100"/>
+                <!-- Spécialité -->
+                <DataGridTemplateColumn Header="Spéc." Width="90" SortMemberPath="specialite">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Specialites, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding specialite, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
-                <!-- Forme -->
-                <DataGridTextColumn Header="Forme" 
-                                    Binding="{Binding forme}" 
-                                    Width="120"/>
+                <!-- D.C.I -->
+                <DataGridTemplateColumn Header="DCI" Width="120" SortMemberPath="dci1">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Dcis, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding dci1, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Familles -->
+                <DataGridTemplateColumn Header="Famille" Width="120" SortMemberPath="fam1">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Families, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding fam1, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
                 <!-- Laboratoire -->
-                <DataGridTextColumn Header="Laboratoire" 
-                                    Binding="{Binding labo}" 
-                                    Width="150"/>
-
-                <!-- Prix public -->
-                <DataGridTemplateColumn Header="Prix Public" Width="100">
+                <DataGridTemplateColumn Header="Labo" Width="100" SortMemberPath="labo">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding price, StringFormat={}{0:N0} }" 
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Labos, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding labo, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- VEIC -->
+                <DataGridTemplateColumn Header="VEIC" Width="48" SortMemberPath="veic">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Catveics, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding veic, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Tableau -->
+                <DataGridTextColumn Header="Tab"
+                                    Binding="{Binding tableau}"
+                                    Width="40"/>
+
+                <!-- Forme -->
+                <DataGridTemplateColumn Header="Forme" Width="90" SortMemberPath="forme">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Formes, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding forme, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Présentation -->
+                <DataGridTemplateColumn Header="Prés." Width="90" SortMemberPath="present">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <controls:FilterableComboBox
+                                      FilterableItemsSource="{Binding Data.Presents, Source={StaticResource vmProxy}}"
+                                      SelectedValue="{Binding present, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="itemname"
+                                      DisplayMemberPath="itemname"
+                                      Style="{StaticResource GridComboBoxStyle}"
+                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- A.P. (Générique) -->
+                <DataGridTemplateColumn Header="AP" Width="35" CanUserResize="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="G" FontWeight="Bold"
+                                       Foreground="{StaticResource SecondaryDarkBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding isap, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Prix réf (refprice) -->
+                <DataGridTemplateColumn Header="P.Réf" Width="70" SortMemberPath="refprice">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding refprice, StringFormat={}{0:N0}}"
                                        Style="{StaticResource PriceTextStyle}"
-                                       HorizontalAlignment="Right"
-                                       Margin="0,0,8,0"/>
+                                       HorizontalAlignment="Right" Margin="0,0,6,0"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <!-- Statut -->
-                <DataGridTemplateColumn Header="Statut" Width="100">
+                <!-- Prix de vente (price) -->
+                <DataGridTemplateColumn Header="PPV" Width="70" SortMemberPath="price">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Border CornerRadius="4" 
-                                    Padding="8,4"
-                                    HorizontalAlignment="Center">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding pediatric}" Value="1">
-                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding isap}" Value="1">
-                                                <Setter Property="Background" Value="{StaticResource SecondaryLightBrush}"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="👶" 
-                                               Visibility="{Binding pediatric, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"
-                                               Margin="0,0,4,0"/>
-                                    <TextBlock Text="G" 
-                                               FontWeight="Bold"
-                                               Foreground="{StaticResource SecondaryDarkBrush}"
-                                               Visibility="{Binding isap, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"/>
-                                </StackPanel>
-                            </Border>
+                            <TextBlock Text="{Binding price, StringFormat={}{0:N0}}"
+                                       Style="{StaticResource PriceTextStyle}"
+                                       HorizontalAlignment="Right" Margin="0,0,6,0"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+
+                <!-- Mont PEC (pamount) -->
+                <DataGridTemplateColumn Header="PEC" Width="65" SortMemberPath="pamount">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding pamount, StringFormat={}{0:N0}}"
+                                       Style="{StaticResource PriceTextStyle}"
+                                       HorizontalAlignment="Right" Margin="0,0,6,0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Hidden dates for CRUD -->
+                <DataGridTextColumn Header="addedat" Visibility="Collapsed"
+                                    Binding="{Binding addedat, StringFormat=\{0:dd/MM/yyyy\}}"/>
+                <DataGridTextColumn Header="updatedat" Visibility="Collapsed"
+                                    Binding="{Binding updatedat, StringFormat=\{0:dd/MM/yyyy\}}"/>
 
                 <!-- Actions (⋮ menu) -->
                 <DataGridTemplateColumn Header="" Width="50" CanUserResize="False" CanUserSort="False">

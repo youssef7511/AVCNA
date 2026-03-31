@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using AVCNDB.WPF.Contracts.Services;
 using MaterialDesignThemes.Wpf;
 

@@ -1,0 +1,465 @@
+<UserControl x:Class="AVCNDB.WPF.Views.PrixView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
+             xmlns:converters="clr-namespace:AVCNDB.WPF.Converters"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:PrixViewModel}"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <converters:MillimesToDecimalConverter x:Key="MillimesToDecimalConverter"/>
+
+        <!-- Right-aligned text style for price cells (display mode) -->
+        <Style x:Key="PriceCellStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+        </Style>
+
+        <!-- Right-aligned editing style for price cells -->
+        <Style x:Key="PriceCellEditStyle" TargetType="TextBox">
+            <Setter Property="HorizontalContentAlignment" Value="Right"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ============================================
+             BARRE D'OUTILS
+        ============================================ -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="10,6"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Row 0: Search bar -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True"
+                             Width="400"
+                             Height="36"
+                             Padding="10,6"
+                             VerticalContentAlignment="Center"
+                             FontSize="13"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Rechercher par code PCT, dénomination, labo..."
+                             materialDesign:HintAssist.IsFloating="False"
+                             materialDesign:TextFieldAssist.DecorationVisibility="Visible"
+                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                             Margin="0,0,12,0"/>
+                </StackPanel>
+
+                <!-- Row 1: Filter buttons -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal">
+                    <!-- Erreur -->
+                    <Border Background="{StaticResource ErrorLightBrush}"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlertCircle" Width="18" Height="18"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{StaticResource ErrorDarkBrush}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource ErrorDarkBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Tout afficher -->
+                    <Button Command="{Binding ShowAllCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="Afficher tous les médicaments">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FormatListBulleted" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tout afficher" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Incohérences de prix -->
+                    <Button Command="{Binding ShowInconsistenciesCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="Afficher les lignes où PVP PCT ≠ Prix PCT + Timbre">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlertDecagram" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Incohérences de prix" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Prix vides -->
+                    <Button Command="{Binding ShowEmptyPricesCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="Afficher les médicaments sans prix">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CurrencyUsdOff" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Prix vides" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Optimiser les prix -->
+                    <Button Command="{Binding OptimizePricesCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="Recalculer PVP PCT = Prix PCT + Timbre">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Calculator" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Optimiser les prix" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Références CNAM -->
+                    <Button Command="{Binding ShowCnamReferencesCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,6,0"
+                            ToolTip="Afficher les médicaments avec prix de référence CNAM">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="BookmarkCheck" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Références CNAM" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Separator -->
+                    <Border Width="1" Background="{StaticResource BorderBrush}" Margin="6,4,12,4"/>
+
+                    <!-- Appliquer -->
+                    <Button Command="{Binding ApplyPricesCommand}"
+                            Style="{StaticResource TabToolbarPrimaryButtonStyle}"
+                            ToolTip="Sauvegarder toutes les modifications dans la base">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Appliquer" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             DATAGRID EDITABLE — PRIX
+        ============================================ -->
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding MedicsView}"
+                  SelectedItem="{Binding SelectedMedic}"
+                  Style="{StaticResource EditableDataGridStyle}"
+                  RowHeight="30"
+                  Margin="0,2,0,0"
+                  CellEditEnding="DataGrid_CellEditEnding">
+
+            <DataGrid.Resources>
+                <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <!-- Code PCT -->
+                <DataGridTextColumn Header="Code PCT"
+                                    Binding="{Binding pctcode}"
+                                    Width="85"
+                                    IsReadOnly="True"/>
+
+                <!-- Dénomination -->
+                <DataGridTextColumn Header="Dénomination"
+                                    Binding="{Binding itemname}"
+                                    Width="240"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding itemname}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- OTC -->
+                <DataGridTemplateColumn Header="OTC" Width="48" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Text" Value="Non"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding isotc}" Value="1">
+                                                <Setter Property="Text" Value="Oui"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- V.E.I.C -->
+                <DataGridTextColumn Header="V.E.I.C"
+                                    Binding="{Binding veic}"
+                                    Width="52"
+                                    IsReadOnly="True"/>
+
+                <!-- Cat pharm. -->
+                <DataGridTextColumn Header="Cat pharm."
+                                    Binding="{Binding specialite}"
+                                    Width="85"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding specialite}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Tableau -->
+                <DataGridTextColumn Header="Tableau"
+                                    Binding="{Binding tableau, UpdateSourceTrigger=PropertyChanged}"
+                                    Width="65"/>
+
+                <!-- Prix PCT -->
+                <DataGridTextColumn Header="Prix PCT"
+                                    Binding="{Binding pctprice, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="78">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Timbre -->
+                <DataGridTextColumn Header="Timbre"
+                                    Binding="{Binding timbrepct, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="68">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- PVP PCT -->
+                <DataGridTextColumn Header="PVP PCT"
+                                    Binding="{Binding netprice, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="78">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- PVP actuel -->
+                <DataGridTextColumn Header="PVP actuel"
+                                    Binding="{Binding price, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="82">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Prix réf -->
+                <DataGridTextColumn Header="Prix réf"
+                                    Binding="{Binding refprice, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="78">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Remb (read-only checkbox: true if refprice > 0) -->
+                <DataGridTemplateColumn Header="Remb" Width="50" IsReadOnly="True" CanUserSort="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding refprice, Converter={StaticResource IntToBoolConverter}, Mode=OneWay}"
+                                      IsHitTestVisible="False"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- A.P (editable checkbox) -->
+                <DataGridTemplateColumn Header="A.P" Width="44" CanUserSort="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding isap, Converter={StaticResource IntToBoolConverter}, UpdateSourceTrigger=PropertyChanged}"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Mont. pharm -->
+                <DataGridTextColumn Header="Mont. pharm"
+                                    Binding="{Binding pamount, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="88">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Mont. remb -->
+                <DataGridTextColumn Header="Mont. remb"
+                                    Binding="{Binding icamount, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="88">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Montants PEC -->
+                <DataGridTextColumn Header="Mont. PEC"
+                                    Binding="{Binding ocamount, Converter={StaticResource MillimesToDecimalConverter}}"
+                                    Width="88">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource PriceCellStyle}"/>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.EditingElementStyle>
+                        <Style TargetType="TextBox" BasedOn="{StaticResource PriceCellEditStyle}"/>
+                    </DataGridTextColumn.EditingElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Taux remb -->
+                <DataGridTextColumn Header="Taux remb"
+                                    Binding="{Binding ictx, StringFormat={}{0} %}"
+                                    Width="80"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Margin" Value="0,0,6,0"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <!-- Labo -->
+                <DataGridTextColumn Header="Labo"
+                                    Binding="{Binding labo}"
+                                    Width="140"
+                                    IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                            <Setter Property="ToolTip" Value="{Binding labo}"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Indicateur de chargement -->
+        <ProgressBar Grid.Row="1"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                     VerticalAlignment="Top"
+                     Margin="0"/>
+
+        <!-- ============================================
+             BARRE INFÉRIEURE — Filtre actif + compteur
+        ============================================ -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Filtre actif -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <materialDesign:PackIcon Kind="Filter" Width="16" Height="16"
+                                             VerticalAlignment="Center"
+                                             Foreground="{StaticResource TextSecondaryBrush}"
+                                             Margin="0,0,6,0"/>
+                    <TextBlock Text="Filtre :"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,6,0"/>
+                    <Border Background="{StaticResource InfoLightBrush}"
+                            CornerRadius="4"
+                            Padding="8,3">
+                        <TextBlock Text="{Binding ActiveFilterText}"
+                                   FontSize="12"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource InfoDarkBrush}"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Compteurs -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Indicateur modifications non sauvegardées -->
+                    <Border Background="{StaticResource WarningLightBrush}"
+                            CornerRadius="4"
+                            Padding="8,4"
+                            Margin="0,0,12,0"
+                            Visibility="{Binding HasUnsavedChanges, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Alert" Width="14" Height="14"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="{StaticResource WarningDarkBrush}"/>
+                            <TextBlock Text="Modifications non sauvegardées"
+                                       Margin="6,0,0,0"
+                                       FontSize="11"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource WarningDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock VerticalAlignment="Center" FontSize="12">
+                        <Run Text="Lignes affichées : "/>
+                        <Run Text="{Binding FilteredCount, Mode=OneWay}" FontWeight="Bold"/>
+                        <Run Text=" / "/>
+                        <Run Text="{Binding TotalCount, Mode=OneWay}" FontWeight="Bold"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

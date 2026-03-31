@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
@@ -60,35 +60,59 @@ public partial class StockViewModel : ViewModelBase
 
     partial void OnSelectedViewChanged(string value)
     {
-        _ = LoadDataAsync();
+        _ = LoadStockItemsAsync();
     }
+
+    /// <summary>
+    /// Cached alert data — only refreshed on explicit Refresh or initial load.
+    /// </summary>
+    private List<StockAlertItem> _cachedLowStock = new();
+    private List<ExpiryAlertItem> _cachedExpiring = new();
 
     private async Task LoadDataAsync()
     {
         await ExecuteAsync(async () =>
         {
-            // Charger les alertes
-            var lowStock = (await _stockService.GetLowStockAlertsAsync()).ToList();
-            var expiring = (await _stockService.GetExpiryAlertsAsync()).ToList();
+            // Fetch & cache alerts from DB
+            _cachedLowStock = (await _stockService.GetLowStockAlertsAsync()).ToList();
+            _cachedExpiring = (await _stockService.GetExpiryAlertsAsync()).ToList();
 
-            LowStockAlerts = new ObservableCollection<StockAlertItem>(lowStock);
-            ExpiryAlerts = new ObservableCollection<ExpiryAlertItem>(expiring);
-            LowStockCount = lowStock.Count;
-            ExpiryCount = expiring.Count;
-            TotalAlertsCount = lowStock.Count + expiring.Count;
+            LowStockAlerts = new ObservableCollection<StockAlertItem>(_cachedLowStock);
+            ExpiryAlerts = new ObservableCollection<ExpiryAlertItem>(_cachedExpiring);
+            LowStockCount = _cachedLowStock.Count;
+            ExpiryCount = _cachedExpiring.Count;
+            TotalAlertsCount = _cachedLowStock.Count + _cachedExpiring.Count;
 
+            await LoadStockItemsCoreAsync();
+        }, "Chargement du stock...");
+    }
+
+    /// <summary>
+    /// Loads only the stock items grid using cached alerts (no re-fetch).
+    /// Called when switching views (tabs).
+    /// </summary>
+    private async Task LoadStockItemsAsync()
+    {
+        await ExecuteAsync(async () =>
+        {
+            await LoadStockItemsCoreAsync();
+        }, "Chargement...");
+    }
+
+    private async Task LoadStockItemsCoreAsync()
+    {
             // Charger selon la vue sélectionnée
             IEnumerable<Stock> items;
             
             switch (SelectedView)
             {
                 case "alerts":
-                    var alertMedicIds = lowStock.Select(a => a.MedicId).ToHashSet();
+                    var alertMedicIds = _cachedLowStock.Select(a => a.MedicId).ToHashSet();
                     items = await _repository.FindAsync(s => alertMedicIds.Contains(s.medicid));
                     break;
                     
                 case "expiring":
-                    var expiringMedicIds = expiring.Select(a => a.MedicId).ToHashSet();
+                    var expiringMedicIds = _cachedExpiring.Select(a => a.MedicId).ToHashSet();
                     items = await _repository.FindAsync(s => expiringMedicIds.Contains(s.medicid));
                     break;
                     
@@ -100,7 +124,6 @@ public partial class StockViewModel : ViewModelBase
             }
 
             Stocks = new ObservableCollection<Stock>(items.OrderBy(s => s.medicname));
-        }, "Chargement du stock...");
     }
 
     [RelayCommand]

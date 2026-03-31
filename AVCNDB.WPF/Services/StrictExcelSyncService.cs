@@ -1,4 +1,4 @@
-using AVCNDB.WPF.Contracts.Services;
+﻿using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 
