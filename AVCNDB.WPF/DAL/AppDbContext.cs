@@ -61,6 +61,11 @@ public class AppDbContext : DbContext
     // ============================================
     public DbSet<Stock> Stocks { get; set; } = null!;
 
+    // ============================================
+    // FICHIER D'ÉDITION
+    // ============================================
+    public DbSet<EditionFileSession> EditionFileSessions { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -155,6 +160,17 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Associates>()
             .Property(a => a.isactive)
             .HasDefaultValue(1);
+
+        // ============================================
+        // FICHIER D'ÉDITION — INDEX
+        // ============================================
+        modelBuilder.Entity<EditionFileSession>()
+            .HasIndex(e => e.status)
+            .HasDatabaseName("IX_EditionFileSession_Status");
+
+        modelBuilder.Entity<EditionFileSession>()
+            .HasIndex(e => e.addedat)
+            .HasDatabaseName("IX_EditionFileSession_AddedAt");
     }
 
     /// <summary>

@@ -178,6 +178,8 @@ public partial class App : Application
         services.AddTransient<IPdfService, PdfService>();
         services.AddTransient<IStockService, StockService>();
         services.AddTransient(typeof(IStrictExcelSyncService<>), typeof(StrictExcelSyncService<>));
+        services.AddTransient<IUnknownDataDetectionService, FuzzyDetectionService>();
+        services.AddTransient<IEditionFileService, EditionFileService>();
 
         // ============================================
         // VIEWMODELS
@@ -205,6 +207,7 @@ public partial class App : Application
         services.AddTransient<DatabaseViewModel>();
         services.AddTransient<LibraryShellViewModel>();
         services.AddTransient<ToolsViewModel>();
+        services.AddTransient<EditionFileViewModel>();
 
         // ============================================
         // VIEWS

@@ -4,48 +4,782 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
+             xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
              mc:Ignorable="d" 
-             d:DesignHeight="700" d:DesignWidth="1200">
+             d:DataContext="{d:DesignInstance Type=vm:EditionFileViewModel}"
+             d:DesignHeight="800" d:DesignWidth="1400"
+             Background="{DynamicResource MaterialDesignBackground}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Unknown field cell style: blue #1565C0 + bold (D-03) -->
+        <SolidColorBrush x:Key="UnknownFieldBrush" Color="#1565C0"/>
+    </UserControl.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- En-tête -->
-        <Border Grid.Row="0" Padding="24,16" Background="{DynamicResource MaterialDesignPaper}">
-            <StackPanel>
-                <TextBlock Text="Mouvements" 
-                           Style="{StaticResource MaterialDesignHeadline4TextBlock}"
-                           Foreground="{StaticResource PrimaryBrush}"/>
-                <TextBlock Text="Gestion des mouvements de stock (entrées/sorties)" 
-                           Style="{StaticResource MaterialDesignBody2TextBlock}"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"
-                           Margin="0,4,0,0"/>
-            </StackPanel>
+        <!-- ============================================
+             BARRE D'OUTILS (Row 0)
+        ============================================ -->
+        <Border Grid.Row="0" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="10,6"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <!-- Error banner -->
+                    <Border Background="{StaticResource ErrorLightBrush}"
+                            CornerRadius="6"
+                            Padding="10,6"
+                            Margin="0,0,0,8"
+                            Visibility="{Binding ErrorMessage, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AlertCircle" Width="18" Height="18" 
+                                                     VerticalAlignment="Center" 
+                                                     Foreground="{StaticResource ErrorDarkBrush}"/>
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Margin="8,0,0,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource ErrorDarkBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Orientation="Horizontal">
+                        <!-- Source type selector -->
+                        <ComboBox Width="160"
+                                  Height="36"
+                                  SelectedValue="{Binding SelectedSourceType}"
+                                  materialDesign:HintAssist.Hint="Type de source"
+                                  materialDesign:HintAssist.IsFloating="False"
+                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  Margin="0,0,12,0">
+                            <ComboBoxItem Content="Excel Simple" Tag="ExcelSimple"/>
+                            <ComboBoxItem Content="Excel CNAM" Tag="ExcelCNAM"/>
+                            <ComboBoxItem Content="Excel PCT" Tag="ExcelPCT"/>
+                            <ComboBoxItem Content="Excel PCT Complet" Tag="ExcelPCTComplete"/>
+                            <ComboBoxItem Content="Catalogue Labo" Tag="CatalogueLabo"/>
+                            <ComboBoxItem Content="Liste Pharmacie" Tag="ListePharmacie"/>
+                        </ComboBox>
+
+                        <!-- Current file path display -->
+                        <Border Background="{StaticResource BorderLightBrush}"
+                                CornerRadius="4"
+                                Padding="8,6"
+                                Margin="0,0,12,0"
+                                MaxWidth="350"
+                                VerticalAlignment="Center"
+                                Visibility="{Binding CurrentFilePath, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="File" Width="14" Height="14" 
+                                                         VerticalAlignment="Center"
+                                                         Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding CurrentFilePath}"
+                                           Margin="4,0,0,0"
+                                           FontSize="11"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="300"
+                                           VerticalAlignment="Center"
+                                           ToolTip="{Binding CurrentFilePath}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Action buttons -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <!-- Import -->
+                    <Button Command="{Binding ImportCommand}"
+                            Style="{StaticResource TabToolbarPrimaryButtonStyle}"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileImport" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Importer" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Export -->
+                    <Button Command="{Binding ExportCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Download" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Library Manager (D-05: dialog) -->
+                    <Button Command="{Binding OpenLibraryManagerCommand}"
+                            Style="{StaticResource TabToolbarSecondaryButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="BookOpenPageVariant" Width="18" Height="18" VerticalAlignment="Center"/>
+                            <TextBlock Text="Bibliothèque" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Contenu -->
-        <Grid Grid.Row="1" Margin="24">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <materialDesign:PackIcon Kind="SwapHorizontal" 
-                                         Width="120" Height="120" 
-                                         Foreground="{StaticResource PrimaryBrush}"
-                                         HorizontalAlignment="Center"
-                                         Opacity="0.5"/>
-                <TextBlock Text="Page Mouvements - À venir..." 
-                           Style="{StaticResource MaterialDesignHeadline5TextBlock}"
-                           HorizontalAlignment="Center" 
-                           Margin="0,24,0,0"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                <TextBlock Text="Cette section permettra de gérer les entrées et sorties de stock,&#x0a;les inventaires et l'historique des mouvements." 
-                           Style="{StaticResource MaterialDesignBody1TextBlock}"
-                           HorizontalAlignment="Center" 
-                           TextAlignment="Center"
-                           Margin="0,8,0,0"
-                           Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-            </StackPanel>
-        </Grid>
+        <!-- ============================================
+             FILTRES ET STATISTIQUES (Row 1)
+        ============================================ -->
+        <Border Grid.Row="1" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="12,8"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Filter RadioButtons -->
+                <ScrollViewer Grid.Column="0" 
+                              HorizontalScrollBarVisibility="Auto" 
+                              VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton Content="Tous"
+                                     IsChecked="True"
+                                     Tag="Tous"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Actifs"
+                                     Tag="Actifs"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Inactifs"
+                                     Tag="Inactifs"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Tag="Affectés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0">
+                            <TextBlock Text="Affectés" VerticalAlignment="Center"/>
+                        </RadioButton>
+
+                        <RadioButton Tag="Non-affectés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0">
+                            <TextBlock Text="Non-affectés" VerticalAlignment="Center"/>
+                        </RadioButton>
+
+                        <RadioButton Content="Méd.[V.E.I]"
+                                     Tag="Méd.[V.E.I]"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Avec A.P"
+                                     Tag="Avec A.P"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Sans A.P"
+                                     Tag="Sans A.P"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Remboursés"
+                                     Tag="Remboursés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Non-remboursés"
+                                     Tag="Non-remboursés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Sélectionnés"
+                                     Tag="Sélectionnés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Content="Non-sélectionnés"
+                                     Tag="Non-sélectionnés"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}"
+                                     Margin="0,0,8,0"/>
+
+                        <RadioButton Tag="Changements de prix"
+                                     Checked="FilterRadioButton_Checked"
+                                     Style="{StaticResource MaterialDesignTabRadioButtonBottom}">
+                            <TextBlock Text="Prix modifiés" VerticalAlignment="Center"/>
+                        </RadioButton>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Statistics badges -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="12,0,0,0">
+                    <!-- Total rows -->
+                    <Border Background="{StaticResource InfoLightBrush}"
+                            CornerRadius="4"
+                            Padding="10,6"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Total : "
+                                       FontSize="12"
+                                       Foreground="{StaticResource InfoDarkBrush}"/>
+                            <TextBlock Text="{Binding TotalRowCount}"
+                                       FontWeight="Bold"
+                                       FontSize="12"
+                                       Foreground="{StaticResource InfoDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Unknown rows -->
+                    <Border Background="{StaticResource WarningLightBrush}"
+                            CornerRadius="4"
+                            Padding="10,6"
+                            Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Inconnues : "
+                                       FontSize="12"
+                                       Foreground="{StaticResource WarningDarkBrush}"/>
+                            <TextBlock Text="{Binding UnknownRowCount}"
+                                       FontWeight="Bold"
+                                       FontSize="12"
+                                       Foreground="{StaticResource WarningDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Approved rows -->
+                    <Border Background="{StaticResource SuccessLightBrush}"
+                            CornerRadius="4"
+                            Padding="10,6">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Approuvées : "
+                                       FontSize="12"
+                                       Foreground="{StaticResource SuccessDarkBrush}"/>
+                            <TextBlock Text="{Binding ApprovedRowCount}"
+                                       FontWeight="Bold"
+                                       FontSize="12"
+                                       Foreground="{StaticResource SuccessDarkBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ============================================
+             DATAGRID (Row 2)
+        ============================================ -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Rows}"
+                  SelectedItem="{Binding SelectedRow}"
+                  Style="{StaticResource ModernDataGridStyle}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  Margin="0,4,0,0">
+
+            <DataGrid.Resources>
+                <helpers:BindingProxy x:Key="vmProxy" Data="{Binding}"/>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+
+                <!-- Checkbox selection -->
+                <DataGridTemplateColumn Width="40" CanUserResize="False" CanUserSort="False">
+                    <DataGridTemplateColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Focusable" Value="False"/>
+                        </Style>
+                    </DataGridTemplateColumn.CellStyle>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Line number -->
+                <DataGridTextColumn Header="#"
+                                    Binding="{Binding LineNumber}"
+                                    Width="40"
+                                    IsReadOnly="True"/>
+
+                <!-- Action badge column (D-04) -->
+                <DataGridTemplateColumn Header="Action" Width="100" SortMemberPath="ActionFlag">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border CornerRadius="4"
+                                    Padding="6,2"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <!-- A ajouter = warning/orange -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="AjouterNew">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                                            </DataTrigger>
+                                            <!-- Affecte = success/green -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="Affecte">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                            </DataTrigger>
+                                            <!-- Desaffecte = error/red -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="Desaffecte">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                            </DataTrigger>
+                                            <!-- Nouveau = info/blue -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="Nouveau">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource InfoLightBrush}"/>
+                                            </DataTrigger>
+                                            <!-- Suppression = error/red -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="MarquerSuppression">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                            </DataTrigger>
+                                            <!-- Reinitialiser = grey -->
+                                            <DataTrigger Binding="{Binding ActionFlag}" Value="Reinitialiser">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Setter Property="Background" Value="{StaticResource BorderLightBrush}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <TextBlock FontSize="10" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="{Binding ActionLabel}"/>
+                                            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ActionFlag}" Value="AjouterNew">
+                                                    <Setter Property="Foreground" Value="{StaticResource WarningDarkBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActionFlag}" Value="Affecte">
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActionFlag}" Value="Desaffecte">
+                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActionFlag}" Value="Nouveau">
+                                                    <Setter Property="Foreground" Value="{StaticResource InfoDarkBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ActionFlag}" Value="MarquerSuppression">
+                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Code PCT -->
+                <DataGridTextColumn Header="Code"
+                                    Binding="{Binding PctCode}"
+                                    Width="75"/>
+
+                <!-- Denomination (ItemName) -->
+                <DataGridTemplateColumn Header="Dénomination" Width="*" MinWidth="200" SortMemberPath="ItemName">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding ItemName}"
+                                       Style="{StaticResource MedicNameStyle}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding ItemName}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- DCI (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="DCI" Width="120" SortMemberPath="Dci1">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Dci1}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Dci1}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Dci}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- DCI Association (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Assoc." Width="100" SortMemberPath="DciAssociation">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding DciAssociation}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding DciAssociation}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_DciAssociation}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Forme (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Forme" Width="90" SortMemberPath="Forme">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Forme}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Forme}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Forme}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Tableau -->
+                <DataGridTextColumn Header="Tab"
+                                    Binding="{Binding Tableau}"
+                                    Width="40"/>
+
+                <!-- VEIC -->
+                <DataGridTextColumn Header="VEIC"
+                                    Binding="{Binding Veic}"
+                                    Width="48"/>
+
+                <!-- Labo (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Labo" Width="100" SortMemberPath="Labo">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Labo}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Labo}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Labo}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Famille 1 (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Famille" Width="100" SortMemberPath="Fam1">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Fam1}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Fam1}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Fam1}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Specialite (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Spéc." Width="90" SortMemberPath="Specialite">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Specialite}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Specialite}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Specialite}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Voie (with unknown detection D-03) -->
+                <DataGridTemplateColumn Header="Voie" Width="70" SortMemberPath="Voie">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Voie}"
+                                       TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center"
+                                       ToolTip="{Binding Voie}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontSize" Value="12"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsUnknown_Voie}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource UnknownFieldBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Prix Ref -->
+                <DataGridTemplateColumn Header="P.Réf" Width="65" SortMemberPath="RefPrice">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding RefPrice, StringFormat={}{0:N0}}"
+                                       Style="{StaticResource PriceTextStyle}"
+                                       HorizontalAlignment="Right" Margin="0,0,6,0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Prix -->
+                <DataGridTemplateColumn Header="PPV" Width="65" SortMemberPath="Price">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock HorizontalAlignment="Right" Margin="0,0,6,0">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource PriceTextStyle}">
+                                        <Setter Property="Text" Value="{Binding Price, StringFormat={}{0:N0}}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasPriceChanged}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Remb -->
+                <DataGridTemplateColumn Header="Remb" Width="45" CanUserResize="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="R" FontWeight="Bold"
+                                       Foreground="{StaticResource SecondaryBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding IsRemboursable, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- A.P. -->
+                <DataGridTemplateColumn Header="AP" Width="35" CanUserResize="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="G" FontWeight="Bold"
+                                       Foreground="{StaticResource SecondaryDarkBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Visibility="{Binding IsAp, Converter={StaticResource IntToBoolConverter}, ConverterParameter=x}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Row actions menu -->
+                <DataGridTemplateColumn Header="" Width="50" CanUserResize="False" CanUserSort="False">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <materialDesign:PopupBox PlacementMode="BottomAndAlignRightEdges"
+                                                     StaysOpen="False" ToolTip="Actions" Padding="0"
+                                                     HorizontalAlignment="Center">
+                                <materialDesign:PopupBox.ToggleContent>
+                                    <materialDesign:PackIcon Kind="DotsVertical" Width="20" Height="20"
+                                                             Foreground="{DynamicResource MaterialDesignBody}"/>
+                                </materialDesign:PopupBox.ToggleContent>
+                                <StackPanel MinWidth="200">
+                                    <!-- Approve -->
+                                    <Button Command="{Binding Data.ApproveRowCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Check" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                                                     Foreground="{StaticResource SuccessBrush}"/>
+                                            <TextBlock Text="Approuver" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <!-- Reject -->
+                                    <Button Command="{Binding Data.RejectRowCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Close" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                                                     Foreground="{StaticResource ErrorBrush}"/>
+                                            <TextBlock Text="Rejeter" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Separator/>
+                                    <!-- Mark as New -->
+                                    <Button Command="{Binding Data.MarkAsNewCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="NewBox" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                                                     Foreground="{StaticResource InfoBrush}"/>
+                                            <TextBlock Text="Marquer Nouveau" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <!-- Mark for deletion -->
+                                    <Button Command="{Binding Data.MarkForDeletionCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Delete" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                                                     Foreground="{StaticResource ErrorBrush}"/>
+                                            <TextBlock Text="Marquer Suppression" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <!-- Reset -->
+                                    <Button Command="{Binding Data.ResetRowCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Réinitialiser" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Separator/>
+                                    <!-- Similarity search -->
+                                    <Button Command="{Binding Data.SimilaritySearchCommand, Source={StaticResource vmProxy}}"
+                                            HorizontalContentAlignment="Left" Padding="16,10">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Magnify" Width="16" Height="16" 
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                                                     Foreground="{StaticResource PrimaryBrush}"/>
+                                            <TextBlock Text="Recherche similaire" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </materialDesign:PopupBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Loading indicator -->
+        <ProgressBar Grid.Row="2"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                     VerticalAlignment="Top"
+                     Margin="0"/>
+
+        <!-- ============================================
+             STATUS BAR (Row 3)
+        ============================================ -->
+        <Border Grid.Row="3" 
+                Background="{DynamicResource MaterialDesignPaper}"
+                BorderBrush="{StaticResource BorderBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Status message -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                <!-- Row count info -->
+                <TextBlock Grid.Column="1"
+                           VerticalAlignment="Center"
+                           FontSize="12"
+                           Foreground="{StaticResource TextSecondaryBrush}">
+                    <Run Text="Affichage : "/>
+                    <Run Text="{Binding Rows.Count, Mode=OneWay}" FontWeight="Bold"/>
+                    <Run Text=" / "/>
+                    <Run Text="{Binding TotalRowCount, Mode=OneWay}"/>
+                    <Run Text=" lignes"/>
+                </TextBlock>
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

@@ -113,8 +113,8 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void NavigateToMovements()
     {
-        _navigationService.NavigateToView("MovementsView");
-        CurrentPageTitle = "Mouvements";
+        _navigationService.NavigateTo<EditionFileViewModel>();
+        CurrentPageTitle = "Fichier d'édition";
     }
 
     [RelayCommand]

@@ -113,6 +113,10 @@
             <DataTemplate DataType="{x:Type vm:ToolsViewModel}">
                 <views:ToolsView />
             </DataTemplate>
+
+            <DataTemplate DataType="{x:Type vm:EditionFileViewModel}">
+                <views:MovementsView />
+            </DataTemplate>
             
         </ResourceDictionary>
     </Application.Resources>

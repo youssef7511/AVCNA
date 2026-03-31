@@ -76,7 +76,7 @@ public class NavigationService : INavigationService
         object? view = viewName switch
         {
             "LibraryView" => new LibraryView(),
-            "MovementsView" => new MovementsView(),
+            // MovementsView is now resolved via ViewModel-based navigation (EditionFileViewModel → MovementsView DataTemplate)
             "ToolsView" => new ToolsView(),
             "DatabaseView" => _serviceProvider.GetService<DatabaseView>(),
             _ => null
