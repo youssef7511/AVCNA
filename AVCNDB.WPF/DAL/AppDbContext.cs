@@ -71,10 +71,24 @@ public class AppDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // ============================================
-        // GLOBAL QUERY FILTER (soft-delete)
+        // GLOBAL QUERY FILTERS (soft-delete)
         // ============================================
         modelBuilder.Entity<Medic>()
             .HasQueryFilter(m => m.deletedat == null);
+        modelBuilder.Entity<Dci>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Families>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Labos>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Formes>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Voies>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Specialites>()
+            .HasQueryFilter(e => e.deletedat == null);
+        modelBuilder.Entity<Presents>()
+            .HasQueryFilter(e => e.deletedat == null);
 
         // ============================================
         // FOREIGN KEY RELATIONSHIPS

@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Voies d'administration (orale, injectable, etc.)
 /// </summary>
 [Table("voie")]
-public class Voies : ITrackable
+public class Voies : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -29,4 +29,5 @@ public class Voies : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

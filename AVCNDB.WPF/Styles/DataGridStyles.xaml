@@ -22,7 +22,7 @@
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Background" Value="{DynamicResource MaterialDesignPaper}"/>
         <Setter Property="RowBackground" Value="{DynamicResource MaterialDesignPaper}"/>
-        <Setter Property="AlternatingRowBackground" Value="{DynamicResource MaterialDesignCardBackground}"/>
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource MaterialDesignPaper}"/>
         <Setter Property="HeadersVisibility" Value="Column"/>
         <Setter Property="FontFamily" Value="Segoe UI"/>
         <Setter Property="FontSize" Value="12"/>
@@ -38,7 +38,7 @@
         <Setter Property="RowStyle" Value="{DynamicResource DataGridRowStyle}"/>
         <Setter Property="CellStyle" Value="{DynamicResource DataGridCellStyle}"/>
     </Style>
-    
+
     <!-- Style DataGrid éditable — Dénominations/Prix/Monographie (Category B) -->
     <Style x:Key="EditableDataGridStyle" TargetType="DataGrid" BasedOn="{StaticResource ModernDataGridStyle}">
         <Setter Property="IsReadOnly" Value="False"/>
@@ -52,14 +52,14 @@
     
     <!-- Style des colonnes d'en-tête -->
     <Style x:Key="DataGridColumnHeaderStyle" TargetType="DataGridColumnHeader">
-        <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
-        <Setter Property="Foreground" Value="{StaticResource TextOnPrimaryBrush}"/>
+        <Setter Property="Background" Value="{DynamicResource PrimaryBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextOnPrimaryBrush}"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="Height" Value="44"/>
         <Setter Property="Padding" Value="12,0"/>
         <Setter Property="BorderThickness" Value="0,0,1,0"/>
-        <Setter Property="BorderBrush" Value="{StaticResource PrimaryDarkBrush}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource PrimaryDarkBrush}"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="Template">
@@ -79,7 +79,7 @@
                             <Path x:Name="SortArrow"
                                   Grid.Column="1"
                                   Visibility="Collapsed"
-                                  Fill="{StaticResource TextOnPrimaryBrush}"
+                                  Fill="{DynamicResource TextOnPrimaryBrush}"
                                   Margin="8,0,0,0"
                                   VerticalAlignment="Center"/>
                         </Grid>
@@ -143,17 +143,17 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="DGR_Border" Property="Background" Value="#0A000000"/>
+                            <Setter TargetName="DGR_Border" Property="Background" Value="#14005A9E"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="DGR_Border" Property="Background" Value="{DynamicResource MaterialDesignDivider}"/>
+                            <Setter TargetName="DGR_Border" Property="Background" Value="#0A000000"/>
                         </Trigger>
                         <MultiTrigger>
                             <MultiTrigger.Conditions>
                                 <Condition Property="IsSelected" Value="True"/>
                                 <Condition Property="IsMouseOver" Value="True"/>
                             </MultiTrigger.Conditions>
-                            <Setter TargetName="DGR_Border" Property="Background" Value="#0A000000"/>
+                            <Setter TargetName="DGR_Border" Property="Background" Value="#1A005A9E"/>
                         </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -163,7 +163,7 @@
     
     <!-- Style des cellules -->
     <Style x:Key="DataGridCellStyle" TargetType="DataGridCell">
-        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Padding" Value="8,0"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="Template">
             <Setter.Value>

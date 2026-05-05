@@ -1,6 +1,7 @@
 using System.Data;
 using System.IO;
 using ClosedXML.Excel;
+using FuzzySharp;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Models;
@@ -36,14 +37,28 @@ public class EditionFileService : IEditionFileService
 
         try
         {
-            var rows = await Task.Run(() =>
+            var (rows, warnings, wasTransposed) = await Task.Run(() =>
             {
                 using var workbook = new XLWorkbook(filePath);
                 var worksheet = workbook.Worksheets.First();
+                var fieldAliases = GetFieldAliases(sourceType);
 
+                // 1. Auto-detect orientation (horizontal vs vertical)
+                bool transposed = DetectOrientation(worksheet, fieldAliases);
+
+                // 2. If vertical, transpose to horizontal view
+                if (transposed)
+                {
+                    worksheet = TransposeWorksheet(workbook, worksheet);
+                    Log.Information("Orientation verticale détectée — transposition automatique du fichier {FilePath}", filePath);
+                }
+
+                // 3. Build column map with fuzzy matching
                 var headerRow = worksheet.Row(1);
-                var columnMap = BuildColumnMap(headerRow, sourceType);
+                var headerWarnings = new List<HeaderWarning>();
+                var columnMap = BuildColumnMapFuzzy(headerRow, fieldAliases, headerWarnings);
 
+                // 4. Parse data rows
                 var editionRows = new List<EditionRow>();
                 var dataRows = worksheet.RowsUsed().Skip(1); // skip header
                 int lineNumber = 1;
@@ -55,7 +70,7 @@ public class EditionFileService : IEditionFileService
                     lineNumber++;
                 }
 
-                return editionRows;
+                return (editionRows, headerWarnings, transposed);
             });
 
             // Tenter de relier à des Medics existants par PctCode
@@ -64,6 +79,8 @@ public class EditionFileService : IEditionFileService
             result.Success = true;
             result.Rows = rows;
             result.TotalRowsRead = rows.Count;
+            result.WasTransposed = wasTransposed;
+            result.HeaderWarnings = warnings;
         }
         catch (Exception ex)
         {
@@ -106,40 +123,65 @@ public class EditionFileService : IEditionFileService
     /// <inheritdoc />
     public async Task ApproveRowAsync(EditionRow row)
     {
-        // Ajouter les valeurs inconnues aux tables de bibliothèque
-        foreach (var fieldName in row.UnknownFields)
-        {
-            var value = GetFieldValue(row, fieldName);
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                await AddToLibraryAsync(fieldName, value);
-            }
-        }
-
-        // Insérer ou mettre à jour le Medic
         using var context = await _contextFactory.CreateDbContextAsync();
+        using var transaction = await context.Database.BeginTransactionAsync();
 
-        if (row.OriginalMedicRecordId.HasValue)
+        try
         {
-            var medic = await context.Medics.FindAsync(row.OriginalMedicRecordId.Value);
-            if (medic != null)
+            // Ajouter les valeurs inconnues aux tables de bibliothèque
+            foreach (var fieldName in row.UnknownFields)
             {
-                UpdateMedicFromRow(medic, row);
-                context.Medics.Update(medic);
+                var value = GetFieldValue(row, fieldName);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    await AddToLibraryAsync(fieldName, value);
+                }
             }
+
+            if (row.OriginalMedicRecordId.HasValue)
+            {
+                var medic = await context.Medics.FindAsync(row.OriginalMedicRecordId.Value);
+                if (medic != null)
+                {
+                    UpdateMedicFromRow(medic, row);
+                    context.Medics.Update(medic);
+                }
+            }
+            else
+            {
+                // Vérifier les doublons avant insertion
+                var itemName = row.ItemName?.Trim();
+                var dci1 = row.Dci1?.Trim();
+                if (!string.IsNullOrWhiteSpace(itemName))
+                {
+                    var exists = await context.Medics.AnyAsync(m =>
+                        m.itemname == itemName &&
+                        (string.IsNullOrEmpty(dci1) || m.dci1 == dci1));
+                    if (exists)
+                        throw new InvalidOperationException(
+                            $"Un médicament '{itemName}' (DCI: {dci1 ?? "N/A"}) existe déjà.");
+                }
+
+                var newMedic = MapEditionRowToMedic(row);
+                context.Medics.Add(newMedic);
+            }
+
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            Log.Information("Ligne approuvée: {ItemName} (ID original: {OriginalId})",
+                row.ItemName, row.OriginalMedicRecordId);
+
+            row.UnknownFields.Clear();
+            row.NotifyUnknownFieldsChanged();
+            row.ActionFlag = ActionFlag.Affecte;
+            row.RowStatus = RowStatus.Modified;
         }
-        else
+        catch
         {
-            var newMedic = MapEditionRowToMedic(row);
-            context.Medics.Add(newMedic);
+            await transaction.RollbackAsync();
+            throw;
         }
-
-        await context.SaveChangesAsync();
-
-        row.UnknownFields.Clear();
-        row.NotifyUnknownFieldsChanged();
-        row.ActionFlag = ActionFlag.Affecte;
-        row.RowStatus = RowStatus.Modified;
     }
 
     /// <inheritdoc />
@@ -147,6 +189,7 @@ public class EditionFileService : IEditionFileService
     {
         await Task.CompletedTask;
         row.ActionFlag = ActionFlag.Desaffecte;
+        Log.Information("Ligne rejetée: {ItemName}", row.ItemName);
         row.UnknownFields.Clear();
         row.NotifyUnknownFieldsChanged();
     }
@@ -170,69 +213,276 @@ public class EditionFileService : IEditionFileService
     // ============================================
 
     /// <summary>
-    /// Construit le mapping colonnes Excel → champs EditionRow selon le type de source
+    /// Construit le mapping colonnes Excel → champs EditionRow avec correspondance floue (fuzzy).
+    /// - Exact match (case-insensitive) → direct mapping, pas d'avertissement
+    /// - Fuzzy score ≥ 75 → auto-corrigé + avertissement FuzzyCorrected
+    /// - En dessous → colonne ignorée + avertissement Unrecognized
     /// </summary>
-    private static Dictionary<int, string> BuildColumnMap(IXLRow headerRow, EditionSourceType sourceType)
+    private static Dictionary<int, string> BuildColumnMapFuzzy(
+        IXLRow headerRow,
+        Dictionary<string, string> fieldAliases,
+        List<HeaderWarning> warnings)
     {
+        const int FuzzyHeaderThreshold = 75;
         var map = new Dictionary<int, string>();
         var lastCol = headerRow.LastCellUsed()?.Address.ColumnNumber ?? 0;
-
-        // Mapping flexible: reconnaît les noms français et anglais
-        var fieldAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Code PCT
-            { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "pctcode", "PctCode" },
-            { "Code de la PCT", "PctCode" }, { "CodePCT", "PctCode" },
-            
-            // Dénomination
-            { "Dénomination", "ItemName" }, { "Denomination", "ItemName" }, { "itemname", "ItemName" },
-            { "Dénomination de base", "ItemName" }, { "Nom", "ItemName" },
-            
-            // Désignation (shortname)
-            { "Désignation", "ShortName" }, { "Designation", "ShortName" }, { "shortname", "ShortName" },
-            
-            // DCI
-            { "D.C.I", "Dci1" }, { "DCI", "Dci1" }, { "dci1", "Dci1" },
-            { "D.C.J-Association", "DciAssociation" }, { "D.C.J Association", "DciAssociation" },
-            { "DCI-Association", "DciAssociation" }, { "DCI-association", "DciAssociation" },
-            { "dci", "DciAssociation" }, { "Association", "DciAssociation" },
-            
-            // Forme
-            { "Forme", "Forme" }, { "forme", "Forme" },
-            
-            // Tableau
-            { "Tab.", "Tableau" }, { "Tab", "Tableau" }, { "tableau", "Tableau" },
-            
-            // VEIC
-            { "VEiC", "Veic" }, { "VEIC", "Veic" }, { "veic", "Veic" },
-            { "Catégorie VEIC", "Veic" },
-            
-            // Labo
-            { "Labo.", "Labo" }, { "Labo", "Labo" }, { "labo", "Labo" }, { "Laboratoire", "Labo" },
-            
-            // Prix
-            { "Prix-Réf", "RefPrice" }, { "Prix Réf", "RefPrice" }, { "Prix de référence", "RefPrice" },
-            { "refprice", "RefPrice" }, { "PrixRef", "RefPrice" },
-            { "Prix", "Price" }, { "prix", "Price" }, { "Prix de vente public", "Price" },
-            { "Remb.", "IsRemboursable" }, { "Remb", "IsRemboursable" },
-            { "A.P.", "IsAp" }, { "A.P", "IsAp" }, { "Accord préalable", "IsAp" },
-            
-            // Spécialité / Familles
-            { "Spécialité", "Specialite" }, { "specialite", "Specialite" },
-            { "Famille", "Fam1" }, { "fam1", "Fam1" },
-            { "Voie", "Voie" }, { "voie", "Voie" },
-        };
+        var aliasKeys = fieldAliases.Keys.ToList();
 
         for (int col = 1; col <= lastCol; col++)
         {
             var header = headerRow.Cell(col).GetString().Trim();
+            if (string.IsNullOrWhiteSpace(header))
+                continue;
+
+            // 1. Exact match (case-insensitive)
             if (fieldAliases.TryGetValue(header, out var fieldName))
             {
                 map[col] = fieldName;
+                continue;
+            }
+
+            // 2. Fuzzy match against all known aliases
+            int bestScore = 0;
+            string? bestAlias = null;
+
+            foreach (var alias in aliasKeys)
+            {
+                int score = Fuzz.TokenSortRatio(header, alias);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestAlias = alias;
+                }
+            }
+
+            if (bestScore >= FuzzyHeaderThreshold && bestAlias != null)
+            {
+                // Auto-correct typo
+                var mappedField = fieldAliases[bestAlias];
+                map[col] = mappedField;
+                warnings.Add(new HeaderWarning
+                {
+                    Type = HeaderWarning.WarningType.FuzzyCorrected,
+                    OriginalHeader = header,
+                    CorrectedTo = bestAlias,
+                    MappedField = mappedField,
+                    FuzzyScore = bestScore
+                });
+                Log.Warning("En-tête corrigé par fuzzy: '{Original}' → '{Corrected}' (champ: {Field}, score: {Score})",
+                    header, bestAlias, mappedField, bestScore);
+            }
+            else
+            {
+                // Unrecognized column
+                warnings.Add(new HeaderWarning
+                {
+                    Type = HeaderWarning.WarningType.Unrecognized,
+                    OriginalHeader = header,
+                    FuzzyScore = bestScore
+                });
+                Log.Warning("En-tête non reconnu ignoré: '{Header}' (meilleur score: {Score})", header, bestScore);
             }
         }
 
         return map;
+    }
+
+    // ── Orientation Detection ──
+
+    /// <summary>
+    /// Détecte si les données sont en orientation horizontale (normal) ou verticale (transposée).
+    /// Compare combien d'en-têtes connus on trouve en ligne 1 (horizontal) vs colonne A (vertical).
+    /// </summary>
+    private static bool DetectOrientation(IXLWorksheet ws, Dictionary<string, string> fieldAliases)
+    {
+        const int FuzzyOrientationThreshold = 70;
+        int maxCheck = 20; // check first 20 cells in each direction
+
+        // Count matches in Row 1 (horizontal — normal)
+        int horizontalMatches = 0;
+        int lastColRow1 = Math.Min(ws.Row(1).LastCellUsed()?.Address.ColumnNumber ?? 0, maxCheck);
+        for (int col = 1; col <= lastColRow1; col++)
+        {
+            var text = ws.Row(1).Cell(col).GetString().Trim();
+            if (!string.IsNullOrWhiteSpace(text) && IsKnownHeader(text, fieldAliases, FuzzyOrientationThreshold))
+                horizontalMatches++;
+        }
+
+        // Count matches in Column A (vertical — transposed)
+        int verticalMatches = 0;
+        int lastRowColA = Math.Min(ws.Column(1).LastCellUsed()?.Address.RowNumber ?? 0, maxCheck);
+        for (int row = 1; row <= lastRowColA; row++)
+        {
+            var text = ws.Column(1).Cell(row).GetString().Trim();
+            if (!string.IsNullOrWhiteSpace(text) && IsKnownHeader(text, fieldAliases, FuzzyOrientationThreshold))
+                verticalMatches++;
+        }
+
+        // Vertical only if clearly more headers found vertically and very few horizontally
+        return verticalMatches > horizontalMatches && verticalMatches >= 3 && horizontalMatches <= 1;
+    }
+
+    /// <summary>
+    /// Checks if a text matches any known header alias (exact or fuzzy).
+    /// </summary>
+    private static bool IsKnownHeader(string text, Dictionary<string, string> fieldAliases, int threshold)
+    {
+        if (fieldAliases.ContainsKey(text))
+            return true;
+
+        foreach (var alias in fieldAliases.Keys)
+        {
+            if (Fuzz.TokenSortRatio(text, alias) >= threshold)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Transpose une feuille verticale (headers en colonne A, données en colonnes B, C, ...)
+    /// vers une feuille horizontale standard.
+    /// </summary>
+    private static IXLWorksheet TransposeWorksheet(XLWorkbook workbook, IXLWorksheet source)
+    {
+        var transposed = workbook.AddWorksheet("__transposed__");
+
+        int lastRow = source.LastRowUsed()?.RowNumber() ?? 0;
+        int lastCol = source.LastColumnUsed()?.ColumnNumber() ?? 0;
+
+        for (int r = 1; r <= lastRow; r++)
+        {
+            for (int c = 1; c <= lastCol; c++)
+            {
+                var value = source.Cell(r, c).Value;
+                transposed.Cell(c, r).Value = value;
+            }
+        }
+
+        return transposed;
+    }
+
+    /// <summary>
+    /// Retourne le dictionnaire d'alias colonnes → champs pour le type de source donné.
+    /// OrdinalIgnoreCase — ne pas ajouter d'entrées qui ne diffèrent que par la casse.
+    /// </summary>
+    private static Dictionary<string, string> GetFieldAliases(EditionSourceType sourceType)
+    {
+        return sourceType switch
+        {
+            // ── CNAM : fichier nomenclature officiel (tarification nationale) ──
+            EditionSourceType.ExcelCNAM => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "CodePCT", "PctCode" },
+                { "Dénomination", "ItemName" }, { "Denomination", "ItemName" },
+                { "D.C.I", "Dci1" }, { "DCI", "Dci1" },
+                { "D.C.J-Association", "DciAssociation" }, { "D.C.J Association", "DciAssociation" },
+                { "DCI-Association", "DciAssociation" },
+                { "Forme", "Forme" },
+                { "Voie", "Voie" }, { "Voie d'administration", "Voie" },
+                { "Tab.", "Tableau" }, { "Tab", "Tableau" },
+                { "VEiC", "Veic" }, { "Catégorie VEIC", "Veic" },
+                { "Labo.", "Labo" }, { "Labo", "Labo" }, { "Laboratoire", "Labo" },
+                { "Famille", "Fam1" }, { "Fam", "Fam1" },
+                { "Spécialité", "Specialite" }, { "Specialite", "Specialite" }, { "Spécialite", "Specialite" },
+                { "Prix-Réf", "RefPrice" }, { "Prix Réf", "RefPrice" }, { "Prix de référence", "RefPrice" },
+                { "Prix", "Price" }, { "Prix de vente public", "Price" },
+                { "Remb.", "IsRemboursable" }, { "Remb", "IsRemboursable" },
+                { "A.P.", "IsAp" }, { "A.P", "IsAp" },
+            },
+
+            // ── PCT basique : extrait simple de la pharmacopée ──
+            EditionSourceType.ExcelPCT => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "CodePCT", "PctCode" },
+                { "Dénomination", "ItemName" }, { "Denomination", "ItemName" }, { "Nom", "ItemName" },
+                { "D.C.I", "Dci1" }, { "DCI", "Dci1" },
+                { "Forme", "Forme" },
+                { "Voie", "Voie" }, { "Voie d'administration", "Voie" },
+                { "Labo.", "Labo" }, { "Labo", "Labo" }, { "Laboratoire", "Labo" },
+                { "Famille", "Fam1" }, { "Fam", "Fam1" },
+                { "Spécialité", "Specialite" }, { "Specialite", "Specialite" }, { "Spécialite", "Specialite" },
+                { "Prix", "Price" },
+            },
+
+            // ── PCT Complet : extrait exhaustif (tous les champs) ──
+            EditionSourceType.ExcelPCTComplete => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "CodePCT", "PctCode" },
+                { "Dénomination", "ItemName" }, { "Denomination", "ItemName" },
+                { "Désignation", "ShortName" }, { "Designation", "ShortName" },
+                { "D.C.I", "Dci1" }, { "DCI", "Dci1" },
+                { "D.C.J-Association", "DciAssociation" }, { "D.C.J Association", "DciAssociation" },
+                { "DCI-Association", "DciAssociation" }, { "Association", "DciAssociation" },
+                { "Forme", "Forme" },
+                { "Voie", "Voie" },
+                { "Tab.", "Tableau" }, { "Tab", "Tableau" },
+                { "VEiC", "Veic" }, { "Catégorie VEIC", "Veic" },
+                { "Labo.", "Labo" }, { "Labo", "Labo" }, { "Laboratoire", "Labo" },
+                { "Spécialité", "Specialite" },
+                { "Famille", "Fam1" },
+                { "Prix-Réf", "RefPrice" }, { "Prix Réf", "RefPrice" }, { "Prix de référence", "RefPrice" },
+                { "Prix", "Price" }, { "Prix de vente public", "Price" },
+                { "Remb.", "IsRemboursable" }, { "Remb", "IsRemboursable" },
+                { "A.P.", "IsAp" }, { "A.P", "IsAp" }, { "Accord préalable", "IsAp" },
+            },
+
+            // ── Catalogue Labo : liste produits d'un laboratoire ──
+            EditionSourceType.CatalogueLabo => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code", "PctCode" }, { "Réf", "PctCode" }, { "Référence", "PctCode" },
+                { "Produit", "ItemName" }, { "Nom du produit", "ItemName" },
+                { "Nom", "ItemName" }, { "Dénomination", "ItemName" },
+                { "DCI", "Dci1" }, { "D.C.I", "Dci1" }, { "Molécule", "Dci1" },
+                { "Forme", "Forme" }, { "Forme galénique", "Forme" },
+                { "Dosage", "ShortName" }, { "Conditionnement", "ShortName" },
+                { "Laboratoire", "Labo" }, { "Labo", "Labo" }, { "Fabricant", "Labo" },
+                { "Prix", "Price" }, { "PU", "Price" }, { "Prix unitaire", "Price" },
+                { "Voie", "Voie" }, { "Voie d'administration", "Voie" },
+                { "Famille", "Fam1" }, { "Fam", "Fam1" },
+                { "Spécialité", "Specialite" }, { "Specialite", "Specialite" }, { "Spécialite", "Specialite" },
+            },
+
+            // ── Liste Pharmacie : stock/inventaire officine ──
+            EditionSourceType.ListePharmacie => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code", "PctCode" }, { "Code PCT", "PctCode" }, { "Code barre", "PctCode" },
+                { "Désignation", "ItemName" }, { "Designation", "ItemName" },
+                { "Produit", "ItemName" }, { "Nom", "ItemName" },
+                { "DCI", "Dci1" }, { "D.C.I", "Dci1" },
+                { "Forme", "Forme" },
+                { "Voie", "Voie" }, { "Voie d'administration", "Voie" },
+                { "Labo", "Labo" }, { "Laboratoire", "Labo" }, { "Fournisseur", "Labo" },
+                { "Famille", "Fam1" }, { "Fam", "Fam1" },
+                { "Spécialité", "Specialite" }, { "Specialite", "Specialite" }, { "Spécialite", "Specialite" },
+                { "Prix", "Price" }, { "PPA", "Price" }, { "Prix public", "Price" },
+                { "Prix-Réf", "RefPrice" }, { "Tarif de référence", "RefPrice" },
+            },
+
+            // ── ExcelSimple (défaut) : mapping flexible acceptant un maximum d'alias ──
+            _ => new(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "pctcode", "PctCode" },
+                { "Code de la PCT", "PctCode" }, { "CodePCT", "PctCode" },
+                { "Dénomination", "ItemName" }, { "Denomination", "ItemName" }, { "itemname", "ItemName" },
+                { "Dénomination de base", "ItemName" }, { "Nom", "ItemName" },
+                { "Désignation", "ShortName" }, { "Designation", "ShortName" }, { "shortname", "ShortName" },
+                { "D.C.I", "Dci1" }, { "DCI", "Dci1" }, { "dci1", "Dci1" },
+                { "D.C.J-Association", "DciAssociation" }, { "D.C.J Association", "DciAssociation" },
+                { "DCI-Association", "DciAssociation" }, { "Association", "DciAssociation" },
+                { "Forme", "Forme" },
+                { "Tab.", "Tableau" }, { "Tab", "Tableau" },
+                { "VEiC", "Veic" }, { "Catégorie VEIC", "Veic" },
+                { "Labo.", "Labo" }, { "Labo", "Labo" }, { "Laboratoire", "Labo" },
+                { "Prix-Réf", "RefPrice" }, { "Prix Réf", "RefPrice" }, { "Prix de référence", "RefPrice" },
+                { "refprice", "RefPrice" }, { "PrixRef", "RefPrice" },
+                { "Prix", "Price" }, { "Prix de vente public", "Price" },
+                { "Remb.", "IsRemboursable" }, { "Remb", "IsRemboursable" },
+                { "A.P.", "IsAp" }, { "A.P", "IsAp" }, { "Accord préalable", "IsAp" },
+                { "Spécialité", "Specialite" }, { "specialite", "Specialite" },
+                { "Famille", "Fam1" }, { "fam1", "Fam1" },
+                { "Voie", "Voie" },
+            },
+        };
     }
 
     /// <summary>
@@ -458,5 +708,67 @@ public class EditionFileService : IEditionFileService
             return (int)Math.Round(d);
         }
         return 0;
+    }
+
+    // ─── Similarity search ────────────────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<List<SimilarMedicResult>> SearchSimilarAsync(EditionRow row, int maxResults = 20)
+    {
+        using var context = await _contextFactory.CreateDbContextAsync();
+
+        // Load all active medics (name + dci for matching)
+        var medics = await context.Medics
+            .Where(m => m.isactive == 1)
+            .Select(m => new
+            {
+                m.recordid,
+                m.itemname,
+                m.dci1,
+                m.forme,
+                m.labo,
+                m.voie,
+                m.price
+            })
+            .ToListAsync();
+
+        var searchName = (row.ItemName ?? string.Empty).ToUpperInvariant();
+        var searchDci = (row.Dci1 ?? string.Empty).ToUpperInvariant();
+
+        var scored = new List<SimilarMedicResult>(medics.Count);
+
+        foreach (var m in medics)
+        {
+            var nameUpper = (m.itemname ?? string.Empty).ToUpperInvariant();
+            var dciUpper = (m.dci1 ?? string.Empty).ToUpperInvariant();
+
+            // Weighted score: 60% name + 40% DCI
+            var nameScore = string.IsNullOrEmpty(searchName) ? 0
+                : Fuzz.TokenSortRatio(searchName, nameUpper);
+            var dciScore = string.IsNullOrEmpty(searchDci) ? 0
+                : Fuzz.TokenSortRatio(searchDci, dciUpper);
+
+            var combined = (int)(nameScore * 0.6 + dciScore * 0.4);
+
+            if (combined >= 40) // Minimum relevance threshold
+            {
+                scored.Add(new SimilarMedicResult
+                {
+                    RecordId = m.recordid,
+                    ItemName = m.itemname ?? string.Empty,
+                    Dci = m.dci1 ?? string.Empty,
+                    Forme = m.forme ?? string.Empty,
+                    Labo = m.labo ?? string.Empty,
+                    Voie = m.voie ?? string.Empty,
+                    Price = m.price,
+                    Score = combined
+                });
+            }
+        }
+
+        return scored
+            .OrderByDescending(r => r.Score)
+            .Take(maxResults)
+            .ToList();
     }
 }

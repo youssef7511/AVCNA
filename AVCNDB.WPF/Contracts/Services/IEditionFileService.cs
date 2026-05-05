@@ -25,6 +25,27 @@ public class ImportResult
     public string? ErrorMessage { get; set; }
     public int TotalRowsRead { get; set; }
     public int SkippedRows { get; set; }
+    /// <summary>True si les données étaient en orientation verticale (transposées)</summary>
+    public bool WasTransposed { get; set; }
+    /// <summary>Avertissements sur les en-têtes de colonnes (typos corrigés, colonnes ignorées)</summary>
+    public List<HeaderWarning> HeaderWarnings { get; set; } = new();
+}
+
+/// <summary>
+/// Avertissement sur un en-tête de colonne lors de l'import
+/// </summary>
+public class HeaderWarning
+{
+    public enum WarningType { FuzzyCorrected, Unrecognized }
+    public WarningType Type { get; set; }
+    /// <summary>Nom original de l'en-tête dans le fichier Excel</summary>
+    public string OriginalHeader { get; set; } = string.Empty;
+    /// <summary>Nom corrigé (si fuzzy-matched), null si non reconnu</summary>
+    public string? CorrectedTo { get; set; }
+    /// <summary>Champ EditionRow mappé</summary>
+    public string? MappedField { get; set; }
+    /// <summary>Score de similarité FuzzySharp (0-100)</summary>
+    public int FuzzyScore { get; set; }
 }
 
 /// <summary>
@@ -74,4 +95,12 @@ public interface IEditionFileService
     /// </summary>
     /// <param name="session">Session à persister</param>
     Task SaveSessionAsync(EditionFileSession session);
+
+    /// <summary>
+    /// Recherche les médicaments similaires en base via FuzzySharp (par nom + DCI).
+    /// </summary>
+    /// <param name="row">Ligne source pour la recherche</param>
+    /// <param name="maxResults">Nombre maximum de résultats (défaut 20)</param>
+    /// <returns>Liste de résultats triés par score décroissant</returns>
+    Task<List<SimilarMedicResult>> SearchSimilarAsync(EditionRow row, int maxResults = 20);
 }

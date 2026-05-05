@@ -1,48 +1,43 @@
-﻿using System.Windows;
 using Microsoft.Win32;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Views;
 
 namespace AVCNDB.WPF.Services;
 
-/// <summary>
-/// Service de gestion des dialogues
-/// </summary>
 public class DialogService : IDialogService
 {
     public Task ShowInfoAsync(string title, string message)
     {
-        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        CustomMessageDialog.Show(title, message, MessageDialogType.Info);
         return Task.CompletedTask;
     }
 
     public Task ShowSuccessAsync(string title, string message)
     {
-        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
+        CustomMessageDialog.Show(title, message, MessageDialogType.Success);
         return Task.CompletedTask;
     }
 
     public Task ShowWarningAsync(string title, string message)
     {
-        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        CustomMessageDialog.Show(title, message, MessageDialogType.Warning);
         return Task.CompletedTask;
     }
 
     public Task ShowErrorAsync(string title, string message)
     {
-        MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        CustomMessageDialog.Show(title, message, MessageDialogType.Error);
         return Task.CompletedTask;
     }
 
     public Task<bool> ShowConfirmAsync(string title, string message)
     {
-        var result = MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question);
-        return Task.FromResult(result == MessageBoxResult.Yes);
+        var result = CustomMessageDialog.Show(title, message, MessageDialogType.Info, hasCancel: true);
+        return Task.FromResult(result);
     }
 
     public Task<string?> ShowInputAsync(string title, string message, string defaultValue = "")
     {
-        // Pour une implémentation plus avancée, utiliser un dialogue personnalisé
-        // Pour l'instant, retourner null (à implémenter avec un dialogue XAML)
         return Task.FromResult<string?>(null);
     }
 

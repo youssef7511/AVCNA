@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Laboratoires pharmaceutiques
 /// </summary>
 [Table("labos")]
-public class Labos : ITrackable
+public class Labos : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -26,4 +26,5 @@ public class Labos : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

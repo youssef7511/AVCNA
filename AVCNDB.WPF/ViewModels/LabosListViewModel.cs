@@ -139,6 +139,7 @@ public partial class LabosListViewModel : ViewModelBase
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Labos", SelectedLabo != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
+            await _dialogService.ShowSuccessAsync("Succès", "Laboratoire sauvegardé avec succès.");
         }, "Sauvegarde...");
     }
 

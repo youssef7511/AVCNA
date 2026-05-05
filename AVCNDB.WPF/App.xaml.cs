@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Windows;
 using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Services;
@@ -46,6 +47,7 @@ public partial class App : Application
             {
                 config.SetBasePath(AppContext.BaseDirectory);
                 config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+                config.AddJsonFile("secrets.json", optional: true, reloadOnChange: false);
             })
             .ConfigureServices((context, services) =>
             {
@@ -168,6 +170,9 @@ public partial class App : Application
         // ============================================
         // SERVICES
         // ============================================
+        services.AddSingleton<HttpClient>(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(60) });
+        services.AddTransient<IOpenRouterService, OpenRouterService>();
+
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IDialogService, DialogService>();
         services.AddSingleton<IThemeService, ThemeService>();
@@ -207,7 +212,8 @@ public partial class App : Application
         services.AddTransient<DatabaseViewModel>();
         services.AddTransient<LibraryShellViewModel>();
         services.AddTransient<ToolsViewModel>();
-        services.AddTransient<EditionFileViewModel>();
+        services.AddSingleton<EditionFileViewModel>();
+        services.AddTransient<SimilaritySearchViewModel>();
 
         // ============================================
         // VIEWS
@@ -235,6 +241,7 @@ public partial class App : Application
         services.AddTransient<DatabaseView>();
         services.AddTransient<LibraryView>();
         services.AddTransient<MovementsView>();
+        services.AddTransient<SimilaritySearchDialog>();
         services.AddTransient<ToolsView>();
     }
 
@@ -263,6 +270,10 @@ public partial class App : Application
         {
             Log.Error(ex, "Startup diagnostics failed");
         }
+
+        // Apply saved theme BEFORE the window paints, so dark mode users
+        // don't see a white flash before the palette is muted in-place.
+        Services.GetRequiredService<IThemeService>().Initialize();
 
         var mainWindow = Services.GetRequiredService<MainWindow>();
         mainWindow.Show();

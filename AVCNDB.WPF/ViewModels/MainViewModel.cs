@@ -45,6 +45,9 @@ public partial class MainViewModel : ViewModelBase
         _navigationService.NavigationChanged += OnNavigationChanged;
         _themeService.ThemeChanged += OnThemeChanged;
 
+        // Charger le thème enregistré et appliquer la palette aux brushes
+        _themeService.Initialize();
+
         // Naviguer vers la page d'accueil par défaut
         NavigateToHome();
         

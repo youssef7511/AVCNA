@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Formes pharmaceutiques (comprimé, gélule, sirop, etc.)
 /// </summary>
 [Table("formes")]
-public class Formes : ITrackable
+public class Formes : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -38,4 +38,5 @@ public class Formes : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

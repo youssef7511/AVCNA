@@ -8,7 +8,7 @@ namespace AVCNDB.WPF.Models;
 /// Contient toutes les informations d'un médicament
 /// </summary>
 [Table("medic")]
-public class Medic : ITrackable
+public class Medic : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

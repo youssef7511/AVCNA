@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Views;
 
@@ -181,7 +182,7 @@ public partial class MedicListViewModel : ViewModelBase
     partial void OnSearchTextChanged(string value)
     {
         CurrentPage = 1;
-        DebounceSearch(LoadDataAsync);
+        DebounceSearch(LoadDataAsync, 400);
     }
 
     partial void OnSelectedFamilyChanged(Families? value)
@@ -253,11 +254,26 @@ public partial class MedicListViewModel : ViewModelBase
         if (medic == null || medic.recordid == 0) return;
         try
         {
+            medic.itemname = MedicDenominationHelper.BuildDenomination(medic);
             await _repository.UpdateAsync(medic);
+
+            // Force the DataGrid to refresh this row's Dénomination cell
+            // (Medic is a POCO without INotifyPropertyChanged).
+            var idx = Medics.IndexOf(medic);
+            if (idx >= 0)
+            {
+                Medics[idx] = medic;
+            }
+
+            await _dialogService.ShowSuccessAsync(
+                "Modification enregistrée",
+                $"« {medic.itemname} » a été mis à jour avec succès.");
         }
-        catch
+        catch (Exception ex)
         {
-            // Silently ignore — user can retry or use the edit dialog
+            await _dialogService.ShowErrorAsync(
+                "Échec de la modification",
+                $"La modification du médicament n'a pas pu être enregistrée.\n\n{ex.Message}");
         }
     }
 
@@ -495,16 +511,22 @@ public partial class MedicListViewModel : ViewModelBase
             return;
         }
 
+        // Capture to locals before the async gap — SelectedMedic could change on the UI thread
+        var target = SelectedMedic;
+        var safeName = (target.itemname ?? target.basename ?? "medicament")
+            .Replace(" ", "_")
+            .Replace("/", "-");
+
         var filePath = _dialogService.ShowSaveFileDialog(
             "PDF Files|*.pdf",
-            $"Fiche_{SelectedMedic.itemname.Replace(" ", "_")}_{DateTime.Now:yyyyMMdd}",
+            $"Fiche_{safeName}_{DateTime.Now:yyyyMMdd}",
             "Exporter vers PDF");
 
         if (!string.IsNullOrEmpty(filePath))
         {
             await ExecuteAsync(async () =>
             {
-                await _pdfService.GenerateMedicReportAsync(SelectedMedic.recordid, filePath);
+                await _pdfService.GenerateMedicReportAsync(target.recordid, filePath);
                 await _dialogService.ShowSuccessAsync("Export réussi", $"Fiche exportée vers {filePath}");
             }, "Génération du PDF...");
         }

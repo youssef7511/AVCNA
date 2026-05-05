@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// DCI - Dénomination Commune Internationale (Substance Active)
 /// </summary>
 [Table("dci")]
-public class Dci : ITrackable
+public class Dci : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -29,4 +29,5 @@ public class Dci : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

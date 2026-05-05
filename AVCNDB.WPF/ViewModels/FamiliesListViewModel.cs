@@ -139,6 +139,7 @@ public partial class FamiliesListViewModel : ViewModelBase
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Families", SelectedFamily != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
+            await _dialogService.ShowSuccessAsync("Succès", "Famille sauvegardée avec succès.");
         }, "Sauvegarde...");
     }
 

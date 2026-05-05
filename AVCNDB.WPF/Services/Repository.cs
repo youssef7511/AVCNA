@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.DAL;
+using AVCNDB.WPF.Models;
+using Serilog;
 
 namespace AVCNDB.WPF.Services;
 
@@ -73,6 +75,7 @@ public class Repository<T> : IRepository<T> where T : class
         var entry = _context.Entry(entity);
         if (entry.State == EntityState.Detached)
         {
+            DetachConflictingTrackedInstance(entity);
             _dbSet.Attach(entity);
             entry.State = EntityState.Modified;
         }
@@ -81,8 +84,44 @@ public class Repository<T> : IRepository<T> where T : class
 
     public virtual async Task DeleteAsync(T entity)
     {
-        _dbSet.Remove(entity);
+        DetachConflictingTrackedInstance(entity);
+
+        if (entity is ISoftDeletable softDeletable)
+        {
+            softDeletable.deletedat = DateTime.Now;
+            _context.Entry(entity).State = EntityState.Modified;
+            Log.Information("Soft-delete {EntityType} (ID: {Id})", typeof(T).Name, GetEntityId(entity));
+        }
+        else
+        {
+            _dbSet.Remove(entity);
+            Log.Information("Hard-delete {EntityType} (ID: {Id})", typeof(T).Name, GetEntityId(entity));
+        }
         await _context.SaveChangesAsync();
+    }
+
+    private void DetachConflictingTrackedInstance(T entity)
+    {
+        var key = _context.Model.FindEntityType(typeof(T))?.FindPrimaryKey();
+        var keyProperty = key?.Properties.FirstOrDefault();
+        if (keyProperty == null) return;
+
+        var keyValue = typeof(T).GetProperty(keyProperty.Name)?.GetValue(entity);
+        if (keyValue == null) return;
+
+        var existing = _context.ChangeTracker.Entries<T>()
+            .FirstOrDefault(e =>
+                typeof(T).GetProperty(keyProperty.Name)?.GetValue(e.Entity)?.Equals(keyValue) == true);
+        if (existing != null && !ReferenceEquals(existing.Entity, entity))
+        {
+            existing.State = EntityState.Detached;
+        }
+    }
+
+    private static object? GetEntityId(T entity)
+    {
+        var prop = typeof(T).GetProperty("recordid");
+        return prop?.GetValue(entity);
     }
 
     public virtual async Task DeleteByIdAsync(int id)

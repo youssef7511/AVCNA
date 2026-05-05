@@ -129,8 +129,8 @@ public partial class PresentsListViewModel : ViewModelBase
                     var updated = await _syncService.RenamePresentInMedicsAsync(oldName, EditItemName);
                     if (updated > 0)
                     {
-                        await _dialogService.ShowInfoAsync("Synchronisation",
-                            $"Présentation renominée dans {updated} médicament(s).");
+                        await _dialogService.ShowSuccessAsync("Synchronisation",
+                            $"Présentation renommée dans {updated} médicament(s).");
                     }
                 }
             }
@@ -149,6 +149,7 @@ public partial class PresentsListViewModel : ViewModelBase
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Presents", SelectedPresent != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
+            await _dialogService.ShowSuccessAsync("Succès", "Présentation sauvegardée avec succès.");
         }, "Sauvegarde...");
     }
 

@@ -1,0 +1,9 @@
+-- V003: Ajout colonne deletedat aux tables de référence pour le soft-delete
+
+ALTER TABLE `dci` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `family` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `labos` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `formes` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `voie` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `specialites` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;
+ALTER TABLE `presents` ADD COLUMN `deletedat` DATETIME NULL DEFAULT NULL;

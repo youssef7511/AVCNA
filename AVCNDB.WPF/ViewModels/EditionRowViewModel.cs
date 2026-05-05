@@ -39,29 +39,136 @@ public partial class EditionRowViewModel : ObservableObject
         };
     }
 
-    // ─── Pass-through properties (for DataGrid column binding) ────────────
+    // ─── Dirty tracking ──────────────────────────────────────────────────
+
+    private bool _isModified;
+    public bool IsModified
+    {
+        get => _isModified;
+        private set { _isModified = value; OnPropertyChanged(); }
+    }
+
+    // ─── Read-only properties ────────────────────────────────────────────
 
     public int LineNumber        => Row.LineNumber;
     public string MedicId        => Row.MedicId;
-    public string PctCode        => Row.PctCode;
-    public string ItemName       => Row.ItemName;
-    public string ShortName      => Row.ShortName;
-    public string Dci1           => Row.Dci1;
-    public string Dci2           => Row.Dci2;
-    public string Dci3           => Row.Dci3;
-    public string Dci4           => Row.Dci4;
-    public string DciAssociation => Row.DciAssociation;
-    public string Forme          => Row.Forme;
-    public string Voie           => Row.Voie;
-    public string Tableau        => Row.Tableau;
-    public string Veic           => Row.Veic;
-    public string Labo           => Row.Labo;
-    public string Fam1           => Row.Fam1;
-    public string Fam2           => Row.Fam2;
-    public string Fam3           => Row.Fam3;
-    public string Specialite     => Row.Specialite;
-    public int RefPrice          => Row.RefPrice;
-    public int Price             => Row.Price;
+
+    // ─── Editable properties (for DataGrid inline editing) ───────────────
+
+    public string PctCode
+    {
+        get => Row.PctCode;
+        set { Row.PctCode = value; IsModified = true; }
+    }
+
+    public string ItemName
+    {
+        get => Row.ItemName;
+        set { Row.ItemName = value; IsModified = true; }
+    }
+
+    public string ShortName
+    {
+        get => Row.ShortName;
+        set { Row.ShortName = value; IsModified = true; }
+    }
+
+    public string Dci1
+    {
+        get => Row.Dci1;
+        set { Row.Dci1 = value; IsModified = true; }
+    }
+
+    public string Dci2
+    {
+        get => Row.Dci2;
+        set { Row.Dci2 = value; IsModified = true; }
+    }
+
+    public string Dci3
+    {
+        get => Row.Dci3;
+        set { Row.Dci3 = value; IsModified = true; }
+    }
+
+    public string Dci4
+    {
+        get => Row.Dci4;
+        set { Row.Dci4 = value; IsModified = true; }
+    }
+
+    public string DciAssociation
+    {
+        get => Row.DciAssociation;
+        set { Row.DciAssociation = value; IsModified = true; }
+    }
+
+    public string Forme
+    {
+        get => Row.Forme;
+        set { Row.Forme = value; IsModified = true; }
+    }
+
+    public string Voie
+    {
+        get => Row.Voie;
+        set { Row.Voie = value; IsModified = true; }
+    }
+
+    public string Tableau
+    {
+        get => Row.Tableau;
+        set { Row.Tableau = value; IsModified = true; }
+    }
+
+    public string Veic
+    {
+        get => Row.Veic;
+        set { Row.Veic = value; IsModified = true; }
+    }
+
+    public string Labo
+    {
+        get => Row.Labo;
+        set { Row.Labo = value; IsModified = true; }
+    }
+
+    public string Fam1
+    {
+        get => Row.Fam1;
+        set { Row.Fam1 = value; IsModified = true; }
+    }
+
+    public string Fam2
+    {
+        get => Row.Fam2;
+        set { Row.Fam2 = value; IsModified = true; }
+    }
+
+    public string Fam3
+    {
+        get => Row.Fam3;
+        set { Row.Fam3 = value; IsModified = true; }
+    }
+
+    public string Specialite
+    {
+        get => Row.Specialite;
+        set { Row.Specialite = value; IsModified = true; }
+    }
+
+    public int RefPrice
+    {
+        get => Row.RefPrice;
+        set { Row.RefPrice = value; IsModified = true; }
+    }
+
+    public int Price
+    {
+        get => Row.Price;
+        set { Row.Price = value; IsModified = true; }
+    }
+
     public int IsAp              => Row.IsAp;
     public int IsRemboursable    => Row.IsRemboursable;
 

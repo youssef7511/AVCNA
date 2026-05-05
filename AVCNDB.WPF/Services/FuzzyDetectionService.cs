@@ -3,22 +3,24 @@ using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Models;
 using FuzzySharp;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AVCNDB.WPF.Services;
 
 /// <summary>
 /// Service de détection de données inconnues via FuzzySharp (token-sort-ratio).
-/// Seuil >= 80 = connu, < 80 = inconnu.
+/// Seuil configurable via AppSettings:FuzzyThreshold (défaut: 80).
 /// </summary>
 public class FuzzyDetectionService : IUnknownDataDetectionService
 {
-    private const int KnownThreshold = 80;
+    private readonly int _knownThreshold;
 
     private readonly IDbContextFactory<AppDbContext> _contextFactory;
 
-    public FuzzyDetectionService(IDbContextFactory<AppDbContext> contextFactory)
+    public FuzzyDetectionService(IDbContextFactory<AppDbContext> contextFactory, IConfiguration configuration)
     {
         _contextFactory = contextFactory;
+        _knownThreshold = configuration.GetValue("AppSettings:FuzzyThreshold", 80);
     }
 
     /// <inheritdoc />
@@ -67,7 +69,7 @@ public class FuzzyDetectionService : IUnknownDataDetectionService
 
         result.Score = bestScore;
         result.BestMatch = bestMatch;
-        result.IsKnown = bestScore >= KnownThreshold;
+        result.IsKnown = bestScore >= _knownThreshold;
 
         return result;
     }

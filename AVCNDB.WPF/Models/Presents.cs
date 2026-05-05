@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Présentations (conditionnement: boîte de 20, flacon de 100ml, etc.)
 /// </summary>
 [Table("presents")]
-public class Presents : ITrackable
+public class Presents : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -29,4 +29,5 @@ public class Presents : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

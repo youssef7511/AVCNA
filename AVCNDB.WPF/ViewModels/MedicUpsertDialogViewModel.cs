@@ -1,16 +1,102 @@
+using System.Collections;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
-public partial class MedicUpsertDialogViewModel : ViewModelBase
+public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErrorInfo
 {
+    // ── INotifyDataErrorInfo plumbing ──
+    private readonly Dictionary<string, List<string>> _fieldErrors = new();
+    public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
+
+    public bool HasErrors => _fieldErrors.Count > 0;
+
+    public IEnumerable GetErrors(string? propertyName)
+    {
+        if (string.IsNullOrEmpty(propertyName)) return Array.Empty<string>();
+        return _fieldErrors.TryGetValue(propertyName, out var list) ? list : (IEnumerable)Array.Empty<string>();
+    }
+
+    /// <summary>Aggregated error messages for display in a single panel.</summary>
+    [ObservableProperty]
+    private ObservableCollection<string> _validationMessages = new();
+
+    private void SetError(string propertyName, string? error)
+    {
+        if (error == null)
+        {
+            if (_fieldErrors.Remove(propertyName))
+            {
+                ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
+                RebuildValidationMessages();
+            }
+        }
+        else
+        {
+            _fieldErrors[propertyName] = new List<string> { error };
+            ErrorsChanged?.Invoke(this, new DataErrorsChangedEventArgs(propertyName));
+            RebuildValidationMessages();
+        }
+        OnPropertyChanged(nameof(HasErrors));
+        SaveCommand.NotifyCanExecuteChanged();
+    }
+
+    private void RebuildValidationMessages()
+    {
+        ValidationMessages = new ObservableCollection<string>(
+            _fieldErrors.SelectMany(kv => kv.Value));
+    }
+
+    /// <summary>Run all field validations. Called before save and after Medic loads.</summary>
+    private void ValidateAll()
+    {
+        if (Medic == null) return;
+        SetError(nameof(Medic.itemname),  ValidationRules.Required(Medic.itemname, "Nom du médicament")
+                                       ?? ValidationRules.MaxLength(Medic.itemname, 150, "Nom du médicament"));
+        SetError(nameof(Medic.barcode),   ValidationRules.Barcode13(Medic.barcode));
+        SetError(nameof(Medic.pctcode),   ValidationRules.MaxLength(Medic.pctcode, 20, "Code PCT"));
+        SetError(nameof(Medic.amm),       ValidationRules.MaxLength(Medic.amm, 30, "N° AMM"));
+        SetError(nameof(Medic.dci1),      ValidationRules.Required(Medic.dci1, "DCI principal"));
+        SetError(nameof(Medic.price),     ValidationRules.NonNegative(Medic.price, "Prix Fab. HT"));
+        SetError(nameof(Medic.refprice),  ValidationRules.NonNegative(Medic.refprice, "Prix Hospitalier"));
+        SetError(nameof(Medic.pamount),   ValidationRules.NonNegative(Medic.pamount, "PPV"));
+        SetError(nameof(Medic.pctprice),  ValidationRules.NonNegative(Medic.pctprice, "Prix de Gros"));
+        SetError(nameof(Medic.netprice),  ValidationRules.NonNegative(Medic.netprice, "Prix Base Remb."));
+        SetError(nameof(Medic.timbrepct), ValidationRules.NonNegative(Medic.timbrepct, "Timbre"));
+        SetError(nameof(Medic.colisage),  ValidationRules.NonNegative(Medic.colisage, "Colisage"));
+        SetError(nameof(Medic.ictx),      ValidationRules.PercentRange(Medic.ictx));
+        // Cross-field
+        SetError("RefVsPpv",              ValidationRules.RefPriceNotAbovePpv(Medic.refprice, Medic.pamount));
+    }
+
+    partial void OnMedicChanged(Medic value)
+    {
+        ValidateAll();
+    }
+
+    partial void OnSelectedCompareDrugChanged(Medic? value)
+    {
+        CompareInteractions = new();
+        DeepAnalysisHasPendingResult = false;
+        if (value != null)
+            _ = LoadCompareInteractionsAsync(value);
+        RunDeepAnalysisCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsDeepAnalysisRunningChanged(bool value)
+    {
+        RunDeepAnalysisCommand.NotifyCanExecuteChanged();
+    }
+
     private readonly IRepository<Medic> _repository;
     private readonly IRepository<Families> _familyRepository;
     private readonly IRepository<Labos> _laboRepository;
@@ -19,8 +105,43 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
     private readonly IRepository<Presents> _presentRepository;
     private readonly IRepository<Voies> _voieRepository;
     private readonly IRepository<Catveic> _catveicRepository;
+    private readonly IRepository<Interact> _interactRepository;
+    private readonly IOpenRouterService _openRouterService;
     private readonly IDialogService _dialogService;
     private readonly MedicSyncService _syncService;
+    private CancellationTokenSource? _analysisCts;
+
+    // ── Dirty tracking ──
+    private string _originalMedicSnapshot = string.Empty;
+
+    /// <summary>
+    /// True when any field differs from the state captured at load time.
+    /// Used by Cancel and OnClosing to decide whether to show a discard warning.
+    /// </summary>
+    public bool HasUnsavedChanges =>
+        !SavedSuccessfully &&
+        !string.IsNullOrEmpty(_originalMedicSnapshot) &&
+        SnapFields(Medic) != _originalMedicSnapshot;
+
+    private void TakeSnapshot() =>
+        _originalMedicSnapshot = SnapFields(Medic);
+
+    /// <summary>All user-editable Medic fields joined into a single comparable string.</summary>
+    private static string SnapFields(Medic m) => string.Join("\x00",
+        m.itemname, m.basename, m.shortname, m.barcode, m.pctcode, m.amm,
+        m.dci1, m.dose1, m.u1, m.dci2, m.dose2, m.u2,
+        m.dci3, m.dose3, m.u3, m.dci4, m.dose4, m.u4,
+        m.fam1, m.fam2, m.fam3, m.family,
+        m.labo, m.specialite, m.veic,
+        m.forme, m.voie, m.present, m.colisage, m.ucol,
+        m.price, m.refprice, m.pamount, m.pctprice, m.netprice, m.timbrepct,
+        m.indication, m.mgarde, m.posology, m.formgroup,
+        m.ictx, m.tableau, m.pediatric, m.isap, m.isic, m.isotc);
+
+    public Task<bool> ConfirmDiscardAsync() =>
+        _dialogService.ShowConfirmAsync(
+            "Modifications non sauvegardées",
+            "Des modifications non sauvegardées seront perdues.\nFermer quand même sans enregistrer ?");
 
     [ObservableProperty]
     private bool _isEditMode;
@@ -56,6 +177,49 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
     [ObservableProperty]
     private string _posoConditions = string.Empty;
 
+    // ── Mode C: Interactions for this drug ──
+    [ObservableProperty]
+    private ObservableCollection<Interact> _medicInteractions = new();
+
+    // ── Mode A: Compare with another drug ──
+    [ObservableProperty]
+    private string _compareSearchText = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<Medic> _compareSearchResults = new();
+
+    [ObservableProperty]
+    private Medic? _selectedCompareDrug;
+
+    [ObservableProperty]
+    private ObservableCollection<Interact> _compareInteractions = new();
+
+    [ObservableProperty]
+    private bool _isCompareSearchRunning;
+
+    // ── Tier 3: Deep Analysis (OpenRouter) ──
+    [ObservableProperty]
+    private bool _isDeepAnalysisRunning;
+
+    [ObservableProperty]
+    private bool _deepAnalysisHasPendingResult;
+
+    [ObservableProperty]
+    private string _deepAnalysisLevel = string.Empty;
+
+    [ObservableProperty]
+    private string _deepAnalysisDescription = string.Empty;
+
+    [ObservableProperty]
+    private string _deepAnalysisMecanisme = string.Empty;
+
+    [ObservableProperty]
+    private string _deepAnalysisConduite = string.Empty;
+
+    /// <summary>Single-row collection for the Dénomination tab DataGrid (mirrors DenominationView columns).</summary>
+    [ObservableProperty]
+    private ObservableCollection<Medic> _denominationRow = new();
+
     // ── Lookup collections ──
     [ObservableProperty]
     private ObservableCollection<Families> _families = new();
@@ -90,6 +254,8 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
         IRepository<Presents> presentRepository,
         IRepository<Voies> voieRepository,
         IRepository<Catveic> catveicRepository,
+        IRepository<Interact> interactRepository,
+        IOpenRouterService openRouterService,
         IDialogService dialogService,
         MedicSyncService syncService)
     {
@@ -101,6 +267,8 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
         _presentRepository = presentRepository;
         _voieRepository = voieRepository;
         _catveicRepository = catveicRepository;
+        _interactRepository = interactRepository;
+        _openRouterService = openRouterService;
         _dialogService = dialogService;
         _syncService = syncService;
     }
@@ -118,6 +286,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
             IsEditMode = true;
             PageTitle = "Modifier le Médicament";
             await LoadMedicAsync(medicId.Value);
+            await LoadInteractionsAsync();
         }
         else
         {
@@ -126,6 +295,11 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
             Medic = new Medic { isactive = 1 };
         }
 
+        // Snapshot must be taken AFTER the medic is fully loaded so that
+        // HasUnsavedChanges only fires when the user actually edits something.
+        TakeSnapshot();
+
+        DenominationRow = new ObservableCollection<Medic> { Medic };
         RefreshComputedDenomination();
     }
 
@@ -168,38 +342,32 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
         }, "Chargement du médicament...");
     }
 
+    private async Task LoadInteractionsAsync()
+    {
+        var dcis = new[] { Medic.dci1, Medic.dci2, Medic.dci3, Medic.dci4 }
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (dcis.Count == 0) return;
+
+        var all = await _interactRepository.FindAsync(i =>
+            dcis.Contains(i.dci1) || dcis.Contains(i.dci2));
+
+        MedicInteractions = new ObservableCollection<Interact>(all);
+    }
+
     // ── Denomination builder ──
 
     [RelayCommand]
     private void UpdateDenomination()
     {
-        Medic.basename = BuildDenomination(Medic);
+        Medic.basename = MedicDenominationHelper.BuildDenomination(Medic);
         RefreshComputedDenomination();
     }
 
     public void RefreshComputedDenomination()
     {
-        ComputedDenomination = BuildDenomination(Medic);
-    }
-
-    private static string BuildDenomination(Medic m)
-    {
-        var parts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(m.dose1)) parts.Add(m.dose1.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u1)) parts.Add(m.u1.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose2)) parts.Add(m.dose2.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u2)) parts.Add(m.u2.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose3)) parts.Add(m.dose3.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u3)) parts.Add(m.u3.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose4)) parts.Add(m.dose4.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u4)) parts.Add(m.u4.Trim());
-        if (!string.IsNullOrWhiteSpace(m.forme)) parts.Add(m.forme.Trim());
-        if (!string.IsNullOrWhiteSpace(m.present)) parts.Add(m.present.Trim());
-        if (m.colisage > 0) parts.Add(m.colisage.ToString());
-        if (!string.IsNullOrWhiteSpace(m.ucol)) parts.Add(m.ucol.Trim());
-
-        return string.Join(" ", parts);
+        ComputedDenomination = MedicDenominationHelper.BuildDenomination(Medic);
     }
 
     // ── Posology builder ──
@@ -224,22 +392,22 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
 
     private bool Validate()
     {
-        HasError = false;
-        ErrorMessage = null;
-
-        if (string.IsNullOrWhiteSpace(Medic.itemname))
+        ValidateAll();
+        HasError = HasErrors;
+        if (HasErrors)
         {
-            ErrorMessage = "Le nom du médicament est obligatoire";
-            HasError = true;
+            ErrorMessage = string.Join(" • ", _fieldErrors.SelectMany(kv => kv.Value));
             return false;
         }
-
+        ErrorMessage = null;
         return true;
     }
 
+    private bool CanSave() => !HasErrors;
+
     // ── Save ──
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
         if (!Validate())
@@ -303,13 +471,11 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
     [RelayCommand]
     private async Task CancelAsync()
     {
-        var hasChanges = !string.IsNullOrEmpty(Medic.itemname);
-
-        if (hasChanges)
+        if (HasUnsavedChanges)
         {
             var confirm = await _dialogService.ShowConfirmAsync(
-                "Annuler les modifications",
-                "Voulez-vous vraiment annuler ? Les modifications non sauvegardées seront perdues.");
+                "Modifications non sauvegardées",
+                "Des modifications non sauvegardées seront perdues.\nAnnuler quand même ?");
 
             if (!confirm) return;
         }
@@ -322,6 +488,140 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase
     /// Parameter: true = saved, false = cancelled.
     /// </summary>
     public event Action<bool>? RequestClose;
+
+    // ── Mode A: Compare Drug Search ──
+
+    [RelayCommand]
+    private async Task SearchCompareDrugAsync()
+    {
+        var text = CompareSearchText.Trim();
+        if (string.IsNullOrEmpty(text)) return;
+
+        IsCompareSearchRunning = true;
+        try
+        {
+            var results = await _repository.FindAsync(m => m.itemname.Contains(text));
+            CompareSearchResults = new ObservableCollection<Medic>(results.Take(15));
+        }
+        finally
+        {
+            IsCompareSearchRunning = false;
+        }
+    }
+
+    private async Task LoadCompareInteractionsAsync(Medic compareDrug)
+    {
+        var myDcis = new[] { Medic.dci1, Medic.dci2, Medic.dci3, Medic.dci4 }
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Select(d => d!.Trim())
+            .ToList();
+
+        var theirDcis = new[] { compareDrug.dci1, compareDrug.dci2, compareDrug.dci3, compareDrug.dci4 }
+            .Where(d => !string.IsNullOrWhiteSpace(d))
+            .Select(d => d!.Trim())
+            .ToList();
+
+        if (myDcis.Count == 0 || theirDcis.Count == 0)
+        {
+            CompareInteractions = new();
+            return;
+        }
+
+        var results = await _interactRepository.FindAsync(i =>
+            (myDcis.Contains(i.dci1) && theirDcis.Contains(i.dci2)) ||
+            (myDcis.Contains(i.dci2) && theirDcis.Contains(i.dci1)));
+
+        CompareInteractions = new ObservableCollection<Interact>(results);
+    }
+
+    // ── Tier 3: Deep Analysis (OpenRouter) ──
+
+    [RelayCommand(CanExecute = nameof(CanRunDeepAnalysis))]
+    private async Task RunDeepAnalysisAsync()
+    {
+        if (SelectedCompareDrug == null || string.IsNullOrWhiteSpace(Medic?.dci1)) return;
+
+        _analysisCts?.Cancel();
+        _analysisCts = new CancellationTokenSource();
+
+        IsDeepAnalysisRunning = true;
+        DeepAnalysisHasPendingResult = false;
+
+        try
+        {
+            var analysis = await _openRouterService.AnalyzeInteractionAsync(
+                Medic.dci1.Trim(), SelectedCompareDrug.dci1.Trim(), _analysisCts.Token);
+
+            DeepAnalysisLevel       = analysis.Level;
+            DeepAnalysisDescription = analysis.Description;
+            DeepAnalysisMecanisme   = analysis.Mecanisme;
+            DeepAnalysisConduite    = analysis.Conduite;
+            DeepAnalysisHasPendingResult = true;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync("Analyse IA", $"Erreur OpenRouter : {ex.Message}");
+        }
+        finally
+        {
+            IsDeepAnalysisRunning = false;
+        }
+    }
+
+    private bool CanRunDeepAnalysis() =>
+        SelectedCompareDrug != null &&
+        !string.IsNullOrWhiteSpace(Medic?.dci1) &&
+        !IsDeepAnalysisRunning;
+
+    [RelayCommand]
+    private async Task ApproveAndSaveInteractionAsync()
+    {
+        if (!DeepAnalysisHasPendingResult || SelectedCompareDrug == null) return;
+
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Enregistrer l'interaction",
+            $"Sauvegarder l'interaction IA entre '{Medic.dci1}' et '{SelectedCompareDrug.dci1}' ?\n\nNiveau : {DeepAnalysisLevel}");
+
+        if (!confirmed) return;
+
+        try
+        {
+            var now = DateTime.Now;
+            var interact = new Interact
+            {
+                dci1        = Medic.dci1.Trim(),
+                dci2        = SelectedCompareDrug.dci1.Trim(),
+                level       = DeepAnalysisLevel,
+                description = DeepAnalysisDescription,
+                mecanisme   = DeepAnalysisMecanisme,
+                conduite    = DeepAnalysisConduite,
+                addedat     = now,
+                updatedat   = now
+            };
+
+            await _interactRepository.AddAsync(interact);
+            DeepAnalysisHasPendingResult = false;
+
+            // Refresh both grids to reflect the new entry
+            await LoadInteractionsAsync();
+            await LoadCompareInteractionsAsync(SelectedCompareDrug);
+
+            await _dialogService.ShowSuccessAsync("Succès", "Interaction enregistrée dans la base de données.");
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync("Erreur", ex.Message);
+        }
+    }
+
+    [RelayCommand]
+    private void DiscardDeepAnalysis()
+    {
+        _analysisCts?.Cancel();
+        DeepAnalysisHasPendingResult = false;
+        DeepAnalysisLevel = DeepAnalysisDescription = DeepAnalysisMecanisme = DeepAnalysisConduite = string.Empty;
+    }
 
     // INavigationAware — not used in dialog mode
     public override void OnNavigatedTo(object? parameter) { }

@@ -30,8 +30,8 @@
              MENU LATÉRAL (Navigation)
         ============================================ -->
         <Border x:Name="SidebarBorder"
-                Grid.Column="0" 
-                Background="{StaticResource PrimaryDarkBrush}"
+                Grid.Column="0"
+                Background="{StaticResource SidebarBackgroundBrush}"
                 MouseEnter="Sidebar_MouseEnter"
                 MouseLeave="Sidebar_MouseLeave">
             <Border.Style>
@@ -67,9 +67,9 @@
                                HorizontalAlignment="Center"
                                Margin="0,8,0,0"
                                Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
-                    <TextBlock Text="Base Médicamenteuse" 
-                               FontSize="11" 
-                               Foreground="#90CAF9"
+                    <TextBlock Text="Base Médicamenteuse"
+                               FontSize="11"
+                               Foreground="#8BB89A"
                                HorizontalAlignment="Center"
                                Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                 </StackPanel>
@@ -149,7 +149,7 @@
                             </StackPanel>
                         </Button>
 
-                        <Separator Background="#1565C0" Margin="16,8"/>
+                        <Separator Background="#30FFFFFF" Margin="16,8"/>
 
                         <!-- Paramètres -->
                         <Button Command="{Binding NavigateToSettingsCommand}" 
@@ -192,9 +192,9 @@
                 <!-- Bas du menu -->
                 <StackPanel Grid.Row="2" Margin="8,16">
                     <!-- Toggle thème -->
-                    <Button Command="{Binding ToggleThemeCommand}" 
+                    <Button Command="{Binding ToggleThemeCommand}"
                             Style="{StaticResource MaterialDesignFlatButton}"
-                            Foreground="White" 
+                            Foreground="White"
                             HorizontalContentAlignment="Left"
                             Height="48">
                         <StackPanel Orientation="Horizontal">
@@ -210,8 +210,8 @@
                                     </Style>
                                 </materialDesign:PackIcon.Style>
                             </materialDesign:PackIcon>
-                            <TextBlock Text="Thème" 
-                                       Margin="16,0,0,0" 
+                            <TextBlock Text="Thème"
+                                       Margin="16,0,0,0"
                                        VerticalAlignment="Center"
                                        Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                         </StackPanel>

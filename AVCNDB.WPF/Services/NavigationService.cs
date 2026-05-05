@@ -11,6 +11,7 @@ public class NavigationService : INavigationService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly Stack<(Type viewModelType, object? parameter)> _navigationStack = new();
+    private const int MaxStackDepth = 50;
     
     private object? _currentView;
     
@@ -39,6 +40,7 @@ public class NavigationService : INavigationService
         
         // Sauvegarde dans l'historique
         _navigationStack.Push((typeof(T), parameter));
+        TrimStack();
         
         // Initialiser le ViewModel si nécessaire
         if (viewModel is INavigationAware navigationAware)
@@ -58,7 +60,8 @@ public class NavigationService : INavigationService
             var viewModel = _serviceProvider.GetRequiredService(viewModelType);
             
             _navigationStack.Push((viewModelType, parameter));
-            
+            TrimStack();
+
             if (viewModel is INavigationAware navigationAware)
             {
                 navigationAware.OnNavigatedTo(parameter);
@@ -114,6 +117,16 @@ public class NavigationService : INavigationService
         var assembly = typeof(NavigationService).Assembly;
         var typeName = $"AVCNDB.WPF.ViewModels.{pageKey}ViewModel";
         return assembly.GetType(typeName);
+    }
+
+    private void TrimStack()
+    {
+        if (_navigationStack.Count <= MaxStackDepth) return;
+        var items = _navigationStack.ToArray();
+        _navigationStack.Clear();
+        // Keep only the most recent MaxStackDepth entries (ToArray reverses stack order)
+        for (int i = MaxStackDepth - 1; i >= 0; i--)
+            _navigationStack.Push(items[i]);
     }
 }
 

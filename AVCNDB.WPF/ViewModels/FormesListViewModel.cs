@@ -188,7 +188,7 @@ public partial class FormesListViewModel : ViewModelBase
                     var updated = await _syncService.RenameFormeInMedicsAsync(oldName, EditItemName);
                     if (updated > 0)
                     {
-                        await _dialogService.ShowInfoAsync("Synchronisation",
+                        await _dialogService.ShowSuccessAsync("Synchronisation",
                             $"Forme renommée dans {updated} médicament(s).");
                     }
                 }
@@ -211,6 +211,7 @@ public partial class FormesListViewModel : ViewModelBase
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Formes", SelectedForme != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
+            await _dialogService.ShowSuccessAsync("Succès", "Forme sauvegardée avec succès.");
         }, "Sauvegarde...");
     }
 

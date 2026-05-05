@@ -177,6 +177,91 @@ public class EditionFileServiceTests : IDisposable
         context.Dispose();
     }
 
+    [Fact]
+    public async Task ApproveRowAsync_AddsUnknownValuesToLibraryTables()
+    {
+        // Arrange — shared InMemory DB
+        var dbName = Guid.NewGuid().ToString();
+        var seedContext = TestDbContextFactory.CreateSeededContext(dbName);
+        seedContext.Dispose();
+
+        var factoryMock = new Mock<IDbContextFactory<AppDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => TestDbContextFactory.CreateInMemoryContext(dbName));
+
+        var service = new EditionFileService(factoryMock.Object, _detectionMock.Object, _excelMock.Object);
+
+        var row = new EditionRow
+        {
+            LineNumber = 1,
+            PctCode = "PCT_NEW_999",
+            ItemName = "FakeMed 500mg",
+            Dci1 = "Flurbiproflex",       // Unknown DCI
+            Labo = "BioNTech",             // Unknown Labo
+            Forme = "Comprimé",            // Known Forme (exists in seed)
+            Voie = "",                     // Empty = ignored
+            UnknownFields = { "Dci", "Labo" },
+            ActionFlag = ActionFlag.AjouterNew
+        };
+
+        // Act
+        await service.ApproveRowAsync(row);
+
+        // Assert — verify library tables
+        using var verifyContext = TestDbContextFactory.CreateInMemoryContext(dbName);
+
+        // DCI "Flurbiproflex" should be added
+        var dciExists = await verifyContext.Dcis.AnyAsync(d => d.itemname == "Flurbiproflex");
+        dciExists.Should().BeTrue("Flurbiproflex should be added to dcis table");
+
+        // Labo "BioNTech" should be added
+        var laboExists = await verifyContext.Labos.AnyAsync(l => l.itemname == "BioNTech");
+        laboExists.Should().BeTrue("BioNTech should be added to labos table");
+
+        // New Medic should be inserted (no OriginalMedicRecordId → insert)
+        var medicExists = await verifyContext.Medics.AnyAsync(m => m.pctcode == "PCT_NEW_999");
+        medicExists.Should().BeTrue("a new Medic should be inserted");
+
+        // Row state should be cleaned up
+        row.UnknownFields.Should().BeEmpty();
+        row.ActionFlag.Should().Be(ActionFlag.Affecte);
+        row.RowStatus.Should().Be(RowStatus.Modified);
+    }
+
+    [Fact]
+    public async Task ApproveRowAsync_DoesNotDuplicateExistingLibraryValues()
+    {
+        // Arrange — shared InMemory DB with seed data containing "Sanofi"
+        var dbName = Guid.NewGuid().ToString();
+        var seedContext = TestDbContextFactory.CreateSeededContext(dbName);
+        var initialLaboCount = await seedContext.Labos.CountAsync();
+        seedContext.Dispose();
+
+        var factoryMock = new Mock<IDbContextFactory<AppDbContext>>();
+        factoryMock.Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => TestDbContextFactory.CreateInMemoryContext(dbName));
+
+        var service = new EditionFileService(factoryMock.Object, _detectionMock.Object, _excelMock.Object);
+
+        var row = new EditionRow
+        {
+            LineNumber = 1,
+            PctCode = "PCT_DUP_001",
+            ItemName = "TestDrug",
+            Labo = "Sanofi",
+            UnknownFields = { "Labo" },
+            ActionFlag = ActionFlag.AjouterNew
+        };
+
+        // Act
+        await service.ApproveRowAsync(row);
+
+        // Assert — Sanofi should NOT be duplicated
+        using var verifyContext = TestDbContextFactory.CreateInMemoryContext(dbName);
+        var laboCount = await verifyContext.Labos.CountAsync();
+        laboCount.Should().Be(initialLaboCount, "existing values should not be duplicated");
+    }
+
     public void Dispose()
     {
         _context.Dispose();

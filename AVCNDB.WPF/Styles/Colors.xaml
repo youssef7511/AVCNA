@@ -1,133 +1,212 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    
+
     <!-- ============================================
-         PALETTE DE COULEURS PRINCIPALE
-         Thème médical/pharmaceutique professionnel
+         PALETTE « APOTHECARY LEDGER »
+         Inspirée de l'apothicaire moderne :
+         papier, encre, vert botanique, vermillon, ocre.
+         Les anciennes clés (PrimaryBrush, ErrorBrush…)
+         sont conservées et redirigées vers la nouvelle
+         palette pour que toute l'application en hérite
+         sans modifier les vues existantes.
     ============================================ -->
-    
-    <!-- Couleurs primaires - Bleu médical -->
-    <Color x:Key="PrimaryColor">#1976D2</Color>
-    <Color x:Key="PrimaryDarkColor">#0D47A1</Color>
-    <Color x:Key="PrimaryLightColor">#64B5F6</Color>
-    
-    <!-- Couleurs secondaires - Vert santé -->
-    <Color x:Key="SecondaryColor">#2E7D32</Color>
-    <Color x:Key="SecondaryDarkColor">#1B5E20</Color>
-    <Color x:Key="SecondaryLightColor">#81C784</Color>
-    
-    <!-- Couleurs d'accent -->
-    <Color x:Key="AccentColor">#FF5722</Color>
-    <Color x:Key="AccentLightColor">#FF8A65</Color>
-    
-    <!-- Couleurs de fond -->
-    <Color x:Key="BackgroundColor">#FAFAFA</Color>
-    <Color x:Key="SurfaceColor">#FFFFFF</Color>
-    <Color x:Key="CardBackgroundColor">#FFFFFF</Color>
-    
-    <!-- Couleurs de texte -->
-    <Color x:Key="TextPrimaryColor">#212121</Color>
-    <Color x:Key="TextSecondaryColor">#757575</Color>
-    <Color x:Key="TextOnPrimaryColor">#FFFFFF</Color>
-    <Color x:Key="TextOnSecondaryColor">#FFFFFF</Color>
-    
-    <!-- Couleurs de statut -->
-    <Color x:Key="SuccessColor">#4CAF50</Color>
-    <Color x:Key="WarningColor">#FFC107</Color>
-    <Color x:Key="ErrorColor">#F44336</Color>
-    <Color x:Key="InfoColor">#2196F3</Color>
-    
-    <!-- Couleurs de bordure -->
-    <Color x:Key="BorderColor">#E0E0E0</Color>
-    <Color x:Key="BorderLightColor">#F5F5F5</Color>
-    <Color x:Key="BorderDarkColor">#BDBDBD</Color>
-    
-    <!-- Couleurs spéciales médicaments -->
-    <Color x:Key="MedicGenericColor">#43A047</Color>
-    <Color x:Key="MedicBrandColor">#1E88E5</Color>
-    <Color x:Key="MedicPediatricColor">#AB47BC</Color>
-    <Color x:Key="MedicControlledColor">#E53935</Color>
-    
+
+    <!-- ── Couleurs sources ─────────────────────────── -->
+    <Color x:Key="PaperColor">#F4EFE6</Color>          <!-- fond page (parchemin) -->
+    <Color x:Key="BoneColor">#FBF8F2</Color>           <!-- surface carte -->
+    <Color x:Key="InkColor">#141312</Color>            <!-- texte primaire / traits -->
+    <Color x:Key="InkSoftColor">#5C544B</Color>        <!-- texte secondaire -->
+    <Color x:Key="InkMuteColor">#8A7F72</Color>        <!-- texte tertiaire / hint -->
+    <Color x:Key="HairlineColor">#1F1A14</Color>       <!-- bordures (avec opacité) -->
+
+    <Color x:Key="BotanicalColor">#1F3A2E</Color>      <!-- vert apothicaire (primaire) -->
+    <Color x:Key="BotanicalDarkColor">#142821</Color>
+    <Color x:Key="BotanicalLightColor">#E4ECE5</Color> <!-- fond doux primaire -->
+
+    <!-- Sidebar : couleur dédiée — reste sombre dans les deux thèmes -->
+    <Color x:Key="SidebarBgColor">#142821</Color>
+
+    <!-- Info surface : panneau d'information bleuté (clair) / bleu profond (sombre) -->
+    <Color x:Key="InfoSurfaceColor">#EBF0FB</Color>
+
+    <Color x:Key="VermillionColor">#C0362C</Color>     <!-- alertes critiques -->
+    <Color x:Key="VermillionDarkColor">#7E1E18</Color>
+    <Color x:Key="VermillionLightColor">#F4DAD6</Color>
+
+    <Color x:Key="OchreColor">#B5853A</Color>          <!-- accent / charts -->
+    <Color x:Key="OchreDarkColor">#7A5821</Color>
+    <Color x:Key="OchreLightColor">#F1E6D0</Color>
+
+    <Color x:Key="MossColor">#5A6B3B</Color>           <!-- succès, ton végétal -->
+    <Color x:Key="MossDarkColor">#3C4724</Color>
+    <Color x:Key="MossLightColor">#E5E9D9</Color>
+
+    <Color x:Key="IndigoColor">#2C3E66</Color>         <!-- info, encre bleue -->
+    <Color x:Key="IndigoLightColor">#DCE2EE</Color>
+
+    <!-- ============================================
+         CLÉS HISTORIQUES — REDIRIGÉES
+         (le reste de l'app continue de fonctionner)
+    ============================================ -->
+
+    <!-- Primaires : encre bleue → vert botanique -->
+    <Color x:Key="PrimaryColor">#1F3A2E</Color>
+    <Color x:Key="PrimaryDarkColor">#142821</Color>
+    <Color x:Key="PrimaryLightColor">#E4ECE5</Color>
+
+    <!-- Secondaires : vert santé → ocre (pour différencier des primaires) -->
+    <Color x:Key="SecondaryColor">#B5853A</Color>
+    <Color x:Key="SecondaryDarkColor">#7A5821</Color>
+    <Color x:Key="SecondaryLightColor">#F1E6D0</Color>
+
+    <!-- Accent : orange → vermillon -->
+    <Color x:Key="AccentColor">#C0362C</Color>
+    <Color x:Key="AccentLightColor">#F4DAD6</Color>
+
+    <!-- Fonds -->
+    <Color x:Key="BackgroundColor">#F4EFE6</Color>
+    <Color x:Key="SurfaceColor">#FBF8F2</Color>
+    <Color x:Key="CardBackgroundColor">#FBF8F2</Color>
+
+    <!-- Texte -->
+    <Color x:Key="TextPrimaryColor">#141312</Color>
+    <Color x:Key="TextSecondaryColor">#5C544B</Color>
+    <Color x:Key="TextOnPrimaryColor">#FBF8F2</Color>
+    <Color x:Key="TextOnSecondaryColor">#141312</Color>
+
+    <!-- Statuts -->
+    <Color x:Key="SuccessColor">#5A6B3B</Color>
+    <Color x:Key="WarningColor">#B5853A</Color>
+    <Color x:Key="ErrorColor">#C0362C</Color>
+    <Color x:Key="InfoColor">#2C3E66</Color>
+
+    <!-- Bordures -->
+    <Color x:Key="BorderColor">#D9CFBF</Color>
+    <Color x:Key="BorderLightColor">#EAE2D2</Color>
+    <Color x:Key="BorderDarkColor">#A99A85</Color>
+
+    <!-- Couleurs spéciales médicaments — ré-encrées dans la palette -->
+    <Color x:Key="MedicGenericColor">#5A6B3B</Color>
+    <Color x:Key="MedicBrandColor">#2C3E66</Color>
+    <Color x:Key="MedicPediatricColor">#7A5821</Color>
+    <Color x:Key="MedicControlledColor">#7E1E18</Color>
+
     <!-- ============================================
          BRUSHES
     ============================================ -->
-    
-    <!-- Brushes primaires -->
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource PrimaryColor}"/>
-    <SolidColorBrush x:Key="PrimaryDarkBrush" Color="{StaticResource PrimaryDarkColor}"/>
+
+    <!-- Brushes nouveaux (utilisables directement dans les nouvelles vues) -->
+    <SolidColorBrush x:Key="PaperBrush"          Color="{StaticResource PaperColor}"/>
+    <SolidColorBrush x:Key="BoneBrush"           Color="{StaticResource BoneColor}"/>
+    <SolidColorBrush x:Key="InkBrush"            Color="{StaticResource InkColor}"/>
+    <SolidColorBrush x:Key="InkSoftBrush"        Color="{StaticResource InkSoftColor}"/>
+    <SolidColorBrush x:Key="InkMuteBrush"        Color="{StaticResource InkMuteColor}"/>
+    <SolidColorBrush x:Key="HairlineBrush"       Color="{StaticResource HairlineColor}" Opacity="0.18"/>
+    <SolidColorBrush x:Key="HairlineStrongBrush" Color="{StaticResource HairlineColor}" Opacity="0.40"/>
+
+    <SolidColorBrush x:Key="BotanicalBrush"      Color="{StaticResource BotanicalColor}"/>
+    <SolidColorBrush x:Key="BotanicalDarkBrush"  Color="{StaticResource BotanicalDarkColor}"/>
+    <SolidColorBrush x:Key="BotanicalLightBrush" Color="{StaticResource BotanicalLightColor}"/>
+
+    <!-- Surface dédiée du sidebar : ne suit PAS l'inversion claire/sombre du palette de marque.
+         Reste sombre dans les deux thèmes (mutée par ThemeService en place). -->
+    <SolidColorBrush x:Key="SidebarBackgroundBrush" Color="{StaticResource SidebarBgColor}"/>
+
+    <!-- Surface info bleutée pour panneaux d'aperçu / résultats IA. -->
+    <SolidColorBrush x:Key="InfoSurfaceBrush" Color="{StaticResource InfoSurfaceColor}"/>
+
+    <SolidColorBrush x:Key="VermillionBrush"      Color="{StaticResource VermillionColor}"/>
+    <SolidColorBrush x:Key="VermillionDarkBrush"  Color="{StaticResource VermillionDarkColor}"/>
+    <SolidColorBrush x:Key="VermillionLightBrush" Color="{StaticResource VermillionLightColor}"/>
+
+    <SolidColorBrush x:Key="OchreBrush"      Color="{StaticResource OchreColor}"/>
+    <SolidColorBrush x:Key="OchreDarkBrush"  Color="{StaticResource OchreDarkColor}"/>
+    <SolidColorBrush x:Key="OchreLightBrush" Color="{StaticResource OchreLightColor}"/>
+
+    <SolidColorBrush x:Key="MossBrush"      Color="{StaticResource MossColor}"/>
+    <SolidColorBrush x:Key="MossDarkBrush"  Color="{StaticResource MossDarkColor}"/>
+    <SolidColorBrush x:Key="MossLightBrush" Color="{StaticResource MossLightColor}"/>
+
+    <SolidColorBrush x:Key="IndigoBrush"      Color="{StaticResource IndigoColor}"/>
+    <SolidColorBrush x:Key="IndigoLightBrush" Color="{StaticResource IndigoLightColor}"/>
+
+    <!-- Brushes historiques (redirigés) -->
+    <SolidColorBrush x:Key="PrimaryBrush"      Color="{StaticResource PrimaryColor}"/>
+    <SolidColorBrush x:Key="PrimaryDarkBrush"  Color="{StaticResource PrimaryDarkColor}"/>
     <SolidColorBrush x:Key="PrimaryLightBrush" Color="{StaticResource PrimaryLightColor}"/>
-    
-    <!-- Brushes secondaires -->
-    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource SecondaryColor}"/>
-    <SolidColorBrush x:Key="SecondaryDarkBrush" Color="{StaticResource SecondaryDarkColor}"/>
+
+    <SolidColorBrush x:Key="SecondaryBrush"      Color="{StaticResource SecondaryColor}"/>
+    <SolidColorBrush x:Key="SecondaryDarkBrush"  Color="{StaticResource SecondaryDarkColor}"/>
     <SolidColorBrush x:Key="SecondaryLightBrush" Color="{StaticResource SecondaryLightColor}"/>
-    
-    <!-- Brushes d'accent -->
-    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+
+    <SolidColorBrush x:Key="AccentBrush"      Color="{StaticResource AccentColor}"/>
     <SolidColorBrush x:Key="AccentLightBrush" Color="{StaticResource AccentLightColor}"/>
-    
-    <!-- Brushes de fond -->
-    <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
-    <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+
+    <SolidColorBrush x:Key="BackgroundBrush"     Color="{StaticResource BackgroundColor}"/>
+    <SolidColorBrush x:Key="SurfaceBrush"        Color="{StaticResource SurfaceColor}"/>
     <SolidColorBrush x:Key="CardBackgroundBrush" Color="{StaticResource CardBackgroundColor}"/>
-    
-    <!-- Brushes de texte -->
-    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
-    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
-    <SolidColorBrush x:Key="TextOnPrimaryBrush" Color="{StaticResource TextOnPrimaryColor}"/>
+
+    <SolidColorBrush x:Key="TextPrimaryBrush"     Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush"   Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TextOnPrimaryBrush"   Color="{StaticResource TextOnPrimaryColor}"/>
     <SolidColorBrush x:Key="TextOnSecondaryBrush" Color="{StaticResource TextOnSecondaryColor}"/>
-    
-    <!-- Brushes de statut -->
+
     <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
     <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
-    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource ErrorColor}"/>
-    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+    <SolidColorBrush x:Key="ErrorBrush"   Color="{StaticResource ErrorColor}"/>
+    <SolidColorBrush x:Key="InfoBrush"    Color="{StaticResource InfoColor}"/>
 
-    <!-- Variantes claires/sombres (utilisées dans plusieurs vues) -->
-    <Color x:Key="SuccessLightColor">#E8F5E9</Color>
-    <Color x:Key="SuccessDarkColor">#1B5E20</Color>
-    <Color x:Key="WarningLightColor">#FFF8E1</Color>
-    <Color x:Key="WarningDarkColor">#FF6F00</Color>
-    <Color x:Key="ErrorLightColor">#FFEBEE</Color>
-    <Color x:Key="ErrorDarkColor">#B71C1C</Color>
-    <Color x:Key="InfoLightColor">#E3F2FD</Color>
-    <Color x:Key="InfoDarkColor">#0D47A1</Color>
+    <!-- Variantes claires/sombres -->
+    <Color x:Key="SuccessLightColor">#E5E9D9</Color>
+    <Color x:Key="SuccessDarkColor">#3C4724</Color>
+    <Color x:Key="WarningLightColor">#F1E6D0</Color>
+    <Color x:Key="WarningDarkColor">#7A5821</Color>
+    <Color x:Key="ErrorLightColor">#F4DAD6</Color>
+    <Color x:Key="ErrorDarkColor">#7E1E18</Color>
+    <Color x:Key="InfoLightColor">#DCE2EE</Color>
+    <Color x:Key="InfoDarkColor">#1B264A</Color>
 
     <SolidColorBrush x:Key="SuccessLightBrush" Color="{StaticResource SuccessLightColor}"/>
-    <SolidColorBrush x:Key="SuccessDarkBrush" Color="{StaticResource SuccessDarkColor}"/>
+    <SolidColorBrush x:Key="SuccessDarkBrush"  Color="{StaticResource SuccessDarkColor}"/>
     <SolidColorBrush x:Key="WarningLightBrush" Color="{StaticResource WarningLightColor}"/>
-    <SolidColorBrush x:Key="WarningDarkBrush" Color="{StaticResource WarningDarkColor}"/>
-    <SolidColorBrush x:Key="ErrorLightBrush" Color="{StaticResource ErrorLightColor}"/>
-    <SolidColorBrush x:Key="ErrorDarkBrush" Color="{StaticResource ErrorDarkColor}"/>
-    <SolidColorBrush x:Key="InfoLightBrush" Color="{StaticResource InfoLightColor}"/>
-    <SolidColorBrush x:Key="InfoDarkBrush" Color="{StaticResource InfoDarkColor}"/>
-    
-    <!-- Brushes de bordure -->
-    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+    <SolidColorBrush x:Key="WarningDarkBrush"  Color="{StaticResource WarningDarkColor}"/>
+    <SolidColorBrush x:Key="ErrorLightBrush"   Color="{StaticResource ErrorLightColor}"/>
+    <SolidColorBrush x:Key="ErrorDarkBrush"    Color="{StaticResource ErrorDarkColor}"/>
+    <SolidColorBrush x:Key="InfoLightBrush"    Color="{StaticResource InfoLightColor}"/>
+    <SolidColorBrush x:Key="InfoDarkBrush"     Color="{StaticResource InfoDarkColor}"/>
+
+    <SolidColorBrush x:Key="BorderBrush"      Color="{StaticResource BorderColor}"/>
     <SolidColorBrush x:Key="BorderLightBrush" Color="{StaticResource BorderLightColor}"/>
-    <SolidColorBrush x:Key="BorderDarkBrush" Color="{StaticResource BorderDarkColor}"/>
-    
-    <!-- Brushes spéciaux médicaments -->
-    <SolidColorBrush x:Key="MedicGenericBrush" Color="{StaticResource MedicGenericColor}"/>
-    <SolidColorBrush x:Key="MedicBrandBrush" Color="{StaticResource MedicBrandColor}"/>
-    <SolidColorBrush x:Key="MedicPediatricBrush" Color="{StaticResource MedicPediatricColor}"/>
+    <SolidColorBrush x:Key="BorderDarkBrush"  Color="{StaticResource BorderDarkColor}"/>
+
+    <SolidColorBrush x:Key="MedicGenericBrush"    Color="{StaticResource MedicGenericColor}"/>
+    <SolidColorBrush x:Key="MedicBrandBrush"      Color="{StaticResource MedicBrandColor}"/>
+    <SolidColorBrush x:Key="MedicPediatricBrush"  Color="{StaticResource MedicPediatricColor}"/>
     <SolidColorBrush x:Key="MedicControlledBrush" Color="{StaticResource MedicControlledColor}"/>
-    
-    <!-- Gradients -->
+
+    <!-- Gradients (encrés dans la nouvelle palette mais conservés pour compat.) -->
     <LinearGradientBrush x:Key="PrimaryGradientBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="{StaticResource PrimaryColor}" Offset="0"/>
         <GradientStop Color="{StaticResource PrimaryDarkColor}" Offset="1"/>
     </LinearGradientBrush>
-    
+
     <LinearGradientBrush x:Key="SecondaryGradientBrush" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="{StaticResource SecondaryColor}" Offset="0"/>
         <GradientStop Color="{StaticResource SecondaryDarkColor}" Offset="1"/>
     </LinearGradientBrush>
-    
+
     <LinearGradientBrush x:Key="HeaderGradientBrush" StartPoint="0,0" EndPoint="1,0">
         <GradientStop Color="{StaticResource PrimaryDarkColor}" Offset="0"/>
         <GradientStop Color="{StaticResource PrimaryColor}" Offset="0.5"/>
         <GradientStop Color="{StaticResource PrimaryDarkColor}" Offset="1"/>
     </LinearGradientBrush>
-    
+
+    <!-- ============================================
+         FAMILLES TYPOGRAPHIQUES
+         (clés de FontFamily réutilisables dans toute l'app)
+    ============================================ -->
+    <FontFamily x:Key="DisplayFontFamily">Constantia, Cambria, Georgia, Segoe UI</FontFamily>
+    <FontFamily x:Key="BodyFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">Cascadia Mono, Consolas, Courier New</FontFamily>
+
 </ResourceDictionary>

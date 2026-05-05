@@ -99,11 +99,35 @@ public partial class MedicDetailViewModel : ViewModelBase
         _pdfService = pdfService;
     }
 
-    public override void OnNavigatedTo(object? parameter)
+    public override async void OnNavigatedTo(object? parameter)
     {
         if (parameter is int medicId)
         {
-            _ = LoadMedicAsync(medicId);
+            try
+            {
+                await LoadMedicAsync(medicId);
+
+                if (Medic == null)
+                {
+                    await _dialogService.ShowWarningAsync(
+                        "Médicament introuvable",
+                        $"Le médicament demandé (id={medicId}) est introuvable dans la base de données.");
+                }
+            }
+            catch (Exception ex)
+            {
+                var inner = ex;
+                while (inner.InnerException != null) inner = inner.InnerException;
+                await _dialogService.ShowErrorAsync(
+                    "Erreur de chargement",
+                    $"Impossible d'ouvrir la fiche du médicament.\n\n{inner.Message}");
+            }
+        }
+        else
+        {
+            await _dialogService.ShowWarningAsync(
+                "Paramètre invalide",
+                "Aucun identifiant valide n'a été fourni pour ouvrir la fiche.");
         }
     }
 

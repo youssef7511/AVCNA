@@ -3,6 +3,7 @@ using System.Reflection;
 using System.ComponentModel.DataAnnotations.Schema;
 using ClosedXML.Excel;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 
 namespace AVCNDB.WPF.Services;
 
@@ -33,9 +34,9 @@ public class ExcelService : IExcelService
             for (int col = 1; col <= headerRow.LastCellUsed()?.Address.ColumnNumber; col++)
             {
                 var headerName = headerRow.Cell(col).GetString().Trim();
-                var property = properties.FirstOrDefault(p => 
-                    p.Name.Equals(headerName, StringComparison.OrdinalIgnoreCase));
-                
+                // Resolve via alias map (exact → alias → fuzzy ≥ 85)
+                var property = ColumnAliasMap.Resolve(headerName, properties);
+
                 if (property != null)
                 {
                     columnMap[col] = property;

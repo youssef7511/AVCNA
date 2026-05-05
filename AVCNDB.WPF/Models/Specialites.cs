@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Spécialités médicales
 /// </summary>
 [Table("specialites")]
-public class Specialites : ITrackable
+public class Specialites : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -29,4 +29,5 @@ public class Specialites : ITrackable
     
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

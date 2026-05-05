@@ -18,14 +18,26 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <!-- Compact card: less padding than ElevatedCardStyle for dense forms -->
+        <!-- Compact card: tighter padding for dense forms -->
         <Style x:Key="CompactCardStyle" TargetType="Border" BasedOn="{StaticResource ElevatedCardStyle}">
-            <Setter Property="Padding" Value="14,10,14,12"/>
+            <Setter Property="Padding" Value="10,6,10,8"/>
+        </Style>
+        <!-- Compact section title (overrides TitleH3Style to gain vertical space) -->
+        <Style x:Key="DialogSectionTitleStyle" TargetType="TextBlock" BasedOn="{StaticResource TitleH3Style}">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <!-- Compact tab header style: smaller font + tighter padding -->
+        <Style x:Key="CompactTabItemStyle" TargetType="TabItem">
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="32"/>
         </Style>
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
@@ -65,9 +77,42 @@
         </Border>
 
         <!-- ═══════════════════════════════════════════
+             VALIDATION PANEL — strict per-field French errors
+        ═══════════════════════════════════════════ -->
+        <Border Grid.Row="1"
+                Background="{StaticResource ErrorLightBrush}"
+                BorderBrush="{StaticResource ErrorDarkBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="20,8"
+                Visibility="{Binding HasErrors, Converter={StaticResource BoolToVis}}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <materialDesign:PackIcon Kind="AlertCircleOutline"
+                                             Width="18" Height="18"
+                                             VerticalAlignment="Center"
+                                             Foreground="{StaticResource ErrorDarkBrush}"/>
+                    <TextBlock Text="Veuillez corriger les erreurs suivantes :"
+                               Margin="6,0,0,0"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource ErrorDarkBrush}"/>
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding ValidationMessages}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}"
+                                       Foreground="{StaticResource ErrorDarkBrush}"
+                                       FontSize="12"
+                                       Margin="24,2,0,0"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════
              MAIN CONTENT — Two-panel layout
         ═══════════════════════════════════════════ -->
-        <ScrollViewer Grid.Row="1"
+        <ScrollViewer Grid.Row="2"
                       VerticalScrollBarVisibility="Auto"
                       Padding="16,10">
             <Grid>
@@ -84,7 +129,7 @@
                     <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="🔖 Identification"
-                                       Style="{StaticResource TitleH3Style}"
+                                       Style="{StaticResource DialogSectionTitleStyle}"
                                        Margin="0,0,0,8"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -128,7 +173,7 @@
                     <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="📂 Classification"
-                                       Style="{StaticResource TitleH3Style}"
+                                       Style="{StaticResource DialogSectionTitleStyle}"
                                        Margin="0,0,0,8"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -208,7 +253,7 @@
                     <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
                         <StackPanel>
                             <TextBlock Text="🧪 Composition (DCI)"
-                                       Style="{StaticResource TitleH3Style}"
+                                       Style="{StaticResource DialogSectionTitleStyle}"
                                        Margin="0,0,0,8"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -309,7 +354,7 @@
                     <Border Style="{StaticResource CompactCardStyle}">
                         <StackPanel>
                             <TextBlock Text="⚙️ Options"
-                                       Style="{StaticResource TitleH3Style}"
+                                       Style="{StaticResource DialogSectionTitleStyle}"
                                        Margin="0,0,0,6"/>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -364,249 +409,975 @@
                     </Border>
                 </StackPanel>
 
-                <!-- ─── RIGHT PANEL ─── -->
-                <StackPanel Grid.Column="2">
+                <!-- ─── RIGHT PANEL — Tabs ─── -->
+                <TabControl Grid.Column="2"
+                            Style="{StaticResource MaterialDesignFilledTabControl}"
+                            materialDesign:ColorZoneAssist.Mode="PrimaryLight">
+                    <TabControl.Resources>
+                        <!-- Compact tab headers -->
+                        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                            <Setter Property="Padding" Value="10,4"/>
+                            <Setter Property="MinHeight" Value="32"/>
+                        </Style>
+                    </TabControl.Resources>
 
-                    <!-- Forme et Présentation -->
-                    <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
-                        <StackPanel>
-                            <TextBlock Text="💊 Forme et Présentation"
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,8"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                    <!-- ═══ Tab 1: Forme & Posologie ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Pill" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Forme &amp; Posologie" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                            <StackPanel>
+                                <!-- Forme et Présentation -->
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="💊 Forme et Présentation"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
 
-                                <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
-                                          FilterableItemsSource="{Binding Formes}"
-                                          SelectedValue="{Binding Medic.forme}"
-                                          SelectedValuePath="itemname"
-                                          DisplayMemberPath="itemname"
-                                          materialDesign:HintAssist.Hint="Forme"
-                                          Style="{StaticResource DialogLineComboBoxStyle}"
-                                          Margin="0,0,8,8"/>
-                                <controls:FilterableComboBox Grid.Row="0" Grid.Column="1"
-                                          FilterableItemsSource="{Binding Presents}"
-                                          SelectedValue="{Binding Medic.present}"
-                                          SelectedValuePath="itemname"
-                                          DisplayMemberPath="itemname"
-                                          materialDesign:HintAssist.Hint="Présentation"
-                                          Style="{StaticResource DialogLineComboBoxStyle}"
-                                          Margin="0,0,0,8"/>
+                                            <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
+                                                      FilterableItemsSource="{Binding Formes}"
+                                                      SelectedValue="{Binding Medic.forme}"
+                                                      SelectedValuePath="itemname"
+                                                      DisplayMemberPath="itemname"
+                                                      materialDesign:HintAssist.Hint="Forme"
+                                                      Style="{StaticResource DialogLineComboBoxStyle}"
+                                                      Margin="0,0,8,8"/>
+                                            <controls:FilterableComboBox Grid.Row="0" Grid.Column="1"
+                                                      FilterableItemsSource="{Binding Presents}"
+                                                      SelectedValue="{Binding Medic.present}"
+                                                      SelectedValuePath="itemname"
+                                                      DisplayMemberPath="itemname"
+                                                      materialDesign:HintAssist.Hint="Présentation"
+                                                      Style="{StaticResource DialogLineComboBoxStyle}"
+                                                      Margin="0,0,0,8"/>
 
-                                <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
-                                          FilterableItemsSource="{Binding Voies}"
-                                          SelectedValue="{Binding Medic.voie}"
-                                          SelectedValuePath="itemname"
-                                          DisplayMemberPath="itemname"
-                                          materialDesign:HintAssist.Hint="Voie d'administration"
-                                          Style="{StaticResource DialogLineComboBoxStyle}"
-                                          Margin="0,0,8,0"/>
-                                <Grid Grid.Row="1" Grid.Column="1">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBox Grid.Column="0"
-                                             Text="{Binding Medic.colisage, UpdateSourceTrigger=PropertyChanged}"
-                                             materialDesign:HintAssist.Hint="Colisage"
-                                             Style="{StaticResource DialogLineTextBoxStyle}"
-                                             Margin="0,0,6,0"/>
-                                    <TextBox Grid.Column="1"
-                                             Text="{Binding Medic.ucol, UpdateSourceTrigger=PropertyChanged}"
-                                             materialDesign:HintAssist.Hint="Unité col."
-                                             Style="{StaticResource DialogLineTextBoxStyle}"/>
-                                </Grid>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Denomination Builder — compact -->
-                    <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="🏷️ Dénomination"
-                                           Style="{StaticResource TitleH3Style}"/>
-                                <Button Grid.Column="1"
-                                        Command="{Binding UpdateDenominationCommand}"
-                                        Style="{StaticResource MaterialDesignFlatButton}"
-                                        Padding="8,2"
-                                        Height="28"
-                                        ToolTip="Recalculer la dénomination automatique">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Mettre à jour" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                            <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
+                                                      FilterableItemsSource="{Binding Voies}"
+                                                      SelectedValue="{Binding Medic.voie}"
+                                                      SelectedValuePath="itemname"
+                                                      DisplayMemberPath="itemname"
+                                                      materialDesign:HintAssist.Hint="Voie d'administration"
+                                                      Style="{StaticResource DialogLineComboBoxStyle}"
+                                                      Margin="0,0,8,0"/>
+                                            <Grid Grid.Row="1" Grid.Column="1">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Grid.Column="0"
+                                                         Text="{Binding Medic.colisage, UpdateSourceTrigger=PropertyChanged}"
+                                                         materialDesign:HintAssist.Hint="Colisage"
+                                                         Style="{StaticResource DialogLineTextBoxStyle}"
+                                                         Margin="0,0,6,0"/>
+                                                <TextBox Grid.Column="1"
+                                                         Text="{Binding Medic.ucol, UpdateSourceTrigger=PropertyChanged}"
+                                                         materialDesign:HintAssist.Hint="Unité col."
+                                                         Style="{StaticResource DialogLineTextBoxStyle}"/>
+                                            </Grid>
+                                        </Grid>
                                     </StackPanel>
-                                </Button>
-                            </Grid>
-                            <TextBlock Text="{Binding ComputedDenomination, TargetNullValue='(vide)'}"
-                                       Foreground="{DynamicResource PrimaryHueMidBrush}"
-                                       FontStyle="Italic" FontSize="12"
-                                       Margin="0,4,0,6"/>
-                            <TextBox Text="{Binding Medic.basename, UpdateSourceTrigger=PropertyChanged}"
-                                     materialDesign:HintAssist.Hint="Dénomination de base"
-                                     Style="{StaticResource DialogLineTextBoxStyle}"/>
-                        </StackPanel>
-                    </Border>
+                                </Border>
 
-                    <!-- Posology Builder — compact -->
-                    <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="💉 Posologie"
-                                           Style="{StaticResource TitleH3Style}"/>
-                                <Button Grid.Column="1"
-                                        Command="{Binding UpdatePosologyCommand}"
-                                        Style="{StaticResource MaterialDesignFlatButton}"
-                                        Padding="8,2"
-                                        Height="28"
-                                        ToolTip="Recalculer la posologie automatique">
-                                    <StackPanel Orientation="Horizontal">
-                                        <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Mettre à jour" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                <!-- Posology Builder -->
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="💉 Posologie"
+                                                       Style="{StaticResource DialogSectionTitleStyle}"/>
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding UpdatePosologyCommand}"
+                                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                                    Padding="8,2"
+                                                    Height="28"
+                                                    ToolTip="Recalculer la posologie automatique">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Mettre à jour" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                        <TextBlock Text="{Binding ComputedPosology, TargetNullValue='(vide)'}"
+                                                   Foreground="{DynamicResource PrimaryHueMidBrush}"
+                                                   FontStyle="Italic" FontSize="12"
+                                                   Margin="0,4,0,6"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="70"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBox Grid.Row="0" Grid.Column="0"
+                                                     Text="{Binding PosoQty, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Qté"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,6,8"/>
+                                            <TextBox Grid.Row="0" Grid.Column="1"
+                                                     Text="{Binding PosoForm, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Forme poso."
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,6,8"/>
+                                            <TextBox Grid.Row="0" Grid.Column="2"
+                                                     Text="{Binding PosoPrises, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Prises"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,6,8"/>
+                                            <TextBox Grid.Row="0" Grid.Column="3"
+                                                     Text="{Binding PosoPeriode, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Période"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,0,8"/>
+
+                                            <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                                                     Text="{Binding PosoConditions, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Conditions particulières"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"/>
+                                        </Grid>
                                     </StackPanel>
-                                </Button>
-                            </Grid>
-                            <TextBlock Text="{Binding ComputedPosology, TargetNullValue='(vide)'}"
-                                       Foreground="{DynamicResource PrimaryHueMidBrush}"
-                                       FontStyle="Italic" FontSize="12"
-                                       Margin="0,4,0,6"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="70"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="70"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
 
-                                <TextBox Grid.Row="0" Grid.Column="0"
-                                         Text="{Binding PosoQty, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Qté"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding PosoForm, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Forme poso."
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="2"
-                                         Text="{Binding PosoPrises, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Prises"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="3"
-                                         Text="{Binding PosoPeriode, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Période"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,0,8"/>
+                    <!-- ═══ Tab 2: Dénomination ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Tag" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Dénomination" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="8,10">
+                            <StackPanel>
 
-                                <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
-                                         Text="{Binding PosoConditions, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Conditions particulières"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
+                                <!-- ── HERO: Dénomination autogénérée ── -->
+                                <Border CornerRadius="10"
+                                        Margin="0,0,0,10"
+                                        ClipToBounds="True">
+                                    <!-- Accent left bar + gradient background -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="6"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
 
-                    <!-- Tarification — compact -->
-                    <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
-                        <StackPanel>
-                            <TextBlock Text="💰 Tarification"
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,8"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
+                                        <!-- Left accent bar -->
+                                        <Border Grid.Column="0"
+                                                Background="{StaticResource BotanicalBrush}"
+                                                CornerRadius="10,0,0,10"/>
 
-                                <TextBox Grid.Row="0" Grid.Column="0"
-                                         Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="Prix Fab. HT"
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding Medic.refprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="Prix Hospitalier"
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="2"
-                                         Text="{Binding Medic.pctprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="Prix de Gros"
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,0,8"/>
+                                        <!-- Card body -->
+                                        <Border Grid.Column="1"
+                                                Background="{StaticResource BotanicalLightBrush}"
+                                                Padding="16,14"
+                                                CornerRadius="0,10,10,0">
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
 
-                                <TextBox Grid.Row="1" Grid.Column="0"
-                                         Text="{Binding Medic.timbrepct, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="Timbre"
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,0"/>
-                                <TextBox Grid.Row="1" Grid.Column="1"
-                                         Text="{Binding Medic.netprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="Prix Base Remb."
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,6,0"/>
-                                <TextBox Grid.Row="1" Grid.Column="2"
-                                         Text="{Binding Medic.pamount, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
-                                         materialDesign:HintAssist.Hint="PPV"
-                                         materialDesign:TextFieldAssist.SuffixText="DH"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         FontWeight="Bold"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
+                                                <!-- Label row -->
+                                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <materialDesign:PackIcon Kind="AutoFix" Width="15" Height="15"
+                                                                              Foreground="{StaticResource BotanicalBrush}"
+                                                                              VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Calculée automatiquement"
+                                                               FontSize="11"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource BotanicalBrush}"
+                                                               Margin="6,0,0,0"
+                                                               VerticalAlignment="Center"/>
+                                                </StackPanel>
 
-                    <!-- Notes — compact -->
-                    <Border Style="{StaticResource CompactCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📝 Notes"
-                                       Style="{StaticResource TitleH3Style}"
-                                       Margin="0,0,0,6"/>
-                            <TextBox Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
-                                     materialDesign:HintAssist.Hint="Indications, notes..."
-                                     Style="{StaticResource DialogLineTextBoxStyle}"
-                                     TextWrapping="Wrap"
-                                     AcceptsReturn="True"
-                                     MinHeight="50"
-                                     VerticalContentAlignment="Top"/>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                                                <!-- Big denomination text -->
+                                                <TextBlock Grid.Row="1"
+                                                           Text="{Binding ComputedDenomination, TargetNullValue='(aucune donnée)'}"
+                                                           FontSize="18"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource BotanicalDarkBrush}"
+                                                           TextWrapping="Wrap"
+                                                           LineHeight="26"
+                                                           Margin="0,0,0,10"/>
+
+                                                <!-- Components chips row -->
+                                                <WrapPanel Grid.Row="2" Orientation="Horizontal">
+                                                    <!-- DCI chip -->
+                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
+                                                            Background="{StaticResource BotanicalBrush}"
+                                                            Visibility="{Binding Medic.dci1, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="DCI  " FontSize="10" Foreground="#AADEAA" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Medic.dci1}" FontSize="11" Foreground="White" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- Dose chip -->
+                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
+                                                            Background="{StaticResource BotanicalDarkBrush}"
+                                                            Visibility="{Binding Medic.dose1, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="DOSE  " FontSize="10" Foreground="#AADEAA" FontWeight="SemiBold"/>
+                                                            <TextBlock FontSize="11" Foreground="White" FontWeight="Bold">
+                                                                <Run Text="{Binding Medic.dose1}"/>
+                                                                <Run Text=" "/>
+                                                                <Run Text="{Binding Medic.u1}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- Forme chip -->
+                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
+                                                            Background="{StaticResource OchreDarkBrush}"
+                                                            Visibility="{Binding Medic.forme, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="FORME  " FontSize="10" Foreground="#FFE0A0" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Medic.forme}" FontSize="11" Foreground="White" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- Présentation chip -->
+                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
+                                                            Background="{StaticResource IndigoBrush}"
+                                                            Visibility="{Binding Medic.present, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="PRÉSENT.  " FontSize="10" Foreground="#AABBEE" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding Medic.present}" FontSize="11" Foreground="White" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- Colisage chip -->
+                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,0,4"
+                                                            Background="{StaticResource InkMuteBrush}"
+                                                            Visibility="{Binding Medic.colisage, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="QTÉ  " FontSize="10" Foreground="#CCCCCC" FontWeight="SemiBold"/>
+                                                            <TextBlock FontSize="11" Foreground="White" FontWeight="Bold">
+                                                                <Run Text="{Binding Medic.colisage}"/>
+                                                                <Run Text=" "/>
+                                                                <Run Text="{Binding Medic.ucol}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </WrapPanel>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ── AVANT / APRÈS comparison card ── -->
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Avant (ancienne) -->
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                <materialDesign:PackIcon Kind="History" Width="13" Height="13"
+                                                                          Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                                          VerticalAlignment="Center"/>
+                                                <TextBlock Text="Ancienne dénomination"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                           Margin="5,0,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Medic.itemname, TargetNullValue='—'}"
+                                                       FontSize="12"
+                                                       Foreground="{DynamicResource MaterialDesignBody}"
+                                                       TextWrapping="Wrap"
+                                                       TextDecorations="Strikethrough"
+                                                       Opacity="0.6"/>
+                                        </StackPanel>
+
+                                        <!-- Arrow -->
+                                        <materialDesign:PackIcon Grid.Column="1"
+                                                                  Kind="ArrowRight"
+                                                                  Width="22" Height="22"
+                                                                  Foreground="{StaticResource BotanicalBrush}"
+                                                                  VerticalAlignment="Center"
+                                                                  Margin="12,0"/>
+
+                                        <!-- Après (nouvelle) -->
+                                        <StackPanel Grid.Column="2">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                <materialDesign:PackIcon Kind="CheckCircle" Width="13" Height="13"
+                                                                          Foreground="{StaticResource BotanicalBrush}"
+                                                                          VerticalAlignment="Center"/>
+                                                <TextBlock Text="Nouvelle dénomination"
+                                                           FontSize="10"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="{StaticResource BotanicalBrush}"
+                                                           Margin="5,0,0,0"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding Medic.basename, TargetNullValue='(non définie)'}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource BotanicalBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+
+                                <!-- ── ACTION ROW: TextBox + button ── -->
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Section label -->
+                                        <TextBlock Grid.Row="0"
+                                                   Text="Saisie manuelle"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+
+                                        <Grid Grid.Row="1">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding Medic.basename, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Dénomination de base (modifiable)"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,10,0"/>
+
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding UpdateDenominationCommand}"
+                                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="6"
+                                                    Height="42"
+                                                    Padding="14,0"
+                                                    ToolTip="Recalculer et écrire la dénomination autogénérée dans le champ ci-contre">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="Appliquer" FontSize="11" FontWeight="SemiBold"/>
+                                                        <TextBlock Text="la calculée" FontSize="9" Opacity="0.75"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══ Tab 3: Tarification ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CashMultiple" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Tarification" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                            <Border Style="{StaticResource CompactCardStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="💰 Tarification"
+                                               Style="{StaticResource DialogSectionTitleStyle}"
+                                               Margin="0,0,0,8"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBox Grid.Row="0" Grid.Column="0"
+                                                 Text="{Binding Medic.price, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="Prix Fab. HT"
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,0,6,8"/>
+                                        <TextBox Grid.Row="0" Grid.Column="1"
+                                                 Text="{Binding Medic.refprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="Prix Hospitalier"
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,0,6,8"/>
+                                        <TextBox Grid.Row="0" Grid.Column="2"
+                                                 Text="{Binding Medic.pctprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="Prix de Gros"
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,0,0,8"/>
+
+                                        <TextBox Grid.Row="1" Grid.Column="0"
+                                                 Text="{Binding Medic.timbrepct, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="Timbre"
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,0,6,0"/>
+                                        <TextBox Grid.Row="1" Grid.Column="1"
+                                                 Text="{Binding Medic.netprice, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="Prix Base Remb."
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,0,6,0"/>
+                                        <TextBox Grid.Row="1" Grid.Column="2"
+                                                 Text="{Binding Medic.pamount, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
+                                                 materialDesign:HintAssist.Hint="PPV"
+                                                 materialDesign:TextFieldAssist.SuffixText="DH"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 FontWeight="Bold"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══ Tab 4: Interactions ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AlertCircleOutline" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Interactions" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                            <StackPanel>
+
+                                <!-- ─── SECTION C: Interactions connues du médicament ─── -->
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="📊 Interactions connues"
+                                                       Style="{StaticResource DialogSectionTitleStyle}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding Medic.dci1, StringFormat='DCI: {0}', TargetNullValue=''}"
+                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                       FontSize="11"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
+
+                                        <!-- DataGrid Mode C -->
+                                        <DataGrid ItemsSource="{Binding MedicInteractions}"
+                                                  Style="{StaticResource ModernDataGridStyle}"
+                                                  AutoGenerateColumns="False"
+                                                  IsReadOnly="True"
+                                                  HeadersVisibility="Column"
+                                                  MaxHeight="180">
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Header="Niveau" Width="110" SortMemberPath="level">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Border CornerRadius="3" Padding="5,2" HorizontalAlignment="Left" Margin="2,1">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                                                                                <Setter Property="Background" Value="#FFEBEE"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                                                                                <Setter Property="Background" Value="#FFF3E0"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Précaution">
+                                                                                <Setter Property="Background" Value="#FFFDE7"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock Text="{Binding level}" FontSize="11" FontWeight="SemiBold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                                                                                    <Setter Property="Foreground" Value="#C62828"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                                                                                    <Setter Property="Foreground" Value="#E65100"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Précaution">
+                                                                                    <Setter Property="Foreground" Value="#F57F17"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="DCI 1" Binding="{Binding dci1}" Width="120"/>
+                                                <DataGridTextColumn Header="DCI 2" Binding="{Binding dci2}" Width="120"/>
+                                                <DataGridTextColumn Header="Mécanisme" Binding="{Binding mecanisme}" Width="140">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                            <Setter Property="ToolTip" Value="{Binding mecanisme}"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="Description" Binding="{Binding description}" Width="*">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                            <Setter Property="ToolTip" Value="{Binding description}"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Empty state Mode C -->
+                                        <StackPanel HorizontalAlignment="Center" Margin="0,8">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding MedicInteractions.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="Aucune interaction connue pour ce médicament."
+                                                       HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                       FontSize="12"
+                                                       FontStyle="Italic"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ─── SECTION A: Comparer avec un autre médicament ─── -->
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="🔍 Comparer avec un autre médicament"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+
+                                        <!-- Search row -->
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding CompareSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Nom du médicament à comparer..."
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,8,0">
+                                                <TextBox.InputBindings>
+                                                    <KeyBinding Key="Return" Command="{Binding SearchCompareDrugCommand}"/>
+                                                </TextBox.InputBindings>
+                                            </TextBox>
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding SearchCompareDrugCommand}"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Height="36"
+                                                    Padding="12,0">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Magnify" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Rechercher" Margin="4,0,0,0" FontSize="12" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Search results list -->
+                                        <Border Visibility="{Binding CompareSearchResults.Count, Converter={StaticResource NullToVisibility}}"
+                                                BorderBrush="{StaticResource BorderBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Margin="0,0,0,6">
+                                            <ListBox ItemsSource="{Binding CompareSearchResults}"
+                                                     SelectedItem="{Binding SelectedCompareDrug}"
+                                                     MaxHeight="110"
+                                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                     Background="Transparent">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" Margin="2,2">
+                                                            <TextBlock Text="{Binding itemname}"
+                                                                       FontWeight="SemiBold"
+                                                                       FontSize="12"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding dci1, StringFormat=' — {0}'}"
+                                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                                       FontSize="11"
+                                                                       VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Border>
+
+                                        <!-- Selected drug info -->
+                                        <Border Visibility="{Binding SelectedCompareDrug, Converter={StaticResource NullToVisibility}}"
+                                                Background="{DynamicResource MaterialDesignPaper}"
+                                                CornerRadius="4"
+                                                Padding="8,4"
+                                                Margin="0,0,0,6">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CheckCircleOutline" Width="14" Height="14"
+                                                                          Foreground="{StaticResource BotanicalBrush}"
+                                                                          VerticalAlignment="Center"/>
+                                                <TextBlock Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center">
+                                                    <Run Text="Comparaison : "/>
+                                                    <Run Text="{Binding SelectedCompareDrug.itemname, FallbackValue=''}" FontWeight="SemiBold"/>
+                                                    <Run Text=" (DCI: "/>
+                                                    <Run Text="{Binding SelectedCompareDrug.dci1, FallbackValue=''}"/>
+                                                    <Run Text=")"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Compare interactions DataGrid -->
+                                        <DataGrid ItemsSource="{Binding CompareInteractions}"
+                                                  Style="{StaticResource ModernDataGridStyle}"
+                                                  AutoGenerateColumns="False"
+                                                  IsReadOnly="True"
+                                                  HeadersVisibility="Column"
+                                                  MaxHeight="150"
+                                                  Visibility="{Binding SelectedCompareDrug, Converter={StaticResource NullToVisibility}}">
+                                            <DataGrid.Columns>
+                                                <DataGridTemplateColumn Header="Niveau" Width="110" SortMemberPath="level">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Border CornerRadius="3" Padding="5,2" HorizontalAlignment="Left" Margin="2,1">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                                                                                <Setter Property="Background" Value="#FFEBEE"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                                                                                <Setter Property="Background" Value="#FFF3E0"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding level}" Value="Précaution">
+                                                                                <Setter Property="Background" Value="#FFFDE7"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock Text="{Binding level}" FontSize="11" FontWeight="SemiBold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                                                                                    <Setter Property="Foreground" Value="#C62828"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                                                                                    <Setter Property="Foreground" Value="#E65100"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding level}" Value="Précaution">
+                                                                                    <Setter Property="Foreground" Value="#F57F17"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                                <DataGridTextColumn Header="DCI 1" Binding="{Binding dci1}" Width="120"/>
+                                                <DataGridTextColumn Header="DCI 2" Binding="{Binding dci2}" Width="120"/>
+                                                <DataGridTextColumn Header="Description" Binding="{Binding description}" Width="*">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                                            <Setter Property="ToolTip" Value="{Binding description}"/>
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- No compare interactions state -->
+                                        <StackPanel HorizontalAlignment="Center" Margin="0,4">
+                                            <StackPanel.Style>
+                                                <Style TargetType="StackPanel">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CompareInteractions.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </StackPanel.Style>
+                                            <TextBlock Text="Aucune interaction connue entre ces deux médicaments."
+                                                       HorizontalAlignment="Center"
+                                                       Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                       FontSize="11"
+                                                       FontStyle="Italic"
+                                                       Visibility="{Binding SelectedCompareDrug, Converter={StaticResource NullToVisibility}}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ─── SECTION TIER 3: Analyse approfondie IA ─── -->
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Text="🤖 Analyse approfondie (OpenRouter IA)"
+                                                           Style="{StaticResource DialogSectionTitleStyle}"
+                                                           Margin="0,0,0,2"/>
+                                                <TextBlock FontSize="11"
+                                                           Foreground="{DynamicResource MaterialDesignBodyLight}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="Sélectionnez un médicament à comparer pour activer l'analyse."/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding SelectedCompareDrug}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+
+                                            <!-- Analyse button + spinner -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <ProgressBar IsIndeterminate="True"
+                                                             Width="20" Height="20"
+                                                             Style="{StaticResource MaterialDesignCircularProgressBar}"
+                                                             Margin="0,0,8,0"
+                                                             Visibility="{Binding IsDeepAnalysisRunning, Converter={StaticResource BoolToVis}}"/>
+                                                <Button Command="{Binding RunDeepAnalysisCommand}"
+                                                        Style="{StaticResource MaterialDesignRaisedButton}"
+                                                        materialDesign:ButtonAssist.CornerRadius="4"
+                                                        Height="32"
+                                                        Padding="12,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="Brain" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Analyser" Margin="6,0,0,0" FontSize="12" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Pending result panel -->
+                                        <Border Visibility="{Binding DeepAnalysisHasPendingResult, Converter={StaticResource BoolToVis}}"
+                                                BorderBrush="{DynamicResource PrimaryHueMidBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="6"
+                                                Padding="12,10"
+                                                Background="{StaticResource InfoSurfaceBrush}">
+                                            <StackPanel>
+                                                <!-- Level badge row -->
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="Niveau d'interaction :"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,8,0"/>
+                                                    <Border CornerRadius="4" Padding="8,3">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#E8F5E9"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Contre-indiqué">
+                                                                        <Setter Property="Background" Value="#FFEBEE"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Déconseillé">
+                                                                        <Setter Property="Background" Value="#FFF3E0"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Précaution">
+                                                                        <Setter Property="Background" Value="#FFFDE7"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding DeepAnalysisLevel}"
+                                                                   FontWeight="Bold"
+                                                                   FontSize="12">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Contre-indiqué">
+                                                                            <Setter Property="Foreground" Value="#C62828"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Déconseillé">
+                                                                            <Setter Property="Foreground" Value="#E65100"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DeepAnalysisLevel}" Value="Précaution">
+                                                                            <Setter Property="Foreground" Value="#F57F17"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Description -->
+                                                <TextBlock Text="Description :" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding DeepAnalysisDescription}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="12"
+                                                           Margin="0,0,0,8"/>
+
+                                                <!-- Mécanisme -->
+                                                <TextBlock Text="Mécanisme :" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding DeepAnalysisMecanisme}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="12"
+                                                           Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                           Margin="0,0,0,8"/>
+
+                                                <!-- Conduite -->
+                                                <TextBlock Text="Conduite à tenir :" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,2"/>
+                                                <TextBlock Text="{Binding DeepAnalysisConduite}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="12"
+                                                           Margin="0,0,0,12"/>
+
+                                                <!-- Approve / Discard buttons -->
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                                    <Button Command="{Binding DiscardDeepAnalysisCommand}"
+                                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                            Height="30"
+                                                            Padding="10,0"
+                                                            Margin="0,0,8,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="Close" Width="14" Height="14" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Ignorer" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Command="{Binding ApproveAndSaveInteractionCommand}"
+                                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                                            materialDesign:ButtonAssist.CornerRadius="4"
+                                                            Height="30"
+                                                            Padding="10,0">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="DatabasePlus" Width="14" Height="14" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="Approuver et enregistrer" Margin="4,0,0,0" FontSize="11" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══ Tab 5: Monographie ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="BookOpenPageVariant" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Monographie" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                            <StackPanel>
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="📋 Indications &amp; mises en garde"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+                                        <TextBox Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
+                                                 materialDesign:HintAssist.Hint="Indications"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 TextWrapping="Wrap"
+                                                 AcceptsReturn="True"
+                                                 MinHeight="80"
+                                                 VerticalContentAlignment="Top"
+                                                 Margin="0,0,0,10"/>
+                                        <TextBox Text="{Binding Medic.mgarde, UpdateSourceTrigger=PropertyChanged}"
+                                                 materialDesign:HintAssist.Hint="Mise en garde"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 TextWrapping="Wrap"
+                                                 AcceptsReturn="True"
+                                                 MinHeight="60"
+                                                 VerticalContentAlignment="Top"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="📅 Données complémentaires"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding Medic.formgroup, UpdateSourceTrigger=PropertyChanged}"
+                                                     materialDesign:HintAssist.Hint="Groupe forme"
+                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Margin="0,0,6,0"/>
+                                            <DatePicker Grid.Column="1"
+                                                        SelectedDate="{Binding Medic.monogat}"
+                                                        materialDesign:HintAssist.Hint="Date monographie"
+                                                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"
+                                                        Margin="0,0,6,0"/>
+                                            <DatePicker Grid.Column="2"
+                                                        SelectedDate="{Binding Medic.ciat}"
+                                                        materialDesign:HintAssist.Hint="Date CI"
+                                                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
             </Grid>
         </ScrollViewer>
 
         <!-- ═══════════════════════════════════════════
              FOOTER
         ═══════════════════════════════════════════ -->
-        <Border Grid.Row="2"
+        <Border Grid.Row="3"
                 Background="{DynamicResource MaterialDesignPaper}"
                 BorderBrush="{StaticResource BorderBrush}"
                 BorderThickness="0,1,0,0"
@@ -639,7 +1410,7 @@
         </Border>
 
         <!-- Loading overlay -->
-        <Border Grid.RowSpan="3"
+        <Border Grid.RowSpan="4"
                 Background="#80000000"
                 Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">

@@ -169,7 +169,7 @@
                                         Visibility="{Binding IsControlled, Converter={StaticResource BoolToVis}}"
                                         Margin="0,0,6,4">
                                     <TextBlock FontSize="10.5" FontWeight="SemiBold">
-                                        <Run Text="⚠️ TABLEAU"/><Run Text=" "/><Run Text="{Binding Medic.tableau, Mode=OneWay}"/>
+                                        <Run Text="⚠️ TABLEAU"/><Run Text=" "/><Run Text="{Binding Medic.tableau, Mode=OneWay, TargetNullValue='', FallbackValue=''}"/>
                                     </TextBlock>
                                 </Border>
 
@@ -211,13 +211,13 @@
                             </WrapPanel>
 
                             <!-- Drug name -->
-                            <TextBlock Text="{Binding Medic.itemname}"
+                            <TextBlock Text="{Binding Medic.itemname, TargetNullValue='—', FallbackValue='—'}"
                                        FontSize="24" FontWeight="Bold"
                                        Foreground="{StaticResource PrimaryDarkBrush}"
                                        TextWrapping="Wrap"/>
 
                             <!-- DCI -->
-                            <TextBlock Text="{Binding Medic.dci}"
+                            <TextBlock Text="{Binding Medic.dci, TargetNullValue='—', FallbackValue='—'}"
                                        Style="{StaticResource DciTextStyle}"
                                        FontSize="14.5" Margin="0,4,0,0"/>
 
@@ -641,7 +641,7 @@
                                 Visibility="{Binding HasPosology, Converter={StaticResource BoolToVis}}">
                             <StackPanel>
                                 <StackPanel Style="{StaticResource SectionHeaderPanel}">
-                                    <materialDesign:PackIcon Kind="Medical" Width="20" Height="20"
+                                    <materialDesign:PackIcon Kind="MedicalBag" Width="20" Height="20"
                                                              VerticalAlignment="Center"
                                                              Foreground="{StaticResource PrimaryBrush}"/>
                                     <TextBlock Text="Posologie"

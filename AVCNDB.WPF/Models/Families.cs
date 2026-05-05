@@ -7,7 +7,7 @@ namespace AVCNDB.WPF.Models;
 /// Familles thérapeutiques de médicaments
 /// </summary>
 [Table("family")]
-public class Families : ITrackable
+public class Families : ITrackable, ISoftDeletable
 {
     [Key]
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -26,4 +26,5 @@ public class Families : ITrackable
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
+    public DateTime? deletedat { get; set; }
 }

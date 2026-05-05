@@ -184,8 +184,8 @@
             <Border Background="{DynamicResource MaterialDesignPaper}"
                     CornerRadius="8"
                     Padding="24"
-                    MaxWidth="860"
-                    MinWidth="700"
+                    MaxWidth="900"
+                    MinWidth="760"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center">
                 <StackPanel>

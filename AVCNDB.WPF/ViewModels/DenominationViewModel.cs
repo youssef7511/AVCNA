@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 
@@ -224,29 +225,8 @@ public partial class DenominationViewModel : ViewModelBase
         ComputedDenomination = BuildDenomination(SelectedMedic);
     }
 
-    /// <summary>
-    /// Builds a denomination string from the medic's component fields.
-    /// Does NOT include basename — basename is the staging "Désignation" column.
-    /// </summary>
-    private static string BuildDenomination(Medic m)
-    {
-        var parts = new List<string>();
-
-        if (!string.IsNullOrWhiteSpace(m.dose1)) parts.Add(m.dose1.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u1)) parts.Add(m.u1.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose2)) parts.Add(m.dose2.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u2)) parts.Add(m.u2.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose3)) parts.Add(m.dose3.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u3)) parts.Add(m.u3.Trim());
-        if (!string.IsNullOrWhiteSpace(m.dose4)) parts.Add(m.dose4.Trim());
-        if (!string.IsNullOrWhiteSpace(m.u4)) parts.Add(m.u4.Trim());
-        if (!string.IsNullOrWhiteSpace(m.forme)) parts.Add(m.forme.Trim());
-        if (!string.IsNullOrWhiteSpace(m.present)) parts.Add(m.present.Trim());
-        if (m.colisage > 0) parts.Add(m.colisage.ToString());
-        if (!string.IsNullOrWhiteSpace(m.ucol)) parts.Add(m.ucol.Trim());
-
-        return string.Join(" ", parts);
-    }
+    private static string BuildDenomination(Medic m) =>
+        MedicDenominationHelper.BuildDenomination(m);
 
     // ============================================
     // TOOLBAR COMMANDS

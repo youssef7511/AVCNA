@@ -13,14 +13,19 @@
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <Style x:Key="GridComboBoxStyle" TargetType="ComboBox">
+        <Style x:Key="GridComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource MaterialDesignOutlinedComboBox}">
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Padding" Value="4,0"/>
+            <Setter Property="Padding" Value="4,2"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="MinHeight" Value="0"/>
+            <Setter Property="MinHeight" Value="28"/>
             <Setter Property="MinWidth" Value="0"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Foreground" Value="{DynamicResource MaterialDesignBody}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource MaterialDesignDivider}"/>
+            <Setter Property="materialDesign:HintAssist.IsFloating" Value="False"/>
         </Style>
     </UserControl.Resources>
 
@@ -84,7 +89,7 @@
 
                         <!-- Toggle filtres -->
                         <ToggleButton IsChecked="{Binding ShowFilters}"
-                                      Style="{StaticResource MaterialDesignOutlinedButton}"
+                                      Style="{StaticResource OutlinedToggleButtonStyle}"
                                       Margin="0,0,8,0"
                                       ToolTip="Afficher/masquer les filtres">
                             <StackPanel Orientation="Horizontal">
@@ -193,6 +198,9 @@
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   SelectionMode="Single"
+                  RowHeight="34"
+                  ColumnHeaderHeight="38"
+                  materialDesign:DataGridAssist.SelectedCellBorderBrush="Transparent"
                   Margin="0,4,0,0"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False">

@@ -26,6 +26,54 @@
             <converters:IntToBoolConverter x:Key="IntToBoolConverter"/>
             <converters:StringNotNullOrEmptyToVisibilityConverter x:Key="StringNotNullOrEmptyToVisibility"/>
             <converters:NullToVisibilityConverter x:Key="NullToVisibility"/>
+            <converters:RatioToHeightConverter x:Key="RatioToHeight"/>
+            <converters:PercentageToArcGeometryConverter x:Key="PercentArcConverter"/>
+            <converters:MonthsToPolylineConverter x:Key="MonthsToPolyline"/>
+
+            <!-- ============================================
+                 OVERRIDES MATERIAL DESIGN
+                 Re-pointe les surfaces / textes / ombres de la
+                 librairie Material vers la palette « Apothecary »
+                 pour que toute la fenêtre adopte le parchemin.
+            ============================================ -->
+            <SolidColorBrush x:Key="MaterialDesignBackground"     Color="{StaticResource PaperColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignPaper"          Color="{StaticResource BoneColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignCardBackground" Color="{StaticResource BoneColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignBody"           Color="{StaticResource InkColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignBodyLight"      Color="{StaticResource InkSoftColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignDivider"        Color="{StaticResource BorderColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignToolForeground" Color="{StaticResource InkSoftColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignToolBackground" Color="{StaticResource BoneColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignSelection"      Color="{StaticResource BotanicalLightColor}"/>
+
+            <!-- Material Design : palette primaire / secondaire (utilisée par
+                 MaterialDesignRaisedButton, OutlinedButton, FloatingHint…) -->
+            <SolidColorBrush x:Key="PrimaryHueLightBrush"           Color="{StaticResource BotanicalLightColor}"/>
+            <SolidColorBrush x:Key="PrimaryHueLightForegroundBrush" Color="{StaticResource InkColor}"/>
+            <SolidColorBrush x:Key="PrimaryHueMidBrush"             Color="{StaticResource BotanicalColor}"/>
+            <SolidColorBrush x:Key="PrimaryHueMidForegroundBrush"   Color="{StaticResource BoneColor}"/>
+            <SolidColorBrush x:Key="PrimaryHueDarkBrush"            Color="{StaticResource BotanicalDarkColor}"/>
+            <SolidColorBrush x:Key="PrimaryHueDarkForegroundBrush"  Color="{StaticResource BoneColor}"/>
+
+            <SolidColorBrush x:Key="SecondaryHueLightBrush"           Color="{StaticResource OchreLightColor}"/>
+            <SolidColorBrush x:Key="SecondaryHueLightForegroundBrush" Color="{StaticResource InkColor}"/>
+            <SolidColorBrush x:Key="SecondaryHueMidBrush"             Color="{StaticResource OchreColor}"/>
+            <SolidColorBrush x:Key="SecondaryHueMidForegroundBrush"   Color="{StaticResource BoneColor}"/>
+            <SolidColorBrush x:Key="SecondaryHueDarkBrush"            Color="{StaticResource OchreDarkColor}"/>
+            <SolidColorBrush x:Key="SecondaryHueDarkForegroundBrush"  Color="{StaticResource BoneColor}"/>
+
+            <SolidColorBrush x:Key="SecondaryAccentBrush"             Color="{StaticResource OchreColor}"/>
+            <SolidColorBrush x:Key="SecondaryAccentForegroundBrush"   Color="{StaticResource BoneColor}"/>
+
+            <SolidColorBrush x:Key="ValidationErrorBrush"             Color="{StaticResource VermillionColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignValidationErrorBrush" Color="{StaticResource VermillionColor}"/>
+            <SolidColorBrush x:Key="MaterialDesignFlatButtonClick"    Color="{StaticResource BotanicalLightColor}"/>
+
+            <!-- Police par défaut globale -->
+            <Style TargetType="{x:Type Window}">
+                <Setter Property="FontFamily" Value="{StaticResource BodyFontFamily}"/>
+                <Setter Property="Background"  Value="{StaticResource PaperBrush}"/>
+            </Style>
 
             <!-- Fallbacks for MaterialDesign resource keys (avoid runtime StaticResource crashes) -->
             <Style x:Key="MaterialDesignHeadline4TextBlock" TargetType="TextBlock" BasedOn="{StaticResource TitleH2Style}" />

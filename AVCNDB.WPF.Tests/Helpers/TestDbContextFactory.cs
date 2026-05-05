@@ -1,6 +1,8 @@
 using AVCNDB.WPF.DAL;
 using AVCNDB.WPF.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.InMemory.Internal;
 
 namespace AVCNDB.WPF.Tests.Helpers;
 
@@ -18,6 +20,7 @@ public static class TestDbContextFactory
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName)
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
         var context = new AppDbContext(options);
@@ -29,9 +32,9 @@ public static class TestDbContextFactory
     /// <summary>
     /// Crée un contexte avec des données de test préremplies
     /// </summary>
-    public static AppDbContext CreateSeededContext()
+    public static AppDbContext CreateSeededContext(string? databaseName = null)
     {
-        var context = CreateInMemoryContext();
+        var context = CreateInMemoryContext(databaseName);
         SeedTestData(context);
         return context;
     }

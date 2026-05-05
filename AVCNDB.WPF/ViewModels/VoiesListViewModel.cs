@@ -115,7 +115,7 @@ public partial class VoiesListViewModel : ViewModelBase
                     var updated = await _syncService.RenameVoieInMedicsAsync(oldName, EditItemName);
                     if (updated > 0)
                     {
-                        await _dialogService.ShowInfoAsync("Synchronisation",
+                        await _dialogService.ShowSuccessAsync("Synchronisation",
                             $"Voie renommée dans {updated} médicament(s).");
                     }
                 }
@@ -135,6 +135,7 @@ public partial class VoiesListViewModel : ViewModelBase
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Voies", SelectedVoie != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
+            await _dialogService.ShowSuccessAsync("Succès", "Voie sauvegardée avec succès.");
         }, "Sauvegarde...");
     }
 

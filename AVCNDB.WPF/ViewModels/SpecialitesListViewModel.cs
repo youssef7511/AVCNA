@@ -129,6 +129,7 @@ public partial class SpecialitesListViewModel : ViewModelBase
 
             IsEditing = false;
             await LoadDataAsync();
+            await _dialogService.ShowSuccessAsync("Succès", "Spécialité sauvegardée avec succès.");
         }, "Sauvegarde...");
     }
 

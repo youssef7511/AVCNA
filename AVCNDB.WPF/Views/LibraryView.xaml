@@ -39,11 +39,11 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Flask" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="DCI" Style="{StaticResource LibraryTabHeaderText}"/>
+                        <materialDesign:PackIcon Kind="Stethoscope" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Specialites" Style="{StaticResource LibraryTabHeaderText}"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:DciListView DataContext="{Binding DciListViewModel}"/>
+                <views:SpecialitesListView DataContext="{Binding SpecialitesListViewModel}"/>
             </TabItem>
 
             <TabItem>
@@ -59,11 +59,11 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Factory" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Labos" Style="{StaticResource LibraryTabHeaderText}"/>
+                        <materialDesign:PackIcon Kind="Flask" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="DCI" Style="{StaticResource LibraryTabHeaderText}"/>
                     </StackPanel>
                 </TabItem.Header>
-                <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
+                <views:DciListView DataContext="{Binding DciListViewModel}"/>
             </TabItem>
 
             <TabItem>
@@ -89,16 +89,6 @@
             <TabItem>
                 <TabItem.Header>
                     <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
-                        <materialDesign:PackIcon Kind="Stethoscope" Width="18" Height="18" VerticalAlignment="Center"/>
-                        <TextBlock Text="Specialites" Style="{StaticResource LibraryTabHeaderText}"/>
-                    </StackPanel>
-                </TabItem.Header>
-                <views:SpecialitesListView DataContext="{Binding SpecialitesListViewModel}"/>
-            </TabItem>
-
-            <TabItem>
-                <TabItem.Header>
-                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
                         <materialDesign:PackIcon Kind="PackageVariant" Width="18" Height="18" VerticalAlignment="Center"/>
                         <TextBlock Text="Presents" Style="{StaticResource LibraryTabHeaderText}"/>
                     </StackPanel>
@@ -114,6 +104,16 @@
                     </StackPanel>
                 </TabItem.Header>
                 <views:PosoListView DataContext="{Binding PosoListViewModel}"/>
+            </TabItem>
+
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Style="{StaticResource LibraryTabHeaderPanel}">
+                        <materialDesign:PackIcon Kind="Factory" Width="18" Height="18" VerticalAlignment="Center"/>
+                        <TextBlock Text="Labos" Style="{StaticResource LibraryTabHeaderText}"/>
+                    </StackPanel>
+                </TabItem.Header>
+                <views:LabosListView DataContext="{Binding LabosListViewModel}"/>
             </TabItem>
 
             <TabItem>

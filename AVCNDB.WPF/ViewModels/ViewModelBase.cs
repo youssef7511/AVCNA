@@ -164,7 +164,20 @@ public abstract partial class ViewModelBase : ObservableObject, INavigationAware
                     await App.Current.Dispatcher.InvokeAsync(async () => await action());
                 }
             }
-            catch (TaskCanceledException) { /* expected when user types fast */ }
+            catch (TaskCanceledException) { /* expected — user typed again before delay elapsed */ }
+            catch (OperationCanceledException) { /* same, from cancellation token */ }
+            catch (Exception ex)
+            {
+                // Unhandled exception in debounced action — log and surface via dispatcher.
+                // InvokeAsync is intentionally fire-and-forget here (we're inside a catch block).
+                Serilog.Log.Error(ex, "DebounceSearch action threw an unexpected exception");
+                _ = App.Current.Dispatcher.InvokeAsync(() =>
+                    System.Windows.MessageBox.Show(
+                        $"Erreur lors de la recherche : {ex.Message}",
+                        "Erreur",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error));
+            }
         }, token);
     }
 

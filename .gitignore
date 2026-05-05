@@ -2,6 +2,11 @@
 bin/
 obj/
 
+# Secrets — never commit API keys
+**/secrets.json
+**/*.pfx
+**/*.p12
+
 # User-specific files
 *.user
 *.userosscache

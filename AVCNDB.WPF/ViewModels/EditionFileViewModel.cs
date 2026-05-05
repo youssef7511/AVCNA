@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
+using AVCNDB.WPF.Views;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -49,6 +50,8 @@ public partial class EditionFileViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     private string _filterType = "Tous";
+
+    public EditionSourceType[] SourceTypes { get; } = Enum.GetValues<EditionSourceType>();
 
     // ─── Constructor ─────────────────────────────────────────────────────
 
@@ -102,6 +105,41 @@ public partial class EditionFileViewModel : ViewModelBase
                 return;
             }
 
+            // 1b. Show header warnings if any (fuzzy corrections + unrecognized columns)
+            if (importResult.HeaderWarnings.Count > 0)
+            {
+                var warningLines = new List<string>();
+
+                if (importResult.WasTransposed)
+                    warningLines.Add("⚠ Orientation verticale détectée — données transposées automatiquement.\n");
+
+                var corrected = importResult.HeaderWarnings
+                    .Where(w => w.Type == HeaderWarning.WarningType.FuzzyCorrected).ToList();
+                var unrecognized = importResult.HeaderWarnings
+                    .Where(w => w.Type == HeaderWarning.WarningType.Unrecognized).ToList();
+
+                if (corrected.Count > 0)
+                {
+                    warningLines.Add("En-têtes corrigés automatiquement :");
+                    foreach (var w in corrected)
+                        warningLines.Add($"  • \"{w.OriginalHeader}\" → \"{w.CorrectedTo}\" ({w.MappedField}, score: {w.FuzzyScore})");
+                }
+
+                if (unrecognized.Count > 0)
+                {
+                    warningLines.Add("\nColonnes ignorées (non reconnues) :");
+                    foreach (var w in unrecognized)
+                        warningLines.Add($"  • \"{w.OriginalHeader}\" (meilleur score: {w.FuzzyScore})");
+                }
+
+                await _dialogService.ShowWarningAsync("Avertissements d'import", string.Join("\n", warningLines));
+            }
+            else if (importResult.WasTransposed)
+            {
+                await _dialogService.ShowWarningAsync("Orientation",
+                    "Orientation verticale détectée — les données ont été transposées automatiquement.");
+            }
+
             // 2. Run ML detection
             var unknownCount = await _editionFileService.ValidateAgainstLibraryAsync(importResult.Rows);
 
@@ -140,9 +178,11 @@ public partial class EditionFileViewModel : ViewModelBase
     {
         if (SelectedRow == null) return;
 
-        var confirmed = await _dialogService.ShowConfirmAsync(
-            "Approuver la ligne",
-            $"Ajouter les données inconnues de '{SelectedRow.ItemName}' à la bibliothèque et insérer le médicament ?");
+        var message = $"Ajouter les données inconnues de '{SelectedRow.ItemName}' à la bibliothèque et insérer le médicament ?";
+        if (SelectedRow.IsModified)
+            message += "\n\n⚠ Cette ligne a été modifiée manuellement.";
+
+        var confirmed = await _dialogService.ShowConfirmAsync("Approuver la ligne", message);
 
         if (!confirmed) return;
 
@@ -180,6 +220,7 @@ public partial class EditionFileViewModel : ViewModelBase
     {
         if (SelectedRow == null) return;
         SelectedRow.Row.ActionFlag = ActionFlag.Nouveau;
+        ApplyFilter();
     }
 
     /// <summary>
@@ -190,6 +231,7 @@ public partial class EditionFileViewModel : ViewModelBase
     {
         if (SelectedRow == null) return;
         SelectedRow.Row.ActionFlag = ActionFlag.MarquerSuppression;
+        ApplyFilter();
     }
 
     /// <summary>
@@ -200,6 +242,7 @@ public partial class EditionFileViewModel : ViewModelBase
     {
         if (SelectedRow == null) return;
         SelectedRow.Row.ActionFlag = ActionFlag.Reinitialiser;
+        ApplyFilter();
     }
 
     /// <summary>
@@ -214,15 +257,84 @@ public partial class EditionFileViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Similarity search for a selected row
+    /// Similarity search for a selected row — opens dialog with similar medics from DB
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExecuteRowAction))]
     private async Task SimilaritySearchAsync()
     {
         if (SelectedRow == null) return;
-        await _dialogService.ShowInfoAsync(
-            "Recherche de médicament similaire",
-            $"Recherche pour : {SelectedRow.ItemName}");
+
+        try
+        {
+            var dialog = App.GetService<SimilaritySearchDialog>();
+            dialog.Owner = System.Windows.Application.Current.MainWindow;
+            await dialog.InitializeAsync(SelectedRow.Row);
+            dialog.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur",
+                $"Impossible d'ouvrir la recherche similaire.\n\n{ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Approve all approvable rows in a batch
+    /// </summary>
+    [RelayCommand]
+    private async Task ApproveAllAsync()
+    {
+        var approvableRows = _allRows
+            .Where(r => r.Row.ActionFlag == ActionFlag.AjouterNew)
+            .ToList();
+
+        if (approvableRows.Count == 0)
+        {
+            await _dialogService.ShowInfoAsync("Aucune ligne", "Aucune ligne à approuver.");
+            return;
+        }
+
+        var modifiedCount = approvableRows.Count(r => r.IsModified);
+        var message = $"Approuver {approvableRows.Count} ligne(s) ?";
+        if (modifiedCount > 0)
+            message += $"\n\n⚠ {modifiedCount} ligne(s) ont été modifiées manuellement.";
+
+        var confirmed = await _dialogService.ShowConfirmAsync("Approuver tout", message);
+        if (!confirmed) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var successCount = 0;
+            var failedRows = new List<string>();
+            foreach (var row in approvableRows)
+            {
+                try
+                {
+                    await _editionFileService.ApproveRowAsync(row.Row);
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    failedRows.Add($"Ligne {row.Row.LineNumber} ({row.ItemName}): {ex.Message}");
+                }
+            }
+            ApprovedRowCount += successCount;
+            UnknownRowCount = _allRows.Count(r => r.HasUnknownFields);
+            ApplyFilter();
+
+            if (failedRows.Count > 0)
+            {
+                await _dialogService.ShowWarningAsync("Approbation partielle",
+                    $"{successCount} ligne(s) approuvée(s), {failedRows.Count} échec(s) :\n" +
+                    string.Join("\n", failedRows.Take(10)));
+            }
+            else
+            {
+                await _dialogService.ShowSuccessAsync("Approbation en lot",
+                    $"{successCount} ligne(s) approuvée(s) avec succès.");
+            }
+        }, "Approbation en lot...");
     }
 
     /// <summary>

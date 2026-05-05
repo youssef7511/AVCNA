@@ -228,7 +228,14 @@ public partial class SettingsViewModel : ViewModelBase
     {
         var appSettingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
 
-        var json = File.ReadAllText(appSettingsPath);
+        // Utiliser FileStream avec FileShare.None pour éviter les conflits de lecture/écriture
+        string json;
+        using (var fs = new FileStream(appSettingsPath, FileMode.Open, FileAccess.Read, FileShare.None))
+        using (var reader = new StreamReader(fs))
+        {
+            json = reader.ReadToEnd();
+        }
+
         var doc = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip })!;
 
         var connStrings = doc["ConnectionStrings"]?.AsObject();
@@ -238,7 +245,12 @@ public partial class SettingsViewModel : ViewModelBase
         }
 
         var options = new JsonSerializerOptions { WriteIndented = true };
-        File.WriteAllText(appSettingsPath, doc.ToJsonString(options));
+
+        using (var fs = new FileStream(appSettingsPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        using (var writer = new StreamWriter(fs))
+        {
+            writer.Write(doc.ToJsonString(options));
+        }
     }
 
     // ──────────────────────────────────────────────
