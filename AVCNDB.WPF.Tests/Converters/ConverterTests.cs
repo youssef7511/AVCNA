@@ -204,4 +204,27 @@ public class ConverterTests
     }
 
     #endregion
+
+    #region LevelToSeverityKeyConverter Tests
+
+    [Theory]
+    [InlineData("Contre-indication",       "critical")]
+    [InlineData("Contre-indiqué",          "critical")]
+    [InlineData("Association déconseillée","discouraged")]
+    [InlineData("Déconseillé",             "discouraged")]
+    [InlineData("Précaution d'emploi",     "caution")]
+    [InlineData("Précaution",              "caution")]
+    [InlineData("A surveiller",            "monitor")]
+    [InlineData("À surveiller",            "monitor")]
+    [InlineData("",                        "unknown")]
+    [InlineData("Niveau bizarre",          "unknown")]
+    [InlineData(null,                      "unknown")]
+    public void LevelToSeverityKeyConverter_MapsAllKnownLevels(string? input, string expected)
+    {
+        var converter = new LevelToSeverityKeyConverter();
+        var result = converter.Convert(input, typeof(string), null, CultureInfo.InvariantCulture);
+        result.Should().Be(expected);
+    }
+
+    #endregion
 }

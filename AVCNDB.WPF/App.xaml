@@ -29,6 +29,7 @@
             <converters:RatioToHeightConverter x:Key="RatioToHeight"/>
             <converters:PercentageToArcGeometryConverter x:Key="PercentArcConverter"/>
             <converters:MonthsToPolylineConverter x:Key="MonthsToPolyline"/>
+            <converters:LevelToSeverityKeyConverter x:Key="LevelToSeverityKey"/>
 
             <!-- ============================================
                  OVERRIDES MATERIAL DESIGN

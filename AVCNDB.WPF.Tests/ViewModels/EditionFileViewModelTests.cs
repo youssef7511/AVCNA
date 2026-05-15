@@ -17,7 +17,14 @@ public class EditionFileViewModelTests
     {
         editionMock ??= new Mock<IEditionFileService>();
         dialogMock ??= new Mock<IDialogService>();
-        return new EditionFileViewModel(editionMock.Object, dialogMock.Object);
+        return new EditionFileViewModel(
+            editionMock.Object,
+            dialogMock.Object,
+            new Mock<IRepository<Formes>>().Object,
+            new Mock<IRepository<Labos>>().Object,
+            new Mock<IRepository<Families>>().Object,
+            new Mock<IRepository<Voies>>().Object,
+            new Mock<IRepository<Specialites>>().Object);
     }
 
     private void SetAllRows(EditionFileViewModel vm, List<EditionRowViewModel> rows)
