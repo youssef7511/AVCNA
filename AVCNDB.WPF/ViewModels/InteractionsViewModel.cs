@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
+using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
@@ -7,193 +8,117 @@ using AVCNDB.WPF.Models;
 namespace AVCNDB.WPF.ViewModels;
 
 /// <summary>
-/// ViewModel pour la gestion des interactions médicamenteuses
+/// ViewModel for the Interactions page.
+///
+/// User picks drug A and drug B (each search box renders results as
+/// drug-name on top, "DCI: {dci1} · Voie: {voie}" sublabel underneath).
+/// On *Analyser avec IA*: the local `interact` table is queried for the
+/// resolved (DCI × Voie) pair, then OpenRouter is called for a fresh
+/// analysis that the user can approve into the local table.
 /// </summary>
 public partial class InteractionsViewModel : ViewModelBase
 {
-    private readonly IRepository<Interact> _repository;
-    private readonly IRepository<Dci> _dciRepository;
+    private readonly IRepository<Interact> _interactRepository;
+    private readonly IRepository<Medic> _medicRepository;
+    private readonly IOpenRouterService _openRouterService;
     private readonly IDialogService _dialogService;
     private readonly IPdfService _pdfService;
+    private readonly IMLPfeService _mlPfeService;
 
-    // ── Résultats ──
-    [ObservableProperty]
-    private ObservableCollection<Interact> _interactions = new();
+    /// <summary>
+    /// CancellationTokenSource for the in-flight AI analysis. Cancelled and
+    /// replaced at the start of every AnalyzeWithAiAsync, and from the
+    /// view's Unloaded handler via <see cref="CancelInFlightAnalysis"/>.
+    /// </summary>
+    private CancellationTokenSource? _analysisCts;
 
-    [ObservableProperty]
-    private bool _hasResults;
+    /// <summary>Guards <see cref="ApproveAndSaveInteractionCommand"/> against double-click.</summary>
+    private bool _isSaving;
 
-    [ObservableProperty]
-    private bool _noResults = true;
+    // ── Drug A slot ──
+    [ObservableProperty] private string _drugASearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Medic> _drugASearchResults = new();
+    [ObservableProperty] private Medic? _selectedDrugA;
+    [ObservableProperty] private bool _isDrugASearchRunning;
 
-    // ── Panneau gauche : recherche et sélection DCI ──
-    [ObservableProperty]
-    private string _dciSearchText = string.Empty;
+    // ── Drug B slot ──
+    [ObservableProperty] private string _drugBSearchText = string.Empty;
+    [ObservableProperty] private ObservableCollection<Medic> _drugBSearchResults = new();
+    [ObservableProperty] private Medic? _selectedDrugB;
+    [ObservableProperty] private bool _isDrugBSearchRunning;
 
-    [ObservableProperty]
-    private ObservableCollection<DciSelectItem> _availableDcis = new();
+    // ── Local lookup ──
+    [ObservableProperty] private ObservableCollection<Interact> _localInteractions = new();
 
-    [ObservableProperty]
-    private ObservableCollection<DciSelectItem> _selectedDcis = new();
+    // ── AI pending result ──
+    [ObservableProperty] private bool _isDeepAnalysisRunning;
+    [ObservableProperty] private bool _deepAnalysisHasPendingResult;
+    [ObservableProperty] private string _deepAnalysisLevel = string.Empty;
+    [ObservableProperty] private string _deepAnalysisDescription = string.Empty;
+    [ObservableProperty] private string _deepAnalysisMecanisme = string.Empty;
+    [ObservableProperty] private string _deepAnalysisConduite = string.Empty;
 
-    [ObservableProperty]
-    private bool _canAnalyze;
+    // ── Derived flags ──
+    public bool CanAnalyze =>
+        SelectedDrugA != null && SelectedDrugB != null && !IsDeepAnalysisRunning;
+
+    public bool HasResults =>
+        LocalInteractions.Count > 0 || DeepAnalysisHasPendingResult;
+
+    public bool NoResults => !HasResults;
 
     public InteractionsViewModel(
-        IRepository<Interact> repository,
-        IRepository<Dci> dciRepository,
+        IRepository<Interact> interactRepository,
+        IRepository<Medic> medicRepository,
+        IOpenRouterService openRouterService,
         IDialogService dialogService,
-        IPdfService pdfService)
+        IPdfService pdfService,
+        IMLPfeService mlPfeService)
     {
-        _repository = repository;
-        _dciRepository = dciRepository;
+        _interactRepository = interactRepository;
+        _medicRepository = medicRepository;
+        _openRouterService = openRouterService;
         _dialogService = dialogService;
         _pdfService = pdfService;
-
-        _ = LoadDcisAsync();
+        _mlPfeService = mlPfeService;
     }
 
-    private async Task LoadDcisAsync()
-    {
-        await ExecuteAsync(async () =>
-        {
-            var dcis = await _dciRepository.GetAllAsync();
-            AvailableDcis = new ObservableCollection<DciSelectItem>(
-                dcis.OrderBy(d => d.itemname)
-                    .Select(d => new DciSelectItem { Dciname = d.itemname }));
-        }, "Chargement des DCI...");
-    }
+    // ── Commands (skeleton; bodies filled in by later tasks) ──
 
-    partial void OnDciSearchTextChanged(string value)
-    {
-        DebounceSearch(() => FilterDcisAsync(value));
-    }
+    [RelayCommand]
+    private Task RunDrugASearch() => Task.CompletedTask;
 
-    private async Task FilterDcisAsync(string search)
-    {
-        var dcis = string.IsNullOrWhiteSpace(search)
-            ? await _dciRepository.GetAllAsync()
-            : await _dciRepository.FindAsync(d => d.itemname.Contains(search));
+    [RelayCommand]
+    private Task RunDrugBSearch() => Task.CompletedTask;
 
-        AvailableDcis = new ObservableCollection<DciSelectItem>(
-            dcis.OrderBy(d => d.itemname)
-                .Select(d => new DciSelectItem
-                {
-                    Dciname = d.itemname,
-                    IsSelected = SelectedDcis.Any(s => s.Dciname == d.itemname)
-                }));
+    [RelayCommand]
+    private void ClearDrugA() { SelectedDrugA = null; }
+
+    [RelayCommand]
+    private void ClearDrugB() { SelectedDrugB = null; }
+
+    [RelayCommand]
+    private Task AnalyzeWithAi() => Task.CompletedTask;
+
+    [RelayCommand]
+    private Task ApproveAndSaveInteraction() => Task.CompletedTask;
+
+    [RelayCommand]
+    private void DiscardDeepAnalysis()
+    {
+        DeepAnalysisLevel = string.Empty;
+        DeepAnalysisDescription = string.Empty;
+        DeepAnalysisMecanisme = string.Empty;
+        DeepAnalysisConduite = string.Empty;
+        DeepAnalysisHasPendingResult = false;
     }
 
     [RelayCommand]
-    private void SearchDci() { /* triggered by Enter key, OnDciSearchTextChanged handles it */ }
+    private Task ExportPdf() => Task.CompletedTask;
 
     [RelayCommand]
-    private void AddDci(DciSelectItem? dci)
-    {
-        if (dci == null || string.IsNullOrWhiteSpace(dci.Dciname)) return;
-        if (SelectedDcis.Any(s => s.Dciname == dci.Dciname)) return;
+    private Task LaunchMlPfe() => Task.CompletedTask;
 
-        SelectedDcis.Add(new DciSelectItem { Dciname = dci.Dciname, IsSelected = true });
-        dci.IsSelected = true;
-        CanAnalyze = SelectedDcis.Count >= 2;
-    }
-
-    [RelayCommand]
-    private void RemoveDci(DciSelectItem? dci)
-    {
-        if (dci == null) return;
-
-        var item = SelectedDcis.FirstOrDefault(s => s.Dciname == dci.Dciname);
-        if (item != null) SelectedDcis.Remove(item);
-
-        // Also uncheck in available list
-        var available = AvailableDcis.FirstOrDefault(a => a.Dciname == dci.Dciname);
-        if (available != null) available.IsSelected = false;
-
-        CanAnalyze = SelectedDcis.Count >= 2;
-    }
-
-    [RelayCommand]
-    private async Task Analyze()
-    {
-        if (SelectedDcis.Count < 2)
-        {
-            await _dialogService.ShowWarningAsync("Attention",
-                "Veuillez sélectionner au moins 2 DCI pour analyser les interactions.");
-            return;
-        }
-
-        await ExecuteAsync(async () =>
-        {
-            var dciNames = SelectedDcis.Select(d => d.Dciname).ToList();
-            var found = new List<Interact>();
-
-            for (int i = 0; i < dciNames.Count; i++)
-            {
-                for (int j = i + 1; j < dciNames.Count; j++)
-                {
-                    var d1 = dciNames[i];
-                    var d2 = dciNames[j];
-
-                    var interactions = await _repository.FindAsync(inter =>
-                        (inter.dci1.Contains(d1) && inter.dci2.Contains(d2)) ||
-                        (inter.dci1.Contains(d2) && inter.dci2.Contains(d1)));
-
-                    found.AddRange(interactions);
-                }
-            }
-
-            Interactions = new ObservableCollection<Interact>(found);
-            HasResults = found.Count > 0;
-            NoResults = found.Count == 0;
-        }, "Analyse en cours...");
-    }
-
-    [RelayCommand]
-    private async Task ExportPdf()
-    {
-        if (!HasResults && SelectedDcis.Count == 0)
-        {
-            await _dialogService.ShowWarningAsync("Attention",
-                "Veuillez d'abord sélectionner des DCI et lancer une analyse.");
-            return;
-        }
-
-        var filePath = _dialogService.ShowSaveFileDialog(
-            "PDF Files|*.pdf",
-            $"Analyse_Interactions_{DateTime.Now:yyyyMMdd_HHmm}",
-            "Exporter l'analyse");
-
-        if (!string.IsNullOrEmpty(filePath))
-        {
-            try
-            {
-                var dciNames = SelectedDcis.Select(d => d.Dciname);
-                await _pdfService.GenerateInteractionReportAsync(dciNames, filePath);
-
-                if (System.IO.File.Exists(filePath))
-                {
-                    await _dialogService.ShowSuccessAsync("Export réussi",
-                        $"Rapport d'interactions exporté vers :\n{filePath}");
-                }
-            }
-            catch (Exception ex)
-            {
-                await _dialogService.ShowErrorAsync("Erreur d'export",
-                    $"Impossible de générer le PDF :\n{ex.Message}");
-            }
-        }
-    }
-}
-
-/// <summary>
-/// Item de sélection DCI pour l'analyse d'interactions
-/// </summary>
-public partial class DciSelectItem : ObservableObject
-{
-    [ObservableProperty]
-    private string _dciname = string.Empty;
-
-    [ObservableProperty]
-    private bool _isSelected;
+    /// <summary>Public entry point for the view's Unloaded handler.</summary>
+    public void CancelInFlightAnalysis() => _analysisCts?.Cancel();
 }
