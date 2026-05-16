@@ -114,6 +114,11 @@ public partial class InteractionsViewModel : ViewModelBase
             var hits = await _medicRepository.FindAsync(
                 m => m.itemname.Contains(text) && m.isactive == 1);
 
+            // Stale-write guard: if the user kept typing while we were awaiting,
+            // the current DrugASearchText no longer matches the query we issued.
+            // Discard the result so we don't overwrite a newer search's output.
+            if ((DrugASearchText?.Trim() ?? string.Empty) != text) return;
+
             DrugASearchResults = new ObservableCollection<Medic>(
                 hits.OrderBy(m => m.itemname).Take(50));
         }
@@ -138,6 +143,11 @@ public partial class InteractionsViewModel : ViewModelBase
         {
             var hits = await _medicRepository.FindAsync(
                 m => m.itemname.Contains(text) && m.isactive == 1);
+
+            // Stale-write guard: if the user kept typing while we were awaiting,
+            // the current DrugBSearchText no longer matches the query we issued.
+            // Discard the result so we don't overwrite a newer search's output.
+            if ((DrugBSearchText?.Trim() ?? string.Empty) != text) return;
 
             DrugBSearchResults = new ObservableCollection<Medic>(
                 hits.OrderBy(m => m.itemname).Take(50));
