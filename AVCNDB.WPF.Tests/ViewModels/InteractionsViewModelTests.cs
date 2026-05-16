@@ -277,4 +277,49 @@ public class InteractionsViewModelTests
             Times.Never);
         dialog.Verify(d => d.ShowWarningAsync("DCI manquante", It.IsAny<string>()), Times.Once);
     }
+
+    [Fact]
+    public async Task AnalyzeWithAi_AiFailure_ShowsError_KeepsLocalResults_AndClearsBusy()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out var openRouter, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+
+        var localRow = new Interact { dci1 = "A", voie1 = "Orale", dci2 = "B", voie2 = "Orale", level = "Précaution d'emploi" };
+        interactRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()))
+            .ReturnsAsync(new[] { localRow });
+
+        openRouter
+            .Setup(s => s.AnalyzeInteractionAsync("A", "Orale", "B", "Orale", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new System.Net.Http.HttpRequestException("Network 503"));
+
+        await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
+
+        vm.LocalInteractions.Should().HaveCount(1);
+        vm.DeepAnalysisHasPendingResult.Should().BeFalse();
+        vm.IsDeepAnalysisRunning.Should().BeFalse();
+        dialog.Verify(d => d.ShowErrorAsync("Analyse IA", It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task AnalyzeWithAi_Cancellation_DoesNotShowError()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out var openRouter, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+        interactRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()))
+            .ReturnsAsync(Array.Empty<Interact>());
+        openRouter
+            .Setup(s => s.AnalyzeInteractionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
+
+        dialog.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        vm.IsDeepAnalysisRunning.Should().BeFalse();
+    }
 }
