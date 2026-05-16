@@ -118,6 +118,73 @@ public class PdfService : IPdfService
         await Task.Run(() => document.GeneratePdf(outputPath));
     }
 
+    public async Task GenerateInteractionReportForDrugsAsync(
+        AVCNDB.WPF.Models.Medic drugA,
+        AVCNDB.WPF.Models.Medic drugB,
+        AVCNDB.WPF.Contracts.Services.InteractionAnalysis? aiPending,
+        string outputPath)
+    {
+        static IEnumerable<string> AllDcis(AVCNDB.WPF.Models.Medic m) =>
+            new[] { m.dci1, m.dci2, m.dci3, m.dci4 }
+                .Where(d => !string.IsNullOrWhiteSpace(d))
+                .Select(d => d!.Trim());
+
+        var dcisA = AllDcis(drugA).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var dcisB = AllDcis(drugB).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (dcisA.Count == 0 || dcisB.Count == 0)
+        {
+            // Fallback to the legacy path with whatever DCIs are present.
+            var fallback = dcisA.Concat(dcisB).ToList();
+            await GenerateInteractionReportAsync(fallback, outputPath);
+            return;
+        }
+
+        await using var context = await _contextFactory.CreateDbContextAsync();
+        // Cross-product: any interaction where one drug's DCI matches dci1 and the other drug's DCI matches dci2 (or reversed).
+        var interactions = await context.Interacts
+            .Where(i =>
+                (dcisA.Contains(i.dci1) && dcisB.Contains(i.dci2)) ||
+                (dcisB.Contains(i.dci1) && dcisA.Contains(i.dci2)))
+            .ToListAsync();
+
+        // Surface the AI pending result as a synthetic Interact row at the top of the list,
+        // marked clearly so the PDF can highlight it.
+        var rows = new List<Models.Interact>();
+        if (aiPending != null)
+        {
+            rows.Add(new Models.Interact
+            {
+                dci1 = drugA.dci1 ?? string.Empty,
+                dci2 = drugB.dci1 ?? string.Empty,
+                voie1 = drugA.voie ?? string.Empty,
+                voie2 = drugB.voie ?? string.Empty,
+                level = $"[IA] {aiPending.Level}",
+                description = aiPending.Description,
+                mecanisme = aiPending.Mecanisme,
+                conduite = aiPending.Conduite
+            });
+        }
+        rows.AddRange(interactions);
+
+        var dciListForHeader = dcisA.Concat(dcisB).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(40);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily("Segoe UI"));
+
+                page.Header().Element(c => ComposeHeader(c, "Rapport d'Interactions Médicamenteuses"));
+                page.Content().Element(c => ComposeInteractionContent(c, rows, dciListForHeader));
+                page.Footer().Element(ComposeFooter);
+            });
+        });
+
+        await Task.Run(() => document.GeneratePdf(outputPath));
+    }
+
     public async Task GenerateCustomReportAsync<T>(IEnumerable<T> data, string title, string outputPath) where T : class
     {
         var dataList = data.ToList();

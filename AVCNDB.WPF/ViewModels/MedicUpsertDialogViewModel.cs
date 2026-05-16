@@ -15,6 +15,7 @@ namespace AVCNDB.WPF.ViewModels;
 public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErrorInfo
 {
     // ── INotifyDataErrorInfo plumbing ──
+    private bool _isInitializing;
     private readonly Dictionary<string, List<string>> _fieldErrors = new();
     public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
 
@@ -63,9 +64,18 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         SetError(nameof(Medic.itemname),  ValidationRules.Required(Medic.itemname, "Nom du médicament")
                                        ?? ValidationRules.MaxLength(Medic.itemname, 150, "Nom du médicament"));
         SetError(nameof(Medic.barcode),   ValidationRules.Barcode13(Medic.barcode));
-        SetError(nameof(Medic.pctcode),   ValidationRules.MaxLength(Medic.pctcode, 20, "Code PCT"));
+        SetError(nameof(Medic.pctcode),   ValidationRules.Required(Medic.pctcode, "Code PCT")
+                                       ?? ValidationRules.MaxLength(Medic.pctcode, 20, "Code PCT"));
         SetError(nameof(Medic.amm),       ValidationRules.MaxLength(Medic.amm, 30, "N° AMM"));
-        SetError(nameof(Medic.dci1),      ValidationRules.Required(Medic.dci1, "DCI principal"));
+        // DCI is optional — no Required check on dci1
+        SetError(nameof(Medic.fam1),      ValidationRules.Required(Medic.fam1, "Famille"));
+        // Famille order: fam2 requires fam1, fam3 requires fam2, family requires fam1
+        SetError("fam2Order", !string.IsNullOrWhiteSpace(Medic.fam2) && string.IsNullOrWhiteSpace(Medic.fam1)
+            ? "Famille 2 ne peut pas être renseignée sans Famille 1." : null);
+        SetError("fam3Order", !string.IsNullOrWhiteSpace(Medic.fam3) && string.IsNullOrWhiteSpace(Medic.fam2)
+            ? "Famille 3 ne peut pas être renseignée sans Famille 2." : null);
+        SetError("familyOrder", !string.IsNullOrWhiteSpace(Medic.family) && string.IsNullOrWhiteSpace(Medic.fam1)
+            ? "Famille 4 ne peut pas être renseignée sans Famille 1." : null);
         SetError(nameof(Medic.price),     ValidationRules.NonNegative(Medic.price, "Prix Fab. HT"));
         SetError(nameof(Medic.refprice),  ValidationRules.NonNegative(Medic.refprice, "Prix Hospitalier"));
         SetError(nameof(Medic.pamount),   ValidationRules.NonNegative(Medic.pamount, "PPV"));
@@ -78,9 +88,19 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         SetError("RefVsPpv",              ValidationRules.RefPriceNotAbovePpv(Medic.refprice, Medic.pamount));
     }
 
+    // Famille fill-state helpers — used by XAML IsEnabled bindings
+    public bool IsFam1Filled => !string.IsNullOrWhiteSpace(Medic?.fam1);
+    public bool IsFam2Filled => !string.IsNullOrWhiteSpace(Medic?.fam2);
+    public bool IsFam3Filled => !string.IsNullOrWhiteSpace(Medic?.fam3);
+
     partial void OnMedicChanged(Medic value)
     {
+        if (_isInitializing) return;
         ValidateAll();
+        RefreshComputedDciSummary();
+        OnPropertyChanged(nameof(IsFam1Filled));
+        OnPropertyChanged(nameof(IsFam2Filled));
+        OnPropertyChanged(nameof(IsFam3Filled));
     }
 
     partial void OnSelectedCompareDrugChanged(Medic? value)
@@ -104,9 +124,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     private readonly IRepository<Formes> _formeRepository;
     private readonly IRepository<Presents> _presentRepository;
     private readonly IRepository<Voies> _voieRepository;
-    private readonly IRepository<Catveic> _catveicRepository;
     private readonly IRepository<Interact> _interactRepository;
     private readonly IOpenRouterService _openRouterService;
+    private readonly IMLPfeService _mlPfeService;
     private readonly IDialogService _dialogService;
     private readonly MedicSyncService _syncService;
     private CancellationTokenSource? _analysisCts;
@@ -157,6 +177,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
     [ObservableProperty]
     private string _computedDenomination = string.Empty;
+
+    [ObservableProperty]
+    private string _computedDciSummary = string.Empty;
 
     [ObservableProperty]
     private string _computedPosology = string.Empty;
@@ -239,9 +262,6 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     [ObservableProperty]
     private ObservableCollection<Voies> _voies = new();
 
-    [ObservableProperty]
-    private ObservableCollection<Catveic> _catveics = new();
-
     /// <summary>Set to true when Save completes successfully; the dialog reads this to decide DialogResult.</summary>
     public bool SavedSuccessfully { get; private set; }
 
@@ -253,9 +273,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         IRepository<Formes> formeRepository,
         IRepository<Presents> presentRepository,
         IRepository<Voies> voieRepository,
-        IRepository<Catveic> catveicRepository,
         IRepository<Interact> interactRepository,
         IOpenRouterService openRouterService,
+        IMLPfeService mlPfeService,
         IDialogService dialogService,
         MedicSyncService syncService)
     {
@@ -266,11 +286,19 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         _formeRepository = formeRepository;
         _presentRepository = presentRepository;
         _voieRepository = voieRepository;
-        _catveicRepository = catveicRepository;
         _interactRepository = interactRepository;
         _openRouterService = openRouterService;
+        _mlPfeService = mlPfeService;
         _dialogService = dialogService;
         _syncService = syncService;
+    }
+
+    [RelayCommand]
+    private async Task LaunchMlPfeAsync()
+    {
+        var error = await _mlPfeService.LaunchAndOpenAsync();
+        if (error != null)
+            await _dialogService.ShowErrorAsync("IA · Contre-indications patient", error);
     }
 
     /// <summary>
@@ -279,28 +307,42 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     /// </summary>
     public async Task InitializeAsync(int? medicId)
     {
-        await LoadReferenceDataAsync();
-
-        if (medicId.HasValue)
+        _isInitializing = true;
+        try
         {
-            IsEditMode = true;
-            PageTitle = "Modifier le Médicament";
-            await LoadMedicAsync(medicId.Value);
-            await LoadInteractionsAsync();
+            await LoadReferenceDataAsync();
+
+            if (medicId.HasValue)
+            {
+                IsEditMode = true;
+                PageTitle = "Modifier le Médicament";
+                await LoadMedicAsync(medicId.Value);
+                await LoadInteractionsAsync();
+            }
+            else
+            {
+                IsEditMode = false;
+                PageTitle = "Nouveau Médicament";
+                Medic = new Medic { isactive = 1 };
+            }
+
+            // Snapshot must be taken AFTER the medic is fully loaded so that
+            // HasUnsavedChanges only fires when the user actually edits something.
+            TakeSnapshot();
+
+            DenominationRow = new ObservableCollection<Medic> { Medic };
+            RefreshComputedDenomination();
+            RefreshComputedDciSummary();
         }
-        else
+        finally
         {
-            IsEditMode = false;
-            PageTitle = "Nouveau Médicament";
-            Medic = new Medic { isactive = 1 };
+            _isInitializing = false;
+            // Clear any validation state accumulated during init — form starts clean.
+            _fieldErrors.Clear();
+            RebuildValidationMessages();
+            OnPropertyChanged(nameof(HasErrors));
+            SaveCommand.NotifyCanExecuteChanged();
         }
-
-        // Snapshot must be taken AFTER the medic is fully loaded so that
-        // HasUnsavedChanges only fires when the user actually edits something.
-        TakeSnapshot();
-
-        DenominationRow = new ObservableCollection<Medic> { Medic };
-        RefreshComputedDenomination();
     }
 
     private async Task LoadReferenceDataAsync()
@@ -324,9 +366,6 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
             var voies = await _voieRepository.GetAllAsync();
             Voies = new ObservableCollection<Voies>(voies);
-
-            var catveics = await _catveicRepository.GetAllAsync();
-            Catveics = new ObservableCollection<Catveic>(catveics);
         }, "Chargement des données de référence...");
     }
 
@@ -350,8 +389,10 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
         if (dcis.Count == 0) return;
 
+        var voie = Medic.voie?.Trim() ?? string.Empty;
         var all = await _interactRepository.FindAsync(i =>
-            dcis.Contains(i.dci1) || dcis.Contains(i.dci2));
+            (dcis.Contains(i.dci1) && (string.IsNullOrEmpty(i.voie1) || i.voie1 == voie)) ||
+            (dcis.Contains(i.dci2) && (string.IsNullOrEmpty(i.voie2) || i.voie2 == voie)));
 
         MedicInteractions = new ObservableCollection<Interact>(all);
     }
@@ -368,6 +409,27 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public void RefreshComputedDenomination()
     {
         ComputedDenomination = MedicDenominationHelper.BuildDenomination(Medic);
+        RefreshComputedDciSummary();
+    }
+
+    public void RefreshComputedDciSummary()
+    {
+        if (Medic == null) { ComputedDciSummary = string.Empty; return; }
+        var parts = new[]
+        {
+            BuildDciPart(Medic.dci1, Medic.dose1, Medic.u1),
+            BuildDciPart(Medic.dci2, Medic.dose2, Medic.u2),
+            BuildDciPart(Medic.dci3, Medic.dose3, Medic.u3),
+            BuildDciPart(Medic.dci4, Medic.dose4, Medic.u4),
+        }.Where(p => !string.IsNullOrWhiteSpace(p));
+        ComputedDciSummary = string.Join(" + ", parts);
+    }
+
+    private static string? BuildDciPart(string? dci, string? dose, string? unit)
+    {
+        if (string.IsNullOrWhiteSpace(dci)) return null;
+        var suffix = $"{dose?.Trim()} {unit?.Trim()}".Trim();
+        return string.IsNullOrWhiteSpace(suffix) ? dci.Trim() : $"{dci.Trim()} {suffix}";
     }
 
     // ── Posology builder ──
@@ -416,6 +478,14 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
                 ErrorMessage ?? "Veuillez corriger les erreurs avant de sauvegarder.");
             return;
         }
+
+        // Confirmation popup — required for security on every edit/create
+        var confirmTitle = IsEditMode ? "Confirmer la modification" : "Confirmer la création";
+        var confirmMsg = IsEditMode
+            ? $"Enregistrer les modifications apportées à\n« {Medic.itemname} » ?"
+            : $"Créer le nouveau médicament\n« {Medic.itemname} » ?";
+        var confirmed = await _dialogService.ShowConfirmAsync(confirmTitle, confirmMsg);
+        if (!confirmed) return;
 
         try
         {
@@ -594,10 +664,12 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
             {
                 dci1        = Medic.dci1.Trim(),
                 dci2        = SelectedCompareDrug.dci1.Trim(),
-                level       = DeepAnalysisLevel,
-                description = DeepAnalysisDescription,
-                mecanisme   = DeepAnalysisMecanisme,
-                conduite    = DeepAnalysisConduite,
+                voie1       = Medic.voie?.Trim() ?? string.Empty,
+                voie2       = SelectedCompareDrug.voie?.Trim() ?? string.Empty,
+                level       = Cap(DeepAnalysisLevel,       LevelMaxLength),
+                description = Cap(DeepAnalysisDescription, DescriptionMaxLength),
+                mecanisme   = Cap(DeepAnalysisMecanisme,   MecanismeMaxLength),
+                conduite    = Cap(DeepAnalysisConduite,    ConduiteMaxLength),
                 addedat     = now,
                 updatedat   = now
             };
@@ -613,7 +685,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         }
         catch (Exception ex)
         {
-            await _dialogService.ShowErrorAsync("Erreur", ex.Message);
+            await _dialogService.ShowErrorAsync("Erreur", FlattenError(ex));
         }
     }
 
@@ -623,6 +695,31 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         _analysisCts?.Cancel();
         DeepAnalysisHasPendingResult = false;
         DeepAnalysisLevel = DeepAnalysisDescription = DeepAnalysisMecanisme = DeepAnalysisConduite = string.Empty;
+    }
+
+    private static string FlattenError(Exception ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        var current = ex;
+        while (current != null)
+        {
+            if (sb.Length > 0) sb.Append("\n→ ");
+            sb.Append(current.Message);
+            current = current.InnerException;
+        }
+        return sb.ToString();
+    }
+
+    // Column bounds mirror StringLength attributes on Models/Interact.cs.
+    private const int LevelMaxLength       = 20;
+    private const int DescriptionMaxLength = 500;
+    private const int MecanismeMaxLength   = 200;
+    private const int ConduiteMaxLength    = 500;
+
+    private static string Cap(string? value, int max)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.Length <= max ? value : value.Substring(0, max - 1) + "…";
     }
 
     // INavigationAware — not used in dialog mode

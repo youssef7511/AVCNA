@@ -274,6 +274,31 @@ public partial class InteractionsViewModel : ViewModelBase
         }
     }
 
+    private static string FlattenError(Exception ex)
+    {
+        var sb = new System.Text.StringBuilder();
+        var current = ex;
+        while (current != null)
+        {
+            if (sb.Length > 0) sb.Append("\n→ ");
+            sb.Append(current.Message);
+            current = current.InnerException;
+        }
+        return sb.ToString();
+    }
+
+    // Column bounds mirror StringLength attributes on Models/Interact.cs.
+    private const int LevelMaxLength       = 20;
+    private const int DescriptionMaxLength = 500;
+    private const int MecanismeMaxLength   = 200;
+    private const int ConduiteMaxLength    = 500;
+
+    private static string Cap(string? value, int max)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        return value.Length <= max ? value : value.Substring(0, max - 1) + "…";
+    }
+
     private static string BuildAiErrorMessage(Exception ex)
     {
         // Map common HTTP statuses surfaced by OpenRouterService into user-readable French.
@@ -325,10 +350,10 @@ public partial class InteractionsViewModel : ViewModelBase
             {
                 dci1 = dciA, dci2 = dciB,
                 voie1 = voieA, voie2 = voieB,
-                level       = DeepAnalysisLevel,
-                description = DeepAnalysisDescription,
-                mecanisme   = DeepAnalysisMecanisme,
-                conduite    = DeepAnalysisConduite,
+                level       = Cap(DeepAnalysisLevel,       LevelMaxLength),
+                description = Cap(DeepAnalysisDescription, DescriptionMaxLength),
+                mecanisme   = Cap(DeepAnalysisMecanisme,   MecanismeMaxLength),
+                conduite    = Cap(DeepAnalysisConduite,    ConduiteMaxLength),
                 addedat     = now,
                 updatedat   = now
             };
@@ -350,7 +375,7 @@ public partial class InteractionsViewModel : ViewModelBase
         catch (Exception ex)
         {
             Serilog.Log.Error(ex, "ApproveAndSaveInteraction failed for {DciA} vs {DciB}", dciA, dciB);
-            await _dialogService.ShowErrorAsync("Erreur", ex.Message);
+            await _dialogService.ShowErrorAsync("Erreur", FlattenError(ex));
         }
         finally
         {
@@ -401,9 +426,18 @@ public partial class InteractionsViewModel : ViewModelBase
 
         try
         {
-            await _pdfService.GenerateInteractionReportAsync(
-                new[] { a.dci1.Trim(), b.dci1.Trim() },
-                filePath);
+            AVCNDB.WPF.Contracts.Services.InteractionAnalysis? aiPending = null;
+            if (DeepAnalysisHasPendingResult)
+            {
+                aiPending = new AVCNDB.WPF.Contracts.Services.InteractionAnalysis(
+                    DeepAnalysisLevel,
+                    DeepAnalysisDescription,
+                    DeepAnalysisMecanisme,
+                    DeepAnalysisConduite,
+                    string.Empty);
+            }
+
+            await _pdfService.GenerateInteractionReportForDrugsAsync(a, b, aiPending, filePath);
 
             if (System.IO.File.Exists(filePath))
             {

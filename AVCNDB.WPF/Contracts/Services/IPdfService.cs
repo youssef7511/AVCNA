@@ -32,6 +32,16 @@ public interface IPdfService
     /// <param name="dciNames">Noms des DCI à analyser</param>
     /// <param name="outputPath">Chemin du fichier de sortie</param>
     Task GenerateInteractionReportAsync(IEnumerable<string> dciNames, string outputPath);
+
+    /// <summary>
+    /// Generate an interaction report covering all DCIs of two drugs (combo expansion)
+    /// and optionally an AI pending analysis row.
+    /// </summary>
+    Task GenerateInteractionReportForDrugsAsync(
+        AVCNDB.WPF.Models.Medic drugA,
+        AVCNDB.WPF.Models.Medic drugB,
+        AVCNDB.WPF.Contracts.Services.InteractionAnalysis? aiPending,
+        string outputPath);
     
     /// <summary>
     /// Génère un rapport personnalisé

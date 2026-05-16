@@ -447,22 +447,54 @@ public class InteractionsViewModelTests
     }
 
     [Fact]
-    public async Task ExportPdf_PassesBothDciNames_ToPdfService()
+    public async Task ExportPdf_CallsGenerateInteractionReportForDrugsAsync()
     {
         var vm = BuildVm(out _, out _, out _, out var dialog, out var pdf, out _);
 
-        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "AMOXICILLINE", voie = "Orale" };
-        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "METHOTREXATE", voie = "Orale" };
+        var drugA = new Medic { recordid = 1, dci1 = "AMOXICILLINE", voie = "Orale" };
+        var drugB = new Medic { recordid = 2, dci1 = "METHOTREXATE", voie = "Orale" };
+        vm.SelectedDrugA = drugA;
+        vm.SelectedDrugB = drugB;
 
         dialog.Setup(d => d.ShowSaveFileDialog(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
               .Returns(@"C:\out\report.pdf");
-        pdf.Setup(p => p.GenerateInteractionReportAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>()))
+        pdf.Setup(p => p.GenerateInteractionReportForDrugsAsync(
+                It.IsAny<Medic>(), It.IsAny<Medic>(),
+                It.IsAny<InteractionAnalysis?>(), It.IsAny<string>()))
            .Returns(Task.CompletedTask);
 
         await vm.ExportPdfCommand.ExecuteAsync(null);
 
-        pdf.Verify(p => p.GenerateInteractionReportAsync(
-            It.Is<IEnumerable<string>>(seq => seq.SequenceEqual(new[] { "AMOXICILLINE", "METHOTREXATE" })),
+        pdf.Verify(p => p.GenerateInteractionReportForDrugsAsync(
+            drugA, drugB, null, @"C:\out\report.pdf"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExportPdf_IncludesAiPendingResult_WhenPresent()
+    {
+        var vm = BuildVm(out _, out _, out _, out var dialog, out var pdf, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+        vm.DeepAnalysisLevel = "Contre-indiqué";
+        vm.DeepAnalysisDescription = "desc";
+        vm.DeepAnalysisMecanisme = "mec";
+        vm.DeepAnalysisConduite = "cond";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        dialog.Setup(d => d.ShowSaveFileDialog(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+              .Returns(@"C:\out\report.pdf");
+        pdf.Setup(p => p.GenerateInteractionReportForDrugsAsync(
+                It.IsAny<Medic>(), It.IsAny<Medic>(),
+                It.IsAny<InteractionAnalysis?>(), It.IsAny<string>()))
+           .Returns(Task.CompletedTask);
+
+        await vm.ExportPdfCommand.ExecuteAsync(null);
+
+        pdf.Verify(p => p.GenerateInteractionReportForDrugsAsync(
+            It.IsAny<Medic>(), It.IsAny<Medic>(),
+            It.Is<InteractionAnalysis?>(a => a != null && a.Level == "Contre-indiqué" && a.Description == "desc"),
             @"C:\out\report.pdf"),
             Times.Once);
     }
@@ -476,7 +508,8 @@ public class InteractionsViewModelTests
 
         await vm.ExportPdfCommand.ExecuteAsync(null);
 
-        pdf.Verify(p => p.GenerateInteractionReportAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>()),
+        pdf.Verify(p => p.GenerateInteractionReportForDrugsAsync(
+            It.IsAny<Medic>(), It.IsAny<Medic>(), It.IsAny<InteractionAnalysis?>(), It.IsAny<string>()),
             Times.Never);
         dialog.Verify(d => d.ShowWarningAsync("Attention", It.IsAny<string>()), Times.Once);
     }
