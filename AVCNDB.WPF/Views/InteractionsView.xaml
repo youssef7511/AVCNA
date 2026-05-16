@@ -230,15 +230,318 @@
         </Border>
 
         <!-- ============================================
-             RESULTS AREA — filled in by Task 10
+             RESULTS AREA
         ============================================ -->
         <Grid Grid.Row="1">
-            <!-- TASK_10_RESULTS -->
-            <TextBlock Text="(Résultats — à implémenter en Task 10)"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"
-                       Foreground="{StaticResource TextSecondaryBrush}"
-                       FontStyle="Italic"/>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Toolbar -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource MaterialDesignPaper}"
+                    BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="0,0,0,1"
+                    Padding="16,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Style="{StaticResource TitleH3Style}"
+                               VerticalAlignment="Center">
+                        <Run Text="Résultats : "/>
+                        <Run Text="{Binding LocalInteractions.Count, Mode=OneWay}" FontWeight="Bold"/>
+                        <Run Text=" interaction(s) enregistrée(s)"/>
+                    </TextBlock>
+                    <Button Grid.Column="1"
+                            Command="{Binding ExportPdfCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            IsEnabled="{Binding HasResults}"
+                            Height="32" Padding="12,0">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Export PDF" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Scrolling stack of cards -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="24">
+
+                    <!-- Empty state when no drugs picked yet -->
+                    <StackPanel Visibility="{Binding NoResults, Converter={StaticResource BoolToVis}}"
+                                Margin="0,40,0,0"
+                                HorizontalAlignment="Center">
+                        <materialDesign:PackIcon Kind="ShieldSearch"
+                                                 Width="64" Height="64"
+                                                 Foreground="{StaticResource BorderBrush}"
+                                                 HorizontalAlignment="Center"/>
+                        <TextBlock Text="Aucune analyse pour le moment"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,12,0,4"/>
+                        <TextBlock Text="Sélectionnez deux médicaments puis cliquez 'Analyser avec IA'."
+                                   Style="{StaticResource SubtitleStyle}"
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Local interactions section -->
+                    <TextBlock Text="INTERACTIONS ENREGISTRÉES"
+                               FontWeight="SemiBold" FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding HasResults, Converter={StaticResource BoolToVis}}"
+                               Margin="0,0,0,8"/>
+
+                    <ItemsControl ItemsSource="{Binding LocalInteractions}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ElevatedCardStyle}" Margin="0,0,0,16" Padding="0">
+                                    <Grid>
+                                        <!-- Severity color bar — driven by LevelToSeverityKey -->
+                                        <Border HorizontalAlignment="Left" Width="6" CornerRadius="12,0,0,12"
+                                                Tag="{Binding level, Converter={StaticResource LevelToSeverityKey}}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="critical">
+                                                            <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="discouraged">
+                                                            <Setter Property="Background" Value="#FF9800"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="caution">
+                                                            <Setter Property="Background" Value="{StaticResource InfoBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="monitor">
+                                                            <Setter Property="Background" Value="#9E9E9E"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+
+                                        <StackPanel Margin="20,16">
+                                            <Grid Margin="0,0,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                    <Border Background="{StaticResource PrimaryLightBrush}" CornerRadius="6" Padding="10,5">
+                                                        <TextBlock Text="{Binding dci1}" FontWeight="SemiBold" FontSize="13"
+                                                                   Foreground="{StaticResource PrimaryDarkBrush}"/>
+                                                    </Border>
+                                                    <materialDesign:PackIcon Kind="SwapHorizontal" Width="22" Height="22" Margin="10,0"
+                                                                             VerticalAlignment="Center"
+                                                                             Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                    <Border Background="{StaticResource SecondaryLightBrush}" CornerRadius="6" Padding="10,5">
+                                                        <TextBlock Text="{Binding dci2}" FontWeight="SemiBold" FontSize="13"
+                                                                   Foreground="{StaticResource SecondaryDarkBrush}"/>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <Border Grid.Column="1" CornerRadius="6" Padding="10,5"
+                                                        Tag="{Binding level, Converter={StaticResource LevelToSeverityKey}}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="critical">
+                                                                    <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="discouraged">
+                                                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="caution">
+                                                                    <Setter Property="Background" Value="{StaticResource InfoLightBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="monitor">
+                                                                    <Setter Property="Background" Value="#EEEEEE"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding level}" FontWeight="SemiBold" FontSize="12"/>
+                                                </Border>
+                                            </Grid>
+
+                                            <TextBlock Text="{Binding description}" TextWrapping="Wrap" FontSize="13"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Margin="0,0,0,8"
+                                                       Visibility="{Binding description, Converter={StaticResource StringToVis}}"/>
+
+                                            <Border Background="{DynamicResource MaterialDesignBackground}" CornerRadius="6" Padding="12,10"
+                                                    Margin="0,0,0,8"
+                                                    Visibility="{Binding mecanisme, Converter={StaticResource StringToVis}}">
+                                                <StackPanel>
+                                                    <TextBlock Text="MÉCANISME" FontWeight="SemiBold" FontSize="11"
+                                                               Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="{Binding mecanisme}" TextWrapping="Wrap" FontSize="12"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Background="#E8F5E9" CornerRadius="6" Padding="12,10"
+                                                    Visibility="{Binding conduite, Converter={StaticResource StringToVis}}">
+                                                <StackPanel>
+                                                    <TextBlock Text="CONDUITE À TENIR" FontWeight="SemiBold" FontSize="11"
+                                                               Foreground="#2E7D32" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="{Binding conduite}" TextWrapping="Wrap" FontSize="12"
+                                                               Foreground="#1B5E20"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- AI pending card -->
+                    <TextBlock Text="ANALYSE IA — EN ATTENTE D'APPROBATION"
+                               FontWeight="SemiBold" FontSize="11"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               Visibility="{Binding DeepAnalysisHasPendingResult, Converter={StaticResource BoolToVis}}"
+                               Margin="0,8,0,8"/>
+
+                    <Border Visibility="{Binding DeepAnalysisHasPendingResult, Converter={StaticResource BoolToVis}}"
+                            Style="{StaticResource ElevatedCardStyle}"
+                            BorderBrush="{DynamicResource PrimaryHueMidBrush}"
+                            BorderThickness="1"
+                            Margin="0,0,0,16"
+                            Padding="0">
+                        <Grid>
+                            <Border HorizontalAlignment="Left" Width="6" CornerRadius="12,0,0,12"
+                                    Tag="{Binding DeepAnalysisLevel, Converter={StaticResource LevelToSeverityKey}}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="critical">
+                                                <Setter Property="Background" Value="{StaticResource ErrorBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="discouraged">
+                                                <Setter Property="Background" Value="#FF9800"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="caution">
+                                                <Setter Property="Background" Value="{StaticResource InfoBrush}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="monitor">
+                                                <Setter Property="Background" Value="#9E9E9E"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                            </Border>
+
+                            <StackPanel Margin="20,16">
+                                <Border CornerRadius="6" Padding="10,5"
+                                        HorizontalAlignment="Left"
+                                        Tag="{Binding DeepAnalysisLevel, Converter={StaticResource LevelToSeverityKey}}">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="critical">
+                                                    <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="discouraged">
+                                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="caution">
+                                                    <Setter Property="Background" Value="{StaticResource InfoLightBrush}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Path=Tag, RelativeSource={RelativeSource Self}}" Value="monitor">
+                                                    <Setter Property="Background" Value="#EEEEEE"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <TextBlock Text="{Binding DeepAnalysisLevel}" FontWeight="SemiBold" FontSize="12"/>
+                                </Border>
+
+                                <TextBlock Text="{Binding DeepAnalysisDescription}" TextWrapping="Wrap" FontSize="13"
+                                           Margin="0,10,0,8"
+                                           Visibility="{Binding DeepAnalysisDescription, Converter={StaticResource StringToVis}}"/>
+
+                                <Border Background="{DynamicResource MaterialDesignBackground}" CornerRadius="6" Padding="12,10"
+                                        Margin="0,0,0,8"
+                                        Visibility="{Binding DeepAnalysisMecanisme, Converter={StaticResource StringToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="MÉCANISME" FontWeight="SemiBold" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{Binding DeepAnalysisMecanisme}" TextWrapping="Wrap" FontSize="12"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#E8F5E9" CornerRadius="6" Padding="12,10"
+                                        Margin="0,0,0,12"
+                                        Visibility="{Binding DeepAnalysisConduite, Converter={StaticResource StringToVis}}">
+                                    <StackPanel>
+                                        <TextBlock Text="CONDUITE À TENIR" FontWeight="SemiBold" FontSize="11"
+                                                   Foreground="#2E7D32" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{Binding DeepAnalysisConduite}" TextWrapping="Wrap" FontSize="12"
+                                                   Foreground="#1B5E20"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Command="{Binding DiscardDeepAnalysisCommand}"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Height="32" Padding="12,0" Margin="0,0,8,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="Close" Width="14" Height="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Rejeter" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Command="{Binding ApproveAndSaveInteractionCommand}"
+                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                            materialDesign:ButtonAssist.CornerRadius="4"
+                                            Height="32" Padding="14,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="ContentSave" Width="14" Height="14" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Approuver et enregistrer" Margin="6,0,0,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Hint when ready to analyze but no result yet -->
+                    <TextBlock Text="Cliquez 'Analyser avec IA' pour démarrer."
+                               HorizontalAlignment="Center"
+                               Margin="0,16,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SubtitleStyle}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding CanAnalyze}" Value="True"/>
+                                            <Condition Binding="{Binding HasResults}" Value="False"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Loading bar overlay -->
+            <ProgressBar Grid.Row="1"
+                         IsIndeterminate="True"
+                         Visibility="{Binding IsDeepAnalysisRunning, Converter={StaticResource BoolToVis}}"
+                         VerticalAlignment="Top"
+                         Margin="24,0"/>
         </Grid>
     </Grid>
 </UserControl>
