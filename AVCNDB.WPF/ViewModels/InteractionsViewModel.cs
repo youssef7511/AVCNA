@@ -158,7 +158,7 @@ public partial class InteractionsViewModel : ViewModelBase
         try
         {
             var hits = await _medicRepository.FindAsync(
-                m => m.itemname.Contains(text) && m.isactive == 1);
+                m => (m.itemname.Contains(text) || (m.dci != null && m.dci.Contains(text))) && m.isactive == 1);
 
             // Stale-write guard: if the user kept typing while we were awaiting,
             // the current DrugASearchText no longer matches the query we issued.
@@ -188,7 +188,7 @@ public partial class InteractionsViewModel : ViewModelBase
         try
         {
             var hits = await _medicRepository.FindAsync(
-                m => m.itemname.Contains(text) && m.isactive == 1);
+                m => (m.itemname.Contains(text) || (m.dci != null && m.dci.Contains(text))) && m.isactive == 1);
 
             // Stale-write guard: if the user kept typing while we were awaiting,
             // the current DrugBSearchText no longer matches the query we issued.
