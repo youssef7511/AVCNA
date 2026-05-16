@@ -189,4 +189,92 @@ public class InteractionsViewModelTests
         vm.IsDeepAnalysisRunning = true;
         vm.CanAnalyze.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task AnalyzeWithAi_PopulatesLocalInteractions_AndPendingAi_OnSuccess()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out var openRouter, out _, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "AMOXICILLINE", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "METHOTREXATE", voie = "Orale" };
+
+        var localRow = new Interact
+        {
+            recordid = 10,
+            dci1  = "AMOXICILLINE", dci2  = "METHOTREXATE",
+            voie1 = "Orale",        voie2 = "Orale",
+            level = "Association déconseillée",
+            description = "Augmentation de la toxicité du méthotrexate.",
+            mecanisme = "Inhibition de la sécrétion tubulaire rénale.",
+            conduite = "Surveiller la NFS."
+        };
+        interactRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()))
+            .ReturnsAsync(new[] { localRow });
+
+        openRouter
+            .Setup(s => s.AnalyzeInteractionAsync(
+                "AMOXICILLINE", "Orale", "METHOTREXATE", "Orale", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InteractionAnalysis(
+                "Déconseillé",
+                "AI description",
+                "AI mecanisme",
+                "AI conduite",
+                "{ \"level\": \"Déconseillé\" }"));
+
+        await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
+
+        vm.LocalInteractions.Should().ContainSingle(r => r.recordid == 10);
+        vm.DeepAnalysisHasPendingResult.Should().BeTrue();
+        vm.DeepAnalysisLevel.Should().Be("Déconseillé");
+        vm.DeepAnalysisDescription.Should().Be("AI description");
+        vm.DeepAnalysisMecanisme.Should().Be("AI mecanisme");
+        vm.DeepAnalysisConduite.Should().Be("AI conduite");
+        vm.IsDeepAnalysisRunning.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AnalyzeWithAi_BothDirections_AreReturnedByLocalLookup()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out var openRouter, out _, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "WARFARINE",  voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "ASPIRINE",   voie = "Orale" };
+
+        var stored = new[]
+        {
+            new Interact { dci1 = "ASPIRINE",  voie1 = "Orale", dci2 = "WARFARINE", voie2 = "Orale", level = "Contre-indication" },
+            new Interact { dci1 = "WARFARINE", voie1 = "",      dci2 = "ASPIRINE",  voie2 = "",      level = "Contre-indication" } // legacy wildcard
+        };
+        interactRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()))
+            .ReturnsAsync((System.Linq.Expressions.Expression<Func<Interact, bool>> pred) =>
+                stored.Where(pred.Compile()).ToList());
+
+        openRouter
+            .Setup(s => s.AnalyzeInteractionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new InteractionAnalysis("Contre-indiqué", "d", "m", "c", "r"));
+
+        await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
+
+        vm.LocalInteractions.Should().HaveCount(2); // both directions + legacy wildcard
+    }
+
+    [Fact]
+    public async Task AnalyzeWithAi_MissingDci1OnDrugA_ShowsWarning_AndDoesNotCallService()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out var openRouter, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "METHOTREXATE", voie = "Orale" };
+
+        await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
+
+        openRouter.Verify(s => s.AnalyzeInteractionAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+        interactRepo.Verify(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()),
+            Times.Never);
+        dialog.Verify(d => d.ShowWarningAsync("DCI manquante", It.IsAny<string>()), Times.Once);
+    }
 }

@@ -211,7 +211,84 @@ public partial class InteractionsViewModel : ViewModelBase
     private void ClearDrugB() { SelectedDrugB = null; }
 
     [RelayCommand]
-    private Task AnalyzeWithAi() => Task.CompletedTask;
+    private async Task AnalyzeWithAi()
+    {
+        var a = SelectedDrugA;
+        var b = SelectedDrugB;
+        if (a == null || b == null) return;
+
+        var dciA  = a.dci1?.Trim() ?? string.Empty;
+        var voieA = a.voie?.Trim() ?? string.Empty;
+        var dciB  = b.dci1?.Trim() ?? string.Empty;
+        var voieB = b.voie?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(dciA) || string.IsNullOrWhiteSpace(dciB))
+        {
+            await _dialogService.ShowWarningAsync("DCI manquante",
+                "Ce médicament n'a pas de DCI principal renseigné. Modifiez le médicament avant l'analyse.");
+            return;
+        }
+
+        _analysisCts?.Cancel();
+        _analysisCts = new CancellationTokenSource();
+        var ct = _analysisCts.Token;
+
+        IsDeepAnalysisRunning = true;
+        DeepAnalysisHasPendingResult = false;
+
+        try
+        {
+            // Local lookup runs first so the user sees something while the AI call is in flight.
+            // Voie filter matches MedicUpsertDialog.LoadInteractionsAsync — empty voie is legacy
+            // wildcard per Models/Interact.cs.
+            var rows = await _interactRepository.FindAsync(i =>
+                ((i.dci1 == dciA && (string.IsNullOrEmpty(i.voie1) || i.voie1 == voieA)) &&
+                 (i.dci2 == dciB && (string.IsNullOrEmpty(i.voie2) || i.voie2 == voieB)))
+              ||
+                ((i.dci1 == dciB && (string.IsNullOrEmpty(i.voie1) || i.voie1 == voieB)) &&
+                 (i.dci2 == dciA && (string.IsNullOrEmpty(i.voie2) || i.voie2 == voieA))));
+
+            LocalInteractions = new ObservableCollection<Interact>(rows);
+
+            var analysis = await _openRouterService.AnalyzeInteractionAsync(
+                dciA, voieA, dciB, voieB, ct);
+
+            DeepAnalysisLevel       = analysis.Level;
+            DeepAnalysisDescription = analysis.Description;
+            DeepAnalysisMecanisme   = analysis.Mecanisme;
+            DeepAnalysisConduite    = analysis.Conduite;
+            DeepAnalysisHasPendingResult = true;
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-clicked; the newer call is already running. Stay quiet.
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "AnalyzeWithAi failed for {DciA}/{VoieA} vs {DciB}/{VoieB}", dciA, voieA, dciB, voieB);
+            await _dialogService.ShowErrorAsync("Analyse IA", BuildAiErrorMessage(ex));
+        }
+        finally
+        {
+            IsDeepAnalysisRunning = false;
+        }
+    }
+
+    private static string BuildAiErrorMessage(Exception ex)
+    {
+        // Map common HTTP statuses surfaced by OpenRouterService into user-readable French.
+        var msg = ex.Message ?? string.Empty;
+        if (ex is System.Net.Http.HttpRequestException)
+        {
+            if (msg.Contains("401")) return "Clé API OpenRouter invalide ou expirée. Vérifiez secrets.json.";
+            if (msg.Contains("429")) return "Limite de requêtes OpenRouter atteinte. Réessayez dans quelques instants.";
+            if (msg.Contains("500") || msg.Contains("502") || msg.Contains("503") || msg.Contains("504"))
+                return "Le service OpenRouter est temporairement indisponible. Réessayez plus tard.";
+            return "Connexion à OpenRouter impossible. Vérifiez votre connexion internet et réessayez.";
+        }
+        // InvalidOperationException from OpenRouterService — its message is already French and actionable.
+        return ex.Message ?? string.Empty;
+    }
 
     [RelayCommand]
     private Task ApproveAndSaveInteraction() => Task.CompletedTask;
