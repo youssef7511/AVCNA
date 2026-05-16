@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.ViewModels;
@@ -127,5 +128,65 @@ public class InteractionsViewModelTests
         vm.DrugBSearchResults.Count.Should().Be(50);
         vm.DrugBSearchResults.First().itemname.Should().Be("DRUG_001");
         vm.DrugBSearchResults.Last().itemname.Should().Be("DRUG_050");
+    }
+
+    [Fact]
+    public void ChangingSelectedDrugA_ClearsPendingAi_AndLocalInteractions()
+    {
+        var vm = BuildVm(out _, out _, out _, out _, out _, out _);
+        // Seed dirty state.
+        vm.LocalInteractions = new ObservableCollection<Interact> { new() { dci1 = "X", dci2 = "Y" } };
+        vm.DeepAnalysisLevel = "Contre-indiqué";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "AMOXICILLINE" };
+
+        vm.LocalInteractions.Should().BeEmpty();
+        vm.DeepAnalysisHasPendingResult.Should().BeFalse();
+        vm.DeepAnalysisLevel.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangingSelectedDrugB_ClearsPendingAi_AndLocalInteractions()
+    {
+        var vm = BuildVm(out _, out _, out _, out _, out _, out _);
+        vm.LocalInteractions = new ObservableCollection<Interact> { new() { dci1 = "X", dci2 = "Y" } };
+        vm.DeepAnalysisHasPendingResult = true;
+
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "PARACETAMOL" };
+
+        vm.LocalInteractions.Should().BeEmpty();
+        vm.DeepAnalysisHasPendingResult.Should().BeFalse();
+    }
+
+    [Fact]
+    public void SelectingSameDrugInBothSlots_ClearsDrugB_AndShowsWarning()
+    {
+        var vm = BuildVm(out _, out _, out _, out var dialog, out _, out _);
+        var drug = new Medic { recordid = 42, itemname = "DOLIPRANE", dci1 = "PARACETAMOL" };
+
+        vm.SelectedDrugA = drug;
+        vm.SelectedDrugB = drug;
+
+        vm.SelectedDrugB.Should().BeNull();
+        dialog.Verify(d => d.ShowWarningAsync("Médicament identique",
+            "Choisissez deux médicaments différents."), Times.Once);
+    }
+
+    [Fact]
+    public void CanAnalyze_FollowsBothSlotsAndBusyFlag()
+    {
+        var vm = BuildVm(out _, out _, out _, out _, out _, out _);
+
+        vm.CanAnalyze.Should().BeFalse();
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "X" };
+        vm.CanAnalyze.Should().BeFalse();
+
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "Y" };
+        vm.CanAnalyze.Should().BeTrue();
+
+        vm.IsDeepAnalysisRunning = true;
+        vm.CanAnalyze.Should().BeFalse();
     }
 }

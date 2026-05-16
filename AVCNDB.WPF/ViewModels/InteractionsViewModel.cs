@@ -96,6 +96,52 @@ public partial class InteractionsViewModel : ViewModelBase
         DebounceSearch(() => RunDrugBSearch());
     }
 
+    // ── Selection side effects ──
+
+    partial void OnSelectedDrugAChanged(Medic? value)
+    {
+        DiscardDeepAnalysis();
+        LocalInteractions = new ObservableCollection<Interact>();
+        OnPropertyChanged(nameof(CanAnalyze));
+        OnPropertyChanged(nameof(HasResults));
+        OnPropertyChanged(nameof(NoResults));
+    }
+
+    partial void OnSelectedDrugBChanged(Medic? value)
+    {
+        if (value != null && SelectedDrugA != null && SelectedDrugA.recordid == value.recordid)
+        {
+            // Re-entrancy: setting SelectedDrugB to null below will re-fire this method.
+            // The next call sees value == null, skips this branch, and proceeds to clear state.
+            SelectedDrugB = null;
+            _ = _dialogService.ShowWarningAsync("Médicament identique",
+                "Choisissez deux médicaments différents.");
+            return;
+        }
+        DiscardDeepAnalysis();
+        LocalInteractions = new ObservableCollection<Interact>();
+        OnPropertyChanged(nameof(CanAnalyze));
+        OnPropertyChanged(nameof(HasResults));
+        OnPropertyChanged(nameof(NoResults));
+    }
+
+    partial void OnIsDeepAnalysisRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(CanAnalyze));
+    }
+
+    partial void OnDeepAnalysisHasPendingResultChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HasResults));
+        OnPropertyChanged(nameof(NoResults));
+    }
+
+    partial void OnLocalInteractionsChanged(ObservableCollection<Interact> value)
+    {
+        OnPropertyChanged(nameof(HasResults));
+        OnPropertyChanged(nameof(NoResults));
+    }
+
     // ── Commands ──
 
     [RelayCommand]
