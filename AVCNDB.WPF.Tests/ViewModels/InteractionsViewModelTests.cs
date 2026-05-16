@@ -426,4 +426,69 @@ public class InteractionsViewModelTests
         vm.DeepAnalysisHasPendingResult.Should().BeTrue();
         dialog.Verify(d => d.ShowErrorAsync("Erreur", "DB down"), Times.Once);
     }
+
+    [Fact]
+    public void DiscardDeepAnalysis_ClearsAllPendingFields()
+    {
+        var vm = BuildVm(out _, out _, out _, out _, out _, out _);
+        vm.DeepAnalysisLevel       = "Contre-indiqué";
+        vm.DeepAnalysisDescription = "d";
+        vm.DeepAnalysisMecanisme   = "m";
+        vm.DeepAnalysisConduite    = "c";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        vm.DiscardDeepAnalysisCommand.Execute(null);
+
+        vm.DeepAnalysisLevel.Should().BeEmpty();
+        vm.DeepAnalysisDescription.Should().BeEmpty();
+        vm.DeepAnalysisMecanisme.Should().BeEmpty();
+        vm.DeepAnalysisConduite.Should().BeEmpty();
+        vm.DeepAnalysisHasPendingResult.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ExportPdf_PassesBothDciNames_ToPdfService()
+    {
+        var vm = BuildVm(out _, out _, out _, out var dialog, out var pdf, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "AMOXICILLINE", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "METHOTREXATE", voie = "Orale" };
+
+        dialog.Setup(d => d.ShowSaveFileDialog(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+              .Returns(@"C:\out\report.pdf");
+        pdf.Setup(p => p.GenerateInteractionReportAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>()))
+           .Returns(Task.CompletedTask);
+
+        await vm.ExportPdfCommand.ExecuteAsync(null);
+
+        pdf.Verify(p => p.GenerateInteractionReportAsync(
+            It.Is<IEnumerable<string>>(seq => seq.SequenceEqual(new[] { "AMOXICILLINE", "METHOTREXATE" })),
+            @"C:\out\report.pdf"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ExportPdf_WhenEitherDrugMissing_WarnsAndSkips()
+    {
+        var vm = BuildVm(out _, out _, out _, out var dialog, out var pdf, out _);
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        // SelectedDrugB is null
+
+        await vm.ExportPdfCommand.ExecuteAsync(null);
+
+        pdf.Verify(p => p.GenerateInteractionReportAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<string>()),
+            Times.Never);
+        dialog.Verify(d => d.ShowWarningAsync("Attention", It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task LaunchMlPfe_DelegatesToService()
+    {
+        var vm = BuildVm(out _, out _, out _, out _, out _, out var mlPfe);
+        mlPfe.Setup(s => s.LaunchAndOpenAsync()).ReturnsAsync((string?)null);
+
+        await vm.LaunchMlPfeCommand.ExecuteAsync(null);
+
+        mlPfe.Verify(s => s.LaunchAndOpenAsync(), Times.Once);
+    }
 }

@@ -382,10 +382,49 @@ public partial class InteractionsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private Task ExportPdf() => Task.CompletedTask;
+    private async Task ExportPdf()
+    {
+        var a = SelectedDrugA;
+        var b = SelectedDrugB;
+        if (a == null || b == null || string.IsNullOrWhiteSpace(a.dci1) || string.IsNullOrWhiteSpace(b.dci1))
+        {
+            await _dialogService.ShowWarningAsync("Attention",
+                "Veuillez sélectionner deux médicaments avant l'export.");
+            return;
+        }
+
+        var filePath = _dialogService.ShowSaveFileDialog(
+            "PDF Files|*.pdf",
+            $"Analyse_Interactions_{DateTime.Now:yyyyMMdd_HHmm}",
+            "Exporter l'analyse");
+        if (string.IsNullOrEmpty(filePath)) return;
+
+        try
+        {
+            await _pdfService.GenerateInteractionReportAsync(
+                new[] { a.dci1.Trim(), b.dci1.Trim() },
+                filePath);
+
+            if (System.IO.File.Exists(filePath))
+            {
+                await _dialogService.ShowSuccessAsync("Export réussi",
+                    $"Rapport d'interactions exporté vers :\n{filePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync("Erreur d'export",
+                $"Impossible de générer le PDF :\n{ex.Message}");
+        }
+    }
 
     [RelayCommand]
-    private Task LaunchMlPfe() => Task.CompletedTask;
+    private async Task LaunchMlPfe()
+    {
+        var error = await _mlPfeService.LaunchAndOpenAsync();
+        if (error != null)
+            await _dialogService.ShowErrorAsync("IA · Contre-indications patient", error);
+    }
 
     /// <summary>Public entry point for the view's Unloaded handler.</summary>
     public void CancelInFlightAnalysis() => _analysisCts?.Cancel();
