@@ -54,4 +54,78 @@ public class InteractionsViewModelTests
         vm.ExportPdfCommand.Should().NotBeNull();
         vm.LaunchMlPfeCommand.Should().NotBeNull();
     }
+
+    [Fact]
+    public async Task DrugASearch_EmptyText_ProducesEmptyResults_AndDoesNotCallRepository()
+    {
+        var vm = BuildVm(out _, out var medicRepo, out _, out _, out _, out _);
+
+        vm.DrugASearchText = "";
+        await vm.RunDrugASearchCommand.ExecuteAsync(null);
+
+        vm.DrugASearchResults.Should().BeEmpty();
+        medicRepo.Verify(
+            r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Medic, bool>>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DrugASearch_NonEmptyText_QueriesRepository_OrdersAndCaps_Results()
+    {
+        var vm = BuildVm(out _, out var medicRepo, out _, out _, out _, out _);
+
+        var bulk = Enumerable.Range(1, 75).Select(i => new Medic
+        {
+            recordid = i,
+            itemname = $"DRUG_{i:D3}",
+            isactive = 1
+        }).ToList();
+        medicRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Medic, bool>>>()))
+            .ReturnsAsync(bulk);
+
+        vm.DrugASearchText = "DRUG";
+        await vm.RunDrugASearchCommand.ExecuteAsync(null);
+
+        vm.DrugASearchResults.Count.Should().Be(50);
+        vm.DrugASearchResults.First().itemname.Should().Be("DRUG_001");
+        vm.DrugASearchResults.Last().itemname.Should().Be("DRUG_050");
+    }
+
+    [Fact]
+    public async Task DrugBSearch_EmptyText_ProducesEmptyResults_AndDoesNotCallRepository()
+    {
+        var vm = BuildVm(out _, out var medicRepo, out _, out _, out _, out _);
+
+        vm.DrugBSearchText = "";
+        await vm.RunDrugBSearchCommand.ExecuteAsync(null);
+
+        vm.DrugBSearchResults.Should().BeEmpty();
+        medicRepo.Verify(
+            r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Medic, bool>>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DrugBSearch_NonEmptyText_QueriesRepository_OrdersAndCaps_Results()
+    {
+        var vm = BuildVm(out _, out var medicRepo, out _, out _, out _, out _);
+
+        var bulk = Enumerable.Range(1, 75).Select(i => new Medic
+        {
+            recordid = i,
+            itemname = $"DRUG_{i:D3}",
+            isactive = 1
+        }).ToList();
+        medicRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Medic, bool>>>()))
+            .ReturnsAsync(bulk);
+
+        vm.DrugBSearchText = "DRUG";
+        await vm.RunDrugBSearchCommand.ExecuteAsync(null);
+
+        vm.DrugBSearchResults.Count.Should().Be(50);
+        vm.DrugBSearchResults.First().itemname.Should().Be("DRUG_001");
+        vm.DrugBSearchResults.Last().itemname.Should().Be("DRUG_050");
+    }
 }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -83,13 +84,69 @@ public partial class InteractionsViewModel : ViewModelBase
         _mlPfeService = mlPfeService;
     }
 
-    // ── Commands (skeleton; bodies filled in by later tasks) ──
+    // ── Search-text debounce hooks ──
+
+    partial void OnDrugASearchTextChanged(string value)
+    {
+        DebounceSearch(() => RunDrugASearch());
+    }
+
+    partial void OnDrugBSearchTextChanged(string value)
+    {
+        DebounceSearch(() => RunDrugBSearch());
+    }
+
+    // ── Commands ──
 
     [RelayCommand]
-    private Task RunDrugASearch() => Task.CompletedTask;
+    private async Task RunDrugASearch()
+    {
+        var text = DrugASearchText?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(text))
+        {
+            DrugASearchResults = new ObservableCollection<Medic>();
+            return;
+        }
+
+        IsDrugASearchRunning = true;
+        try
+        {
+            var hits = await _medicRepository.FindAsync(
+                m => m.itemname.Contains(text) && m.isactive == 1);
+
+            DrugASearchResults = new ObservableCollection<Medic>(
+                hits.OrderBy(m => m.itemname).Take(50));
+        }
+        finally
+        {
+            IsDrugASearchRunning = false;
+        }
+    }
 
     [RelayCommand]
-    private Task RunDrugBSearch() => Task.CompletedTask;
+    private async Task RunDrugBSearch()
+    {
+        var text = DrugBSearchText?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(text))
+        {
+            DrugBSearchResults = new ObservableCollection<Medic>();
+            return;
+        }
+
+        IsDrugBSearchRunning = true;
+        try
+        {
+            var hits = await _medicRepository.FindAsync(
+                m => m.itemname.Contains(text) && m.isactive == 1);
+
+            DrugBSearchResults = new ObservableCollection<Medic>(
+                hits.OrderBy(m => m.itemname).Take(50));
+        }
+        finally
+        {
+            IsDrugBSearchRunning = false;
+        }
+    }
 
     [RelayCommand]
     private void ClearDrugA() { SelectedDrugA = null; }
