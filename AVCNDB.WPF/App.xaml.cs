@@ -172,6 +172,7 @@ public partial class App : Application
         // ============================================
         services.AddSingleton<HttpClient>(_ => new HttpClient { Timeout = TimeSpan.FromSeconds(60) });
         services.AddTransient<IOpenRouterService, OpenRouterService>();
+        services.AddSingleton<IMLPfeService, MLPfeService>();
 
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<IDialogService, DialogService>();
