@@ -9,5 +9,8 @@ public record InteractionAnalysis(
 
 public interface IOpenRouterService
 {
-    Task<InteractionAnalysis> AnalyzeInteractionAsync(string dci1, string dci2, CancellationToken ct = default);
+    Task<InteractionAnalysis> AnalyzeInteractionAsync(
+        string dci1, string voie1,
+        string dci2, string voie2,
+        CancellationToken ct = default);
 }

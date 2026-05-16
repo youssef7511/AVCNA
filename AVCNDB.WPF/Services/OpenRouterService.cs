@@ -24,16 +24,22 @@ public class OpenRouterService : IOpenRouterService
         _model = configuration["OpenRouter:Model"] ?? "nvidia/nemotron-3-super-120b-a12b";
     }
 
-    public async Task<InteractionAnalysis> AnalyzeInteractionAsync(string dci1, string dci2, CancellationToken ct = default)
+    public async Task<InteractionAnalysis> AnalyzeInteractionAsync(
+        string dci1, string voie1,
+        string dci2, string voie2,
+        CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(dci1)) throw new ArgumentException("DCI 1 ne peut pas être vide.", nameof(dci1));
         if (string.IsNullOrWhiteSpace(dci2)) throw new ArgumentException("DCI 2 ne peut pas être vide.", nameof(dci2));
+
+        var drug1 = string.IsNullOrWhiteSpace(voie1) ? dci1 : $"{dci1} (voie : {voie1})";
+        var drug2 = string.IsNullOrWhiteSpace(voie2) ? dci2 : $"{dci2} (voie : {voie2})";
 
         // Nemotron 3 Super has a built-in reasoning chain that consumes ~400-600 tokens
         // before generating its answer. max_tokens must cover both reasoning AND the JSON
         // response. 2500 gives comfortable headroom without wasting budget.
         var prompt =
-            $"Analyse l'interaction médicamenteuse entre {dci1} et {dci2}.\n" +
+            $"Analyse l'interaction médicamenteuse entre {drug1} et {drug2}.\n" +
             "Réponds UNIQUEMENT avec un objet JSON valide (sans bloc Markdown ni texte autour), " +
             "avec exactement ces quatre champs (valeurs en français, concises) :\n" +
             "{\n" +

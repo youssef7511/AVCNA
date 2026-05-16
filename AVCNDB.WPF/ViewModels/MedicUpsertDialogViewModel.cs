@@ -550,7 +550,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         try
         {
             var analysis = await _openRouterService.AnalyzeInteractionAsync(
-                Medic.dci1.Trim(), SelectedCompareDrug.dci1.Trim(), _analysisCts.Token);
+                Medic.dci1.Trim(), Medic.voie?.Trim() ?? string.Empty,
+                SelectedCompareDrug.dci1.Trim(), SelectedCompareDrug.voie?.Trim() ?? string.Empty,
+                _analysisCts.Token);
 
             DeepAnalysisLevel       = analysis.Level;
             DeepAnalysisDescription = analysis.Description;
