@@ -44,6 +44,8 @@ public class InteractionsViewModelTests
         vm.DeepAnalysisHasPendingResult.Should().BeFalse();
         vm.IsDeepAnalysisRunning.Should().BeFalse();
 
+        vm.RunDrugASearchCommand.Should().NotBeNull();
+        vm.RunDrugBSearchCommand.Should().NotBeNull();
         vm.AnalyzeWithAiCommand.Should().NotBeNull();
         vm.ApproveAndSaveInteractionCommand.Should().NotBeNull();
         vm.DiscardDeepAnalysisCommand.Should().NotBeNull();
