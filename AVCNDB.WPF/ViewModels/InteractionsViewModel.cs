@@ -291,7 +291,85 @@ public partial class InteractionsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private Task ApproveAndSaveInteraction() => Task.CompletedTask;
+    private async Task ApproveAndSaveInteraction()
+    {
+        if (_isSaving) return;
+        if (!DeepAnalysisHasPendingResult) return;
+        var a = SelectedDrugA;
+        var b = SelectedDrugB;
+        if (a == null || b == null) return;
+
+        var dciA  = a.dci1?.Trim() ?? string.Empty;
+        var voieA = a.voie?.Trim() ?? string.Empty;
+        var dciB  = b.dci1?.Trim() ?? string.Empty;
+        var voieB = b.voie?.Trim() ?? string.Empty;
+
+        var primary = await _dialogService.ShowConfirmAsync(
+            "Enregistrer l'interaction",
+            $"Sauvegarder l'interaction IA entre '{dciA}' et '{dciB}' ?\n\nNiveau : {DeepAnalysisLevel}");
+        if (!primary) return;
+
+        if (LocalContainsTuple(dciA, voieA, dciB, voieB))
+        {
+            var keepGoing = await _dialogService.ShowConfirmAsync(
+                "Doublon",
+                "Une interaction pour cette paire DCI×voie existe déjà. L'ajouter quand même ?");
+            if (!keepGoing) return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            var now = DateTime.Now;
+            var interact = new Interact
+            {
+                dci1 = dciA, dci2 = dciB,
+                voie1 = voieA, voie2 = voieB,
+                level       = DeepAnalysisLevel,
+                description = DeepAnalysisDescription,
+                mecanisme   = DeepAnalysisMecanisme,
+                conduite    = DeepAnalysisConduite,
+                addedat     = now,
+                updatedat   = now
+            };
+            await _interactRepository.AddAsync(interact);
+
+            // Refresh local rows so the new row appears in the card stack.
+            var refreshed = await _interactRepository.FindAsync(i =>
+                ((i.dci1 == dciA && (string.IsNullOrEmpty(i.voie1) || i.voie1 == voieA)) &&
+                 (i.dci2 == dciB && (string.IsNullOrEmpty(i.voie2) || i.voie2 == voieB)))
+              ||
+                ((i.dci1 == dciB && (string.IsNullOrEmpty(i.voie1) || i.voie1 == voieB)) &&
+                 (i.dci2 == dciA && (string.IsNullOrEmpty(i.voie2) || i.voie2 == voieA))));
+            LocalInteractions = new ObservableCollection<Interact>(refreshed);
+
+            DiscardDeepAnalysis();
+            await _dialogService.ShowSuccessAsync("Succès",
+                "Interaction enregistrée dans la base de données.");
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "ApproveAndSaveInteraction failed for {DciA} vs {DciB}", dciA, dciB);
+            await _dialogService.ShowErrorAsync("Erreur", ex.Message);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private bool LocalContainsTuple(string dciA, string voieA, string dciB, string voieB)
+    {
+        bool MatchesDirection(Interact r, string d1, string v1, string d2, string v2) =>
+            string.Equals(r.dci1, d1, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(r.dci2, d2, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(r.voie1 ?? string.Empty, v1, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(r.voie2 ?? string.Empty, v2, StringComparison.OrdinalIgnoreCase);
+
+        return LocalInteractions.Any(r =>
+            MatchesDirection(r, dciA, voieA, dciB, voieB) ||
+            MatchesDirection(r, dciB, voieB, dciA, voieA));
+    }
 
     [RelayCommand]
     private void DiscardDeepAnalysis()

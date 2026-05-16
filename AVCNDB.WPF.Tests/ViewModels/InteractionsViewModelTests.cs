@@ -322,4 +322,108 @@ public class InteractionsViewModelTests
         dialog.Verify(d => d.ShowErrorAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         vm.IsDeepAnalysisRunning.Should().BeFalse();
     }
+
+    [Fact]
+    public async Task ApproveAndSave_PersistsInteractWithCorrectShape_AndClearsPending()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out _, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "IV" };
+        vm.DeepAnalysisLevel       = "Contre-indiqué";
+        vm.DeepAnalysisDescription = "desc";
+        vm.DeepAnalysisMecanisme   = "mec";
+        vm.DeepAnalysisConduite    = "cond";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        dialog.Setup(d => d.ShowConfirmAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+
+        Interact? captured = null;
+        interactRepo
+            .Setup(r => r.AddAsync(It.IsAny<Interact>()))
+            .Callback<Interact>(i => captured = i)
+            .ReturnsAsync((Interact i) => i);
+        interactRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<Interact, bool>>>()))
+            .ReturnsAsync(Array.Empty<Interact>());
+
+        await vm.ApproveAndSaveInteractionCommand.ExecuteAsync(null);
+
+        captured.Should().NotBeNull();
+        captured!.dci1.Should().Be("A");
+        captured.dci2.Should().Be("B");
+        captured.voie1.Should().Be("Orale");
+        captured.voie2.Should().Be("IV");
+        captured.level.Should().Be("Contre-indiqué");
+        captured.description.Should().Be("desc");
+        captured.mecanisme.Should().Be("mec");
+        captured.conduite.Should().Be("cond");
+        captured.addedat.Should().NotBeNull();
+        captured.updatedat.Should().NotBeNull();
+
+        vm.DeepAnalysisHasPendingResult.Should().BeFalse();
+        dialog.Verify(d => d.ShowSuccessAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ApproveAndSave_UserDeclinesConfirm_DoesNotPersist()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out _, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+        vm.DeepAnalysisLevel = "Précaution";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        dialog.Setup(d => d.ShowConfirmAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(false);
+
+        await vm.ApproveAndSaveInteractionCommand.ExecuteAsync(null);
+
+        interactRepo.Verify(r => r.AddAsync(It.IsAny<Interact>()), Times.Never);
+        vm.DeepAnalysisHasPendingResult.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ApproveAndSave_DuplicateInLocal_PromptsForDoublonConfirmation()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out _, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+        vm.LocalInteractions = new ObservableCollection<Interact>
+        {
+            new() { dci1 = "A", voie1 = "Orale", dci2 = "B", voie2 = "Orale", level = "Précaution d'emploi" }
+        };
+        vm.DeepAnalysisLevel = "Précaution";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        dialog.Setup(d => d.ShowConfirmAsync("Enregistrer l'interaction", It.IsAny<string>())).ReturnsAsync(true);
+        dialog.Setup(d => d.ShowConfirmAsync("Doublon", It.IsAny<string>())).ReturnsAsync(false);
+
+        await vm.ApproveAndSaveInteractionCommand.ExecuteAsync(null);
+
+        dialog.Verify(d => d.ShowConfirmAsync("Doublon", It.IsAny<string>()), Times.Once);
+        interactRepo.Verify(r => r.AddAsync(It.IsAny<Interact>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ApproveAndSave_AddAsyncThrows_KeepsPending_AndShowsError()
+    {
+        var vm = BuildVm(out var interactRepo, out _, out _, out var dialog, out _, out _);
+
+        vm.SelectedDrugA = new Medic { recordid = 1, dci1 = "A", voie = "Orale" };
+        vm.SelectedDrugB = new Medic { recordid = 2, dci1 = "B", voie = "Orale" };
+        vm.DeepAnalysisLevel = "Contre-indiqué";
+        vm.DeepAnalysisHasPendingResult = true;
+
+        dialog.Setup(d => d.ShowConfirmAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(true);
+        interactRepo
+            .Setup(r => r.AddAsync(It.IsAny<Interact>()))
+            .ThrowsAsync(new InvalidOperationException("DB down"));
+
+        await vm.ApproveAndSaveInteractionCommand.ExecuteAsync(null);
+
+        vm.DeepAnalysisHasPendingResult.Should().BeTrue();
+        dialog.Verify(d => d.ShowErrorAsync("Erreur", "DB down"), Times.Once);
+    }
 }
