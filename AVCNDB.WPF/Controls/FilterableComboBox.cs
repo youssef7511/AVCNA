@@ -241,6 +241,7 @@ public class FilterableComboBox : ComboBox
     protected override void OnDropDownClosed(EventArgs e)
     {
         base.OnDropDownClosed(e);
+        ClearSelectionIfEditBoxEmpty();
         ClearFilter();
         RestoreDisplayText();
     }
@@ -248,27 +249,40 @@ public class FilterableComboBox : ComboBox
     protected override void OnLostFocus(RoutedEventArgs e)
     {
         base.OnLostFocus(e);
-
-        // If the user cleared the text → clear the selection
-        if (_editBox != null && string.IsNullOrWhiteSpace(_editBox.Text))
-        {
-            _isSelecting = true;
-            try
-            {
-                SelectedItem = null;
-                SelectedValue = null;
-            }
-            finally
-            {
-                _isSelecting = false;
-            }
-        }
-
+        ClearSelectionIfEditBoxEmpty();
         ClearFilter();
         RestoreDisplayText();
     }
 
     // ─── Helpers ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// If the user cleared the edit-box text (leaving it empty or whitespace),
+    /// clear the SelectedItem and SelectedValue too. Without this, RestoreDisplayText
+    /// would snap the text back to the still-set selection, and the SelectedValue
+    /// binding would never fire — the bound property keeps its old value, and any
+    /// "delete" the user attempted is silently lost on save.
+    ///
+    /// Called from OnLostFocus and OnDropDownClosed. NOT called from the Escape-key
+    /// path, where the user's intent is "revert", not "clear".
+    /// </summary>
+    private void ClearSelectionIfEditBoxEmpty()
+    {
+        if (_editBox == null) return;
+        if (!string.IsNullOrWhiteSpace(_editBox.Text)) return;
+
+        // Reset the view filter via the existing helper (already guards re-entrancy).
+        ClearFilter();
+
+        // SelectedIndex = -1 nulls both SelectedItem and SelectedValue, which fires
+        // the SelectedValue binding. RestoreDisplayText (called immediately after by
+        // OnLostFocus / OnDropDownClosed) will see both null and leave the edit-box
+        // empty via its existing else-branch.
+        if (SelectedIndex != -1)
+        {
+            SelectedIndex = -1;
+        }
+    }
 
     /// <summary>
     /// After filtering or losing focus, sync the text-box back to
