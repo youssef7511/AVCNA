@@ -169,6 +169,13 @@ public partial class FormesListViewModel : ViewModelBase
             }
         }
 
+        // Confirmation popup — every save in a dialog with ComboBoxes must be confirmed
+        var confirmTitle = SelectedForme != null ? "Confirmer la modification" : "Confirmer la création";
+        var confirmMsg = SelectedForme != null
+            ? $"Enregistrer les modifications apportées à la forme\n« {EditItemName} » ?"
+            : $"Créer la nouvelle forme\n« {EditItemName} » ?";
+        if (!await _dialogService.ShowConfirmAsync(confirmTitle, confirmMsg)) return;
+
         await ExecuteAsync(async () =>
         {
             if (SelectedForme != null)
@@ -216,7 +223,13 @@ public partial class FormesListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void CancelEdit() => IsEditing = false;
+    private async Task CancelEdit()
+    {
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Annuler les modifications",
+            "Annuler les modifications en cours ?\nLes données saisies ne seront pas enregistrées.");
+        if (confirmed) IsEditing = false;
+    }
 
     [RelayCommand]
     private async Task DeleteAsync(Formes? forme)

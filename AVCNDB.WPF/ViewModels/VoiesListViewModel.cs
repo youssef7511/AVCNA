@@ -140,7 +140,13 @@ public partial class VoiesListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void CancelEdit() => IsEditing = false;
+    private async Task CancelEdit()
+    {
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Annuler les modifications",
+            "Annuler les modifications en cours ?\nLes données saisies ne seront pas enregistrées.");
+        if (confirmed) IsEditing = false;
+    }
 
     [RelayCommand]
     private async Task DeleteAsync(Voies? voie)

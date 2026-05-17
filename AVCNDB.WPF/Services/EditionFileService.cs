@@ -1,5 +1,8 @@
 using System.Data;
+using System.Globalization;
 using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using FuzzySharp;
 using AVCNDB.WPF.Contracts.Services;
@@ -124,64 +127,72 @@ public class EditionFileService : IEditionFileService
     public async Task ApproveRowAsync(EditionRow row)
     {
         using var context = await _contextFactory.CreateDbContextAsync();
-        using var transaction = await context.Database.BeginTransactionAsync();
 
-        try
+        // MySqlRetryingExecutionStrategy (EnableRetryOnFailure) does not allow
+        // user-initiated transactions directly. Wrapping with CreateExecutionStrategy
+        // makes the transaction retriable and compatible with the retry policy.
+        var strategy = context.Database.CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
         {
-            // Ajouter les valeurs inconnues aux tables de bibliothèque
-            foreach (var fieldName in row.UnknownFields)
+            await using var transaction = await context.Database.BeginTransactionAsync();
+            try
             {
-                var value = GetFieldValue(row, fieldName);
-                if (!string.IsNullOrWhiteSpace(value))
+                // Ajouter les valeurs inconnues aux tables de bibliothèque
+                foreach (var fieldName in row.UnknownFields)
                 {
-                    await AddToLibraryAsync(fieldName, value);
-                }
-            }
-
-            if (row.OriginalMedicRecordId.HasValue)
-            {
-                var medic = await context.Medics.FindAsync(row.OriginalMedicRecordId.Value);
-                if (medic != null)
-                {
-                    UpdateMedicFromRow(medic, row);
-                    context.Medics.Update(medic);
-                }
-            }
-            else
-            {
-                // Vérifier les doublons avant insertion
-                var itemName = row.ItemName?.Trim();
-                var dci1 = row.Dci1?.Trim();
-                if (!string.IsNullOrWhiteSpace(itemName))
-                {
-                    var exists = await context.Medics.AnyAsync(m =>
-                        m.itemname == itemName &&
-                        (string.IsNullOrEmpty(dci1) || m.dci1 == dci1));
-                    if (exists)
-                        throw new InvalidOperationException(
-                            $"Un médicament '{itemName}' (DCI: {dci1 ?? "N/A"}) existe déjà.");
+                    var value = GetFieldValue(row, fieldName);
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        await AddToLibraryAsync(fieldName, value);
+                    }
                 }
 
-                var newMedic = MapEditionRowToMedic(row);
-                context.Medics.Add(newMedic);
+                if (row.OriginalMedicRecordId.HasValue)
+                {
+                    var medic = await context.Medics.FindAsync(row.OriginalMedicRecordId.Value);
+                    if (medic != null)
+                    {
+                        UpdateMedicFromRow(medic, row);
+                        context.Medics.Update(medic);
+                    }
+                }
+                else
+                {
+                    // Vérifier les doublons avant insertion
+                    var itemName = row.ItemName?.Trim();
+                    var dci1 = row.Dci1?.Trim();
+                    if (!string.IsNullOrWhiteSpace(itemName))
+                    {
+                        var exists = await context.Medics.AnyAsync(m =>
+                            m.itemname == itemName &&
+                            (string.IsNullOrEmpty(dci1) || m.dci1 == dci1));
+                        if (exists)
+                            throw new InvalidOperationException(
+                                $"Un médicament '{itemName}' (DCI: {dci1 ?? "N/A"}) existe déjà.");
+                    }
+
+                    var newMedic = MapEditionRowToMedic(row);
+                    context.Medics.Add(newMedic);
+                }
+
+                await context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                Log.Information("Ligne approuvée: {ItemName} (ID original: {OriginalId})",
+                    row.ItemName, row.OriginalMedicRecordId);
+
+                row.UnknownFields.Clear();
+                row.NotifyUnknownFieldsChanged();
+                row.ActionFlag = ActionFlag.Affecte;
+                row.RowStatus = RowStatus.Modified;
             }
-
-            await context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            Log.Information("Ligne approuvée: {ItemName} (ID original: {OriginalId})",
-                row.ItemName, row.OriginalMedicRecordId);
-
-            row.UnknownFields.Clear();
-            row.NotifyUnknownFieldsChanged();
-            row.ActionFlag = ActionFlag.Affecte;
-            row.RowStatus = RowStatus.Modified;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        });
     }
 
     /// <inheritdoc />
@@ -374,6 +385,8 @@ public class EditionFileService : IEditionFileService
             {
                 { "Code PCT", "PctCode" }, { "Code_PCT", "PctCode" }, { "CodePCT", "PctCode" },
                 { "Dénomination", "ItemName" }, { "Denomination", "ItemName" },
+                // Colonnes spécifiques fichiers CNAM exportés (NOM_COMMERCIAL, PRIX_PUBLIC, etc.)
+                { "NOM_COMMERCIAL", "ItemName" }, { "NOM COMMERCIAL", "ItemName" },
                 { "D.C.I", "Dci1" }, { "DCI", "Dci1" },
                 { "D.C.J-Association", "DciAssociation" }, { "D.C.J Association", "DciAssociation" },
                 { "DCI-Association", "DciAssociation" },
@@ -383,11 +396,14 @@ public class EditionFileService : IEditionFileService
                 { "VEiC", "Veic" }, { "Catégorie VEIC", "Veic" },
                 { "Labo.", "Labo" }, { "Labo", "Labo" }, { "Laboratoire", "Labo" },
                 { "Famille", "Fam1" }, { "Fam", "Fam1" },
+                { "CATEGORIE", "Fam1" }, { "Catégorie", "Fam1" },
                 { "Spécialité", "Specialite" }, { "Specialite", "Specialite" }, { "Spécialite", "Specialite" },
                 { "Prix-Réf", "RefPrice" }, { "Prix Réf", "RefPrice" }, { "Prix de référence", "RefPrice" },
+                { "TARIF_REFERENCE", "RefPrice" }, { "TARIF REFERENCE", "RefPrice" }, { "TARIF_RÉFÉRENCE", "RefPrice" },
                 { "Prix", "Price" }, { "Prix de vente public", "Price" },
+                { "PRIX_PUBLIC", "PAmount" }, { "PRIX PUBLIC", "PAmount" }, { "PPV", "PAmount" },
                 { "Remb.", "IsRemboursable" }, { "Remb", "IsRemboursable" },
-                { "A.P.", "IsAp" }, { "A.P", "IsAp" },
+                { "A.P.", "IsAp" }, { "A.P", "IsAp" }, { "AP", "IsAp" },
             },
 
             // ── PCT basique : extrait simple de la pharmacopée ──
@@ -549,6 +565,10 @@ public class EditionFileService : IEditionFileService
                 row.OriginalMedicRecordId = medic.recordid;
                 row.MedicId = medic.medicid;
                 row.RowStatus = RowStatus.Active;
+                // Mark as already in the library — prevents ValidateAgainstLibraryAsync
+                // from overwriting this with AjouterNew just because the row has
+                // unknown field values (e.g. short CNAM category codes like "E", "I").
+                row.ActionFlag = ActionFlag.Affecte;
 
                 // Détecter les changements de prix
                 if (row.Price != medic.price || row.RefPrice != medic.refprice)
@@ -712,12 +732,99 @@ public class EditionFileService : IEditionFileService
 
     // ─── Similarity search ────────────────────────────────────────────────
 
+    // DCI hard-filter threshold
+    private const int DciHardFilterThreshold = 85;
+
+    // Stop-tokens stripped before name comparison
+    private static readonly HashSet<string> _nameStopTokens = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "comp", "comprime", "comprimes",
+        "bt", "bte", "boite", "boites",
+        "ml", "mg", "g", "ug", "µg", "mcg", "ui",
+        "efferv", "effervescent", "effervescents",
+        "sec", "secable",
+        "flacon", "flacons",
+        "gelule", "gelules",
+        "amp", "ampoule", "ampoules",
+        "sachet", "sachets",
+        "sirop", "sirops",
+        "patch", "patchs",
+        "creme",
+        "gel", "gels",
+        "poudre", "poudres",
+        "solution", "solutions",
+        "suspension",
+        "de", "du", "la", "le", "des", "les", "et", "en", "par", "pour"
+    };
+
+    // Regex for pure-digit or digit+unit tokens (e.g. "500", "500mg")
+    private static readonly Regex _digitTokenRegex = new(@"^\d+[a-z]*$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Regex for dose extraction
+    private static readonly Regex _doseRegex = new(
+        @"(\d+(?:[.,]\d+)?)\s*(mg|g|ml|µg|ug|mcg|ui|%)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    // Regex for collapsing whitespace
+    private static readonly Regex _wsRegex = new(@"\s+", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Normalizes a string: lowercase, strip diacritics, collapse whitespace.
+    /// </summary>
+    private static string Normalize(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        var s = input.ToLowerInvariant();
+        // Strip diacritics
+        var decomposed = s.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(decomposed.Length);
+        foreach (var c in decomposed)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+                sb.Append(c);
+        }
+        s = sb.ToString().Normalize(NormalizationForm.FormC);
+        return _wsRegex.Replace(s, " ").Trim();
+    }
+
+    /// <summary>
+    /// Strips noise tokens from a normalized name and joins remaining tokens.
+    /// Returns empty string if no tokens survive.
+    /// </summary>
+    private static string StripNameTokens(string normalized)
+    {
+        if (string.IsNullOrWhiteSpace(normalized)) return string.Empty;
+        var tokens = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var filtered = tokens.Where(t =>
+            !_nameStopTokens.Contains(t) &&
+            !_digitTokenRegex.IsMatch(t));
+        return string.Join(" ", filtered);
+    }
+
+    /// <summary>
+    /// Extracts a numeric dose and its unit from free text.
+    /// </summary>
+    private static (decimal? value, string unit) ExtractDose(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return (null, string.Empty);
+        var m = _doseRegex.Match(text);
+        if (!m.Success) return (null, string.Empty);
+        if (decimal.TryParse(m.Groups[1].Value.Replace(',', '.'),
+            NumberStyles.Any, CultureInfo.InvariantCulture, out var v))
+        {
+            var u = m.Groups[2].Value.ToLowerInvariant();
+            if (u == "ug" || u == "mcg") u = "µg"; // normalize microgram aliases
+            return (v, u);
+        }
+        return (null, string.Empty);
+    }
+
     /// <inheritdoc />
     public async Task<List<SimilarMedicResult>> SearchSimilarAsync(EditionRow row, int maxResults = 20)
     {
         using var context = await _contextFactory.CreateDbContextAsync();
 
-        // Load all active medics (name + dci for matching)
+        // Load all active medics (name + dci + forme for matching)
         var medics = await context.Medics
             .Where(m => m.isactive == 1)
             .Select(m => new
@@ -732,23 +839,94 @@ public class EditionFileService : IEditionFileService
             })
             .ToListAsync();
 
-        var searchName = (row.ItemName ?? string.Empty).ToUpperInvariant();
-        var searchDci = (row.Dci1 ?? string.Empty).ToUpperInvariant();
+        // ── Normalize search fields ───────────────────────────────────────
+        var normSearchName  = Normalize(row.ItemName);
+        var normSearchDci   = Normalize(row.Dci1);
+        var normSearchForme = Normalize(row.Forme);
+        var strippedSearch  = StripNameTokens(normSearchName);
+        var (searchDoseVal, searchDoseUnit) = ExtractDose(normSearchName);
+        var hasDci = !string.IsNullOrEmpty(normSearchDci);
 
         var scored = new List<SimilarMedicResult>(medics.Count);
 
         foreach (var m in medics)
         {
-            var nameUpper = (m.itemname ?? string.Empty).ToUpperInvariant();
-            var dciUpper = (m.dci1 ?? string.Empty).ToUpperInvariant();
+            var normMedicName  = Normalize(m.itemname);
+            var normMedicDci   = Normalize(m.dci1);
+            var normMedicForme = Normalize(m.forme);
 
-            // Weighted score: 60% name + 40% DCI
-            var nameScore = string.IsNullOrEmpty(searchName) ? 0
-                : Fuzz.TokenSortRatio(searchName, nameUpper);
-            var dciScore = string.IsNullOrEmpty(searchDci) ? 0
-                : Fuzz.TokenSortRatio(searchDci, dciUpper);
+            // ── 1. Hard pre-filter on DCI ────────────────────────────────
+            int dciScore;
+            if (hasDci)
+            {
+                dciScore = Fuzz.TokenSortRatio(normSearchDci, normMedicDci);
+                if (dciScore < DciHardFilterThreshold) continue; // eliminates unrelated drugs instantly
+            }
+            else
+            {
+                dciScore = string.IsNullOrEmpty(normMedicDci) ? 50
+                    : Fuzz.TokenSortRatio(normSearchName, normMedicDci);
+            }
 
-            var combined = (int)(nameScore * 0.6 + dciScore * 0.4);
+            // ── 2. Name score (with stop-token stripping + TokenSetRatio) ─
+            var strippedMedic = StripNameTokens(normMedicName);
+            int nameScore;
+            if (string.IsNullOrEmpty(strippedSearch) || string.IsNullOrEmpty(strippedMedic))
+                nameScore = 0;
+            else
+                nameScore = Fuzz.TokenSetRatio(strippedSearch, strippedMedic);
+
+            // ── 3. Dose score ─────────────────────────────────────────────
+            var (medicDoseVal, medicDoseUnit) = ExtractDose(normMedicName);
+            int doseScore;
+            if (searchDoseVal == null || medicDoseVal == null)
+            {
+                doseScore = 50; // neutral — missing on one or both sides
+            }
+            else if (searchDoseUnit == medicDoseUnit)
+            {
+                var larger = Math.Max(searchDoseVal.Value, medicDoseVal.Value);
+                var diff   = Math.Abs(searchDoseVal.Value - medicDoseVal.Value);
+                if (diff == 0)
+                    doseScore = 100;
+                else if (larger > 0 && diff / larger <= 0.10m)
+                    doseScore = 70;
+                else
+                    doseScore = 0;
+            }
+            else
+            {
+                doseScore = 0;
+            }
+
+            // ── 4. Forme score ────────────────────────────────────────────
+            int formeScore;
+            if (string.IsNullOrEmpty(normSearchForme) && string.IsNullOrEmpty(normMedicForme))
+                formeScore = 50;
+            else if (string.IsNullOrEmpty(normSearchForme) || string.IsNullOrEmpty(normMedicForme))
+                formeScore = 30;
+            else
+                formeScore = Fuzz.TokenSortRatio(normSearchForme, normMedicForme);
+
+            // ── 5. Field-weighted combined score ──────────────────────────
+            int combined;
+            if (hasDci)
+            {
+                // dci 50% + dose 20% + forme 15% + name 15%
+                combined = (int)Math.Round(
+                    dciScore   * 0.50 +
+                    doseScore  * 0.20 +
+                    formeScore * 0.15 +
+                    nameScore  * 0.15);
+            }
+            else
+            {
+                // name 45% + dose 30% + forme 25%
+                combined = (int)Math.Round(
+                    nameScore  * 0.45 +
+                    doseScore  * 0.30 +
+                    formeScore * 0.25);
+            }
 
             if (combined >= 40) // Minimum relevance threshold
             {
@@ -756,12 +934,12 @@ public class EditionFileService : IEditionFileService
                 {
                     RecordId = m.recordid,
                     ItemName = m.itemname ?? string.Empty,
-                    Dci = m.dci1 ?? string.Empty,
-                    Forme = m.forme ?? string.Empty,
-                    Labo = m.labo ?? string.Empty,
-                    Voie = m.voie ?? string.Empty,
-                    Price = m.price,
-                    Score = combined
+                    Dci      = m.dci1   ?? string.Empty,
+                    Forme    = m.forme  ?? string.Empty,
+                    Labo     = m.labo   ?? string.Empty,
+                    Voie     = m.voie   ?? string.Empty,
+                    Price    = m.price,
+                    Score    = combined
                 });
             }
         }
@@ -771,4 +949,6 @@ public class EditionFileService : IEditionFileService
             .Take(maxResults)
             .ToList();
     }
+
+    // ─── Normalize / Dose helpers ─────────────────────────────────────────
 }

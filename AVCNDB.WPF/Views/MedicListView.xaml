@@ -259,79 +259,24 @@
                 </DataGridTemplateColumn>
 
                 <!-- Spécialité -->
-                <DataGridTemplateColumn Header="Spéc." Width="90" SortMemberPath="specialite">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Specialites, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding specialite, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Spéc." Width="90" SortMemberPath="specialite"
+                                    Binding="{Binding specialite}"/>
 
                 <!-- D.C.I -->
-                <DataGridTemplateColumn Header="DCI" Width="120" SortMemberPath="dci1">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Dcis, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding dci1, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="DCI" Width="120" SortMemberPath="dci1"
+                                    Binding="{Binding dci1}"/>
 
                 <!-- Familles -->
-                <DataGridTemplateColumn Header="Famille" Width="120" SortMemberPath="fam1">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Families, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding fam1, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Famille" Width="120" SortMemberPath="fam1"
+                                    Binding="{Binding fam1}"/>
 
                 <!-- Laboratoire -->
-                <DataGridTemplateColumn Header="Labo" Width="100" SortMemberPath="labo">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Labos, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding labo, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Labo" Width="100" SortMemberPath="labo"
+                                    Binding="{Binding labo}"/>
 
                 <!-- VEIC -->
-                <DataGridTemplateColumn Header="VEIC" Width="48" SortMemberPath="veic">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Catveics, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding veic, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="VEIC" Width="48" SortMemberPath="veic"
+                                    Binding="{Binding veic}"/>
 
                 <!-- Tableau -->
                 <DataGridTextColumn Header="Tab"
@@ -339,34 +284,12 @@
                                     Width="40"/>
 
                 <!-- Forme -->
-                <DataGridTemplateColumn Header="Forme" Width="90" SortMemberPath="forme">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Formes, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding forme, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Forme" Width="90" SortMemberPath="forme"
+                                    Binding="{Binding forme}"/>
 
                 <!-- Présentation -->
-                <DataGridTemplateColumn Header="Prés." Width="90" SortMemberPath="present">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <controls:FilterableComboBox
-                                      FilterableItemsSource="{Binding Data.Presents, Source={StaticResource vmProxy}}"
-                                      SelectedValue="{Binding present, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="itemname"
-                                      DisplayMemberPath="itemname"
-                                      Style="{StaticResource GridComboBoxStyle}"
-                                      DropDownClosed="LibraryComboBox_DropDownClosed"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Prés." Width="90" SortMemberPath="present"
+                                    Binding="{Binding present}"/>
 
                 <!-- A.P. (Générique) -->
                 <DataGridTemplateColumn Header="AP" Width="35" CanUserResize="False">

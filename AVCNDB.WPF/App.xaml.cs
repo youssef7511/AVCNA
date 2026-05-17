@@ -256,8 +256,10 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         await _host.StartAsync();
-        
+
         Log.Information("Application AVCNDB démarrée");
+
+        await ApplyPendingSchemaMigrationsAsync();
 
         try
         {
@@ -280,6 +282,38 @@ public partial class App : Application
         mainWindow.Show();
 
         base.OnStartup(e);
+    }
+
+    private async Task ApplyPendingSchemaMigrationsAsync()
+    {
+        try
+        {
+            var factory = Services.GetRequiredService<IDbContextFactory<AppDbContext>>();
+            using var ctx = await factory.CreateDbContextAsync();
+            var conn = ctx.Database.GetDbConnection();
+            await conn.OpenAsync();
+            foreach (var col in new[] { "voie1", "voie2" })
+            {
+                using var check = conn.CreateCommand();
+                check.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'interact' AND COLUMN_NAME = @col";
+                var p = check.CreateParameter();
+                p.ParameterName = "@col";
+                p.Value = col;
+                check.Parameters.Add(p);
+                var count = Convert.ToInt32(await check.ExecuteScalarAsync());
+                if (count == 0)
+                {
+                    using var alter = conn.CreateCommand();
+                    alter.CommandText = $"ALTER TABLE interact ADD COLUMN {col} VARCHAR(100) NOT NULL DEFAULT ''";
+                    await alter.ExecuteNonQueryAsync();
+                    Log.Information("Added column interact.{Column}", col);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Schema migration check failed (non-fatal)");
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)

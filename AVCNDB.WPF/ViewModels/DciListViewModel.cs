@@ -226,9 +226,12 @@ public partial class DciListViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void CancelEdit()
+    private async Task CancelEdit()
     {
-        IsEditing = false;
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Annuler les modifications",
+            "Annuler les modifications en cours ?\nLes données saisies ne seront pas enregistrées.");
+        if (confirmed) IsEditing = false;
     }
 
     [RelayCommand]

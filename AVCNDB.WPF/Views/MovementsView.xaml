@@ -6,6 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
              xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
+             xmlns:controls="clr-namespace:AVCNDB.WPF.Controls"
              mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=vm:EditionFileViewModel}"
              d:DesignHeight="800" d:DesignWidth="1400"
@@ -61,13 +62,12 @@
 
                     <StackPanel Orientation="Horizontal">
                         <!-- Source type selector -->
-                        <ComboBox Width="160"
+                        <ComboBox Width="220"
                                   Height="36"
-                                  ItemsSource="{Binding SourceTypes}"
-                                  SelectedItem="{Binding SelectedSourceType, Mode=TwoWay}"
-                                  materialDesign:HintAssist.Hint="Type de source"
-                                  materialDesign:HintAssist.IsFloating="False"
-                                  Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                                  VerticalContentAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding SourceOptions}"
+                                  SelectedItem="{Binding SelectedSourceOption, Mode=TwoWay}"
                                   Margin="0,0,12,0"/>
 
                         <!-- Current file path display -->
@@ -518,8 +518,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Forme, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.FormeItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Forme, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -558,8 +561,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Labo, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.LaboItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Labo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -588,8 +594,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Fam1, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.FamilleItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Fam1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -618,8 +627,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Specialite, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.SpecialiteItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Specialite, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -648,8 +660,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Voie, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.VoieItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Voie, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -747,28 +762,30 @@
                                                              Foreground="{DynamicResource MaterialDesignBodyLight}"/>
                                 </materialDesign:PopupBox.ToggleContent>
                                 <StackPanel MinWidth="220">
-                                    <!-- Approve -->
+                                    <!-- Approve — hidden for drugs already in DB -->
                                     <Button Command="{Binding Data.ApproveRowCommand, Source={StaticResource vmProxy}}"
                                             Style="{StaticResource MaterialDesignFlatButton}"
                                             HorizontalContentAlignment="Left"
                                             HorizontalAlignment="Stretch"
-                                            Height="40" Padding="16,0">
+                                            Height="40" Padding="16,0"
+                                            Visibility="{Binding IsNewMedic, Converter={StaticResource BoolToVis}}">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="CheckCircle" Width="18" Height="18" 
-                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                            <materialDesign:PackIcon Kind="CheckCircle" Width="18" Height="18"
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center"
                                                                      Foreground="#4CAF50"/>
                                             <TextBlock Text="Approuver" VerticalAlignment="Center" FontSize="13"/>
                                         </StackPanel>
                                     </Button>
-                                    <!-- Reject -->
+                                    <!-- Reject — hidden for drugs already in DB -->
                                     <Button Command="{Binding Data.RejectRowCommand, Source={StaticResource vmProxy}}"
                                             Style="{StaticResource MaterialDesignFlatButton}"
                                             HorizontalContentAlignment="Left"
                                             HorizontalAlignment="Stretch"
-                                            Height="40" Padding="16,0">
+                                            Height="40" Padding="16,0"
+                                            Visibility="{Binding IsNewMedic, Converter={StaticResource BoolToVis}}">
                                         <StackPanel Orientation="Horizontal">
-                                            <materialDesign:PackIcon Kind="CloseCircle" Width="18" Height="18" 
-                                                                     Margin="0,0,12,0" VerticalAlignment="Center" 
+                                            <materialDesign:PackIcon Kind="CloseCircle" Width="18" Height="18"
+                                                                     Margin="0,0,12,0" VerticalAlignment="Center"
                                                                      Foreground="#F44336"/>
                                             <TextBlock Text="Rejeter" VerticalAlignment="Center" FontSize="13"/>
                                         </StackPanel>

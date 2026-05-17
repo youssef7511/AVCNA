@@ -177,6 +177,10 @@ public partial class EditionRowViewModel : ObservableObject
     public string ActionLabel      => Row.ActionLabel;
     public bool HasUnknownFields   => Row.HasUnknownFields;
     public bool HasPriceChanged    => Row.HasPriceChanged;
+    // True when this row was matched to an existing Medic by PctCode.
+    // Used to hide Approuver/Rejeter buttons — existing drugs need no approval.
+    public bool IsExistingMedic    => Row.OriginalMedicRecordId.HasValue;
+    public bool IsNewMedic         => !Row.OriginalMedicRecordId.HasValue;
 
     public bool IsSelected
     {

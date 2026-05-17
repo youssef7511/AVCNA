@@ -68,7 +68,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
                                        ?? ValidationRules.MaxLength(Medic.pctcode, 20, "Code PCT"));
         SetError(nameof(Medic.amm),       ValidationRules.MaxLength(Medic.amm, 30, "N° AMM"));
         // DCI is optional — no Required check on dci1
-        SetError(nameof(Medic.fam1),      ValidationRules.Required(Medic.fam1, "Famille"));
+        // Famille fields are all optional and clearable. Cascade-order rules
+        // below still enforce consistency (fam2 set requires fam1 set, etc.).
+        SetError(nameof(Medic.fam1),      null);
         // Famille order: fam2 requires fam1, fam3 requires fam2, family requires fam1
         SetError("fam2Order", !string.IsNullOrWhiteSpace(Medic.fam2) && string.IsNullOrWhiteSpace(Medic.fam1)
             ? "Famille 2 ne peut pas être renseignée sans Famille 1." : null);
@@ -93,14 +95,93 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public bool IsFam2Filled => !string.IsNullOrWhiteSpace(Medic?.fam2);
     public bool IsFam3Filled => !string.IsNullOrWhiteSpace(Medic?.fam3);
 
+    // ── DCI/Dose/Unit proxies — wired to refresh the summary band on each keystroke ──
+    public string Dci1
+    {
+        get => Medic?.dci1 ?? string.Empty;
+        set { if (Medic == null || Medic.dci1 == value) return; Medic.dci1 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dose1
+    {
+        get => Medic?.dose1 ?? string.Empty;
+        set { if (Medic == null || Medic.dose1 == value) return; Medic.dose1 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string U1
+    {
+        get => Medic?.u1 ?? string.Empty;
+        set { if (Medic == null || Medic.u1 == value) return; Medic.u1 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dci2
+    {
+        get => Medic?.dci2 ?? string.Empty;
+        set { if (Medic == null || Medic.dci2 == value) return; Medic.dci2 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dose2
+    {
+        get => Medic?.dose2 ?? string.Empty;
+        set { if (Medic == null || Medic.dose2 == value) return; Medic.dose2 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string U2
+    {
+        get => Medic?.u2 ?? string.Empty;
+        set { if (Medic == null || Medic.u2 == value) return; Medic.u2 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dci3
+    {
+        get => Medic?.dci3 ?? string.Empty;
+        set { if (Medic == null || Medic.dci3 == value) return; Medic.dci3 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dose3
+    {
+        get => Medic?.dose3 ?? string.Empty;
+        set { if (Medic == null || Medic.dose3 == value) return; Medic.dose3 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string U3
+    {
+        get => Medic?.u3 ?? string.Empty;
+        set { if (Medic == null || Medic.u3 == value) return; Medic.u3 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dci4
+    {
+        get => Medic?.dci4 ?? string.Empty;
+        set { if (Medic == null || Medic.dci4 == value) return; Medic.dci4 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string Dose4
+    {
+        get => Medic?.dose4 ?? string.Empty;
+        set { if (Medic == null || Medic.dose4 == value) return; Medic.dose4 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+    public string U4
+    {
+        get => Medic?.u4 ?? string.Empty;
+        set { if (Medic == null || Medic.u4 == value) return; Medic.u4 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+    }
+
     partial void OnMedicChanged(Medic value)
     {
-        if (_isInitializing) return;
-        ValidateAll();
+        // Proxy/computed notifications MUST fire even during init so the
+        // FilterableComboBox bindings (DCI1..4, Dose1..4, U1..4) pick up
+        // the loaded Medic's values. Without these, DCI combos open empty
+        // on existing drugs. Only ValidateAll is skipped during init.
         RefreshComputedDciSummary();
         OnPropertyChanged(nameof(IsFam1Filled));
         OnPropertyChanged(nameof(IsFam2Filled));
         OnPropertyChanged(nameof(IsFam3Filled));
+        OnPropertyChanged(nameof(Dci1));
+        OnPropertyChanged(nameof(Dose1));
+        OnPropertyChanged(nameof(U1));
+        OnPropertyChanged(nameof(Dci2));
+        OnPropertyChanged(nameof(Dose2));
+        OnPropertyChanged(nameof(U2));
+        OnPropertyChanged(nameof(Dci3));
+        OnPropertyChanged(nameof(Dose3));
+        OnPropertyChanged(nameof(U3));
+        OnPropertyChanged(nameof(Dci4));
+        OnPropertyChanged(nameof(Dose4));
+        OnPropertyChanged(nameof(U4));
+
+        if (_isInitializing) return;
+        ValidateAll();
     }
 
     partial void OnSelectedCompareDrugChanged(Medic? value)

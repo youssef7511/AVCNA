@@ -9,8 +9,9 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MedicUpsertDialogViewModel}"
         Title="{Binding PageTitle}"
-        Width="1380" Height="860"
+        Width="1600" Height="720"
         MinWidth="1100" MinHeight="700"
+        WindowState="Maximized"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource MaterialDesignBackground}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
@@ -140,6 +141,7 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <!-- Nom — full width -->
@@ -159,12 +161,38 @@
                                          Text="{Binding Medic.barcode, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Code-barre"
                                          MaxLength="13"
+                                         materialDesign:TextFieldAssist.CharacterCounterVisibility="Collapsed"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,8,0"/>
                                 <TextBox Grid.Row="1" Grid.Column="2"
                                          Text="{Binding Medic.amm, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="N° AMM"
                                          Style="{StaticResource DialogLineTextBoxStyle}"/>
+
+                                <!-- Tableau | VEIC — compact, beside code fields -->
+                                <ComboBox Grid.Row="2" Grid.Column="0"
+                                          SelectedItem="{Binding Medic.tableau}"
+                                          materialDesign:HintAssist.Hint="Tableau"
+                                          materialDesign:HintAssist.IsFloating="True"
+                                          Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                          Margin="0,8,8,0">
+                                    <ComboBoxItem Content=""/>
+                                    <ComboBoxItem Content="A"/>
+                                    <ComboBoxItem Content="B"/>
+                                    <ComboBoxItem Content="C"/>
+                                </ComboBox>
+                                <ComboBox Grid.Row="2" Grid.Column="1"
+                                          SelectedItem="{Binding Medic.veic}"
+                                          materialDesign:HintAssist.Hint="VEIC"
+                                          materialDesign:HintAssist.IsFloating="True"
+                                          Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                          Margin="0,8,0,0">
+                                    <ComboBoxItem Content=""/>
+                                    <ComboBoxItem Content="V"/>
+                                    <ComboBoxItem Content="E"/>
+                                    <ComboBoxItem Content="I"/>
+                                    <ComboBoxItem Content="C"/>
+                                </ComboBox>
                             </Grid>
                         </StackPanel>
                     </Border>
@@ -187,7 +215,7 @@
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
-                                <!-- Labo | Spécialité | VEIC -->
+                                <!-- Labo | Spécialité -->
                                 <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
                                           FilterableItemsSource="{Binding Labos}"
                                           SelectedValue="{Binding Medic.labo}"
@@ -201,14 +229,6 @@
                                          materialDesign:HintAssist.Hint="Spécialité"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,8,8"/>
-                                <controls:FilterableComboBox Grid.Row="0" Grid.Column="2"
-                                          FilterableItemsSource="{Binding Catveics}"
-                                          SelectedValue="{Binding Medic.veic}"
-                                          SelectedValuePath="itemname"
-                                          DisplayMemberPath="itemname"
-                                          materialDesign:HintAssist.Hint="Classe VEIC"
-                                          Style="{StaticResource DialogLineComboBoxStyle}"
-                                          Margin="0,0,0,8"/>
 
                                 <!-- Fam 1 | Fam 2 | Fam 3 -->
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
@@ -226,6 +246,7 @@
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 2"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
+                                          IsEnabled="{Binding IsFam1Filled}"
                                           Margin="0,0,8,8"/>
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="2"
                                           FilterableItemsSource="{Binding Families}"
@@ -234,6 +255,7 @@
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 3"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
+                                          IsEnabled="{Binding IsFam2Filled}"
                                           Margin="0,0,0,8"/>
 
                                 <!-- Fam 4 (full row left) -->
@@ -244,6 +266,7 @@
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 4"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
+                                          IsEnabled="{Binding IsFam1Filled}"
                                           Margin="0,0,8,0"/>
                             </Grid>
                         </StackPanel>
@@ -271,19 +294,19 @@
                                 <!-- DCI 1 | Dose 1 | U1 -->
                                 <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
                                           FilterableItemsSource="{Binding Dcis}"
-                                          SelectedValue="{Binding Medic.dci1}"
+                                          SelectedValue="{Binding Dci1}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
-                                          materialDesign:HintAssist.Hint="DCI Principal *"
+                                          materialDesign:HintAssist.Hint="DCI Principal"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
                                           Margin="0,0,8,8"/>
                                 <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding Medic.dose1, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding Dose1, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Dose 1"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,6,8"/>
                                 <TextBox Grid.Row="0" Grid.Column="2"
-                                         Text="{Binding Medic.u1, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding U1, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="U1"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,0,8"/>
@@ -291,19 +314,19 @@
                                 <!-- DCI 2 | Dose 2 | U2 -->
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
                                           FilterableItemsSource="{Binding Dcis}"
-                                          SelectedValue="{Binding Medic.dci2}"
+                                          SelectedValue="{Binding Dci2}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="DCI Secondaire"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
                                           Margin="0,0,8,8"/>
                                 <TextBox Grid.Row="1" Grid.Column="1"
-                                         Text="{Binding Medic.dose2, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding Dose2, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Dose 2"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,6,8"/>
                                 <TextBox Grid.Row="1" Grid.Column="2"
-                                         Text="{Binding Medic.u2, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding U2, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="U2"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,0,8"/>
@@ -311,19 +334,19 @@
                                 <!-- DCI 3 | Dose 3 | U3 -->
                                 <controls:FilterableComboBox Grid.Row="2" Grid.Column="0"
                                           FilterableItemsSource="{Binding Dcis}"
-                                          SelectedValue="{Binding Medic.dci3}"
+                                          SelectedValue="{Binding Dci3}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="DCI 3"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
                                           Margin="0,0,8,8"/>
                                 <TextBox Grid.Row="2" Grid.Column="1"
-                                         Text="{Binding Medic.dose3, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding Dose3, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Dose 3"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,6,8"/>
                                 <TextBox Grid.Row="2" Grid.Column="2"
-                                         Text="{Binding Medic.u3, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding U3, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="U3"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,0,8"/>
@@ -331,82 +354,34 @@
                                 <!-- DCI 4 | Dose 4 | U4 -->
                                 <controls:FilterableComboBox Grid.Row="3" Grid.Column="0"
                                           FilterableItemsSource="{Binding Dcis}"
-                                          SelectedValue="{Binding Medic.dci4}"
+                                          SelectedValue="{Binding Dci4}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="DCI 4"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
                                           Margin="0,0,8,0"/>
                                 <TextBox Grid.Row="3" Grid.Column="1"
-                                         Text="{Binding Medic.dose4, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding Dose4, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="Dose 4"
                                          Style="{StaticResource DialogLineTextBoxStyle}"
                                          Margin="0,0,6,0"/>
                                 <TextBox Grid.Row="3" Grid.Column="2"
-                                         Text="{Binding Medic.u4, UpdateSourceTrigger=PropertyChanged}"
+                                         Text="{Binding U4, UpdateSourceTrigger=PropertyChanged}"
                                          materialDesign:HintAssist.Hint="U4"
                                          Style="{StaticResource DialogLineTextBoxStyle}"/>
                             </Grid>
+                            <!-- DCI summary band — live compact view of active ingredients + doses -->
+                            <Border Background="{StaticResource InfoSurfaceBrush}"
+                                    CornerRadius="4" Padding="10,5" Margin="0,6,0,0"
+                                    Visibility="{Binding ComputedDciSummary, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
+                                <TextBlock Text="{Binding ComputedDciSummary}"
+                                           FontSize="11" FontStyle="Italic"
+                                           Foreground="{StaticResource InfoDarkBrush}"
+                                           TextWrapping="Wrap"/>
+                            </Border>
                         </StackPanel>
                     </Border>
 
-                    <!-- Options — compact single card -->
-                    <Border Style="{StaticResource CompactCardStyle}">
-                        <StackPanel>
-                            <TextBlock Text="⚙️ Options"
-                                       Style="{StaticResource DialogSectionTitleStyle}"
-                                       Margin="0,0,0,6"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <CheckBox Grid.Row="0" Grid.Column="0"
-                                          IsChecked="{Binding Medic.pediatric, Converter={StaticResource IntToBoolConverter}}"
-                                          Content="Pédiatrique"
-                                          Style="{StaticResource MaterialDesignCheckBox}"
-                                          Margin="0,0,0,6"/>
-                                <CheckBox Grid.Row="0" Grid.Column="1"
-                                          IsChecked="{Binding Medic.isap, Converter={StaticResource IntToBoolConverter}}"
-                                          Content="Générique"
-                                          Style="{StaticResource MaterialDesignCheckBox}"
-                                          Margin="0,0,0,6"/>
-                                <CheckBox Grid.Row="0" Grid.Column="2"
-                                          IsChecked="{Binding Medic.isic, Converter={StaticResource IntToBoolConverter}}"
-                                          Content="Remboursable"
-                                          Style="{StaticResource MaterialDesignCheckBox}"
-                                          Margin="0,0,0,6"/>
-                                <CheckBox Grid.Row="0" Grid.Column="3"
-                                          IsChecked="{Binding Medic.isotc, Converter={StaticResource IntToBoolConverter}}"
-                                          Content="OTC"
-                                          Style="{StaticResource MaterialDesignCheckBox}"
-                                          Margin="0,0,0,6"/>
-
-                                <ComboBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                          SelectedItem="{Binding Medic.tableau}"
-                                          materialDesign:HintAssist.Hint="Tableau"
-                                          Style="{StaticResource DialogLineComboBoxStyle}"
-                                          Margin="0,0,8,0">
-                                    <ComboBoxItem Content=""/>
-                                    <ComboBoxItem Content="A"/>
-                                    <ComboBoxItem Content="B"/>
-                                    <ComboBoxItem Content="C"/>
-                                </ComboBox>
-                                <TextBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
-                                         Text="{Binding Medic.ictx, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Taux remb. (%)"
-                                         materialDesign:TextFieldAssist.SuffixText="%"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"/>
-                            </Grid>
-                        </StackPanel>
-                    </Border>
                 </StackPanel>
 
                 <!-- ─── RIGHT PANEL — Tabs ─── -->
@@ -996,7 +971,9 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBox Grid.Column="0"
-                                                     Text="{Binding CompareSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                     Text="{Binding CompareSearchText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                                     InputMethod.IsInputMethodEnabled="False"
+                                                     SpellCheck.IsEnabled="False"
                                                      materialDesign:HintAssist.Hint="Nom du médicament à comparer..."
                                                      Style="{StaticResource DialogLineTextBoxStyle}"
                                                      Margin="0,0,8,0">
@@ -1163,6 +1140,21 @@
                                                 <TextBlock Text="🤖 Analyse approfondie (OpenRouter IA)"
                                                            Style="{StaticResource DialogSectionTitleStyle}"
                                                            Margin="0,0,0,2"/>
+
+                                                <!-- ML_pfe shortcut -->
+                                                <Button Command="{Binding LaunchMlPfeCommand}"
+                                                        Style="{StaticResource MaterialDesignFlatButton}"
+                                                        HorizontalAlignment="Left"
+                                                        Padding="0,0"
+                                                        Height="22"
+                                                        Margin="0,2,0,0"
+                                                        ToolTip="Ouvrir l'analyse CI patient par IA (ML_pfe · localhost:5000)">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="OpenInNew" Width="12" Height="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Ouvrir Analyse CI patient" FontSize="10" Margin="4,0,0,0" VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                                    </StackPanel>
+                                                </Button>
                                                 <TextBlock FontSize="11"
                                                            Foreground="{DynamicResource MaterialDesignBodyLight}">
                                                     <TextBlock.Style>

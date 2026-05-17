@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -15,6 +16,11 @@ public partial class EditionFileViewModel : ViewModelBase
 {
     private readonly IEditionFileService _editionFileService;
     private readonly IDialogService _dialogService;
+    private readonly IRepository<Formes> _formesRepository;
+    private readonly IRepository<Labos> _labosRepository;
+    private readonly IRepository<Families> _familiesRepository;
+    private readonly IRepository<Voies> _voiesRepository;
+    private readonly IRepository<Specialites> _specialitesRepository;
 
     // ─── Source rows (all) ────────────────────────────────────────────────
     private List<EditionRowViewModel> _allRows = new();
@@ -31,7 +37,25 @@ public partial class EditionFileViewModel : ViewModelBase
     private string _currentFilePath = string.Empty;
 
     [ObservableProperty]
-    private EditionSourceType _selectedSourceType = EditionSourceType.ExcelSimple;
+    private EditionSourceType _selectedSourceType = EditionSourceType.ExcelCNAM;
+
+    // Plain string list for the ComboBox — SelectedItem binding on strings
+    // is the most reliable pattern with MaterialDesign.
+    public List<string> SourceOptions { get; } = new()
+    {
+        "CNAM (officiel)",
+        "Excel simple",
+    };
+
+    [ObservableProperty]
+    private string _selectedSourceOption = "CNAM (officiel)";
+
+    partial void OnSelectedSourceOptionChanged(string value)
+    {
+        SelectedSourceType = value == "CNAM (officiel)"
+            ? EditionSourceType.ExcelCNAM
+            : EditionSourceType.ExcelSimple;
+    }
 
     [ObservableProperty]
     private int _totalRowCount;
@@ -42,6 +66,18 @@ public partial class EditionFileViewModel : ViewModelBase
     [ObservableProperty]
     private int _approvedRowCount;
 
+    // ─── Lookup collections for inline editing in MovementsView ──────────
+    [ObservableProperty]
+    private ObservableCollection<string> _formeItems = new();
+    [ObservableProperty]
+    private ObservableCollection<string> _laboItems = new();
+    [ObservableProperty]
+    private ObservableCollection<string> _familleItems = new();
+    [ObservableProperty]
+    private ObservableCollection<string> _voieItems = new();
+    [ObservableProperty]
+    private ObservableCollection<string> _specialiteItems = new();
+
     // ─── Display filter ──────────────────────────────────────────────────
     /// <summary>
     /// "Tous" | "Actifs" | "Inactifs" | "Affectés" | "Non-affectés" |
@@ -51,16 +87,55 @@ public partial class EditionFileViewModel : ViewModelBase
     [ObservableProperty]
     private string _filterType = "Tous";
 
-    public EditionSourceType[] SourceTypes { get; } = Enum.GetValues<EditionSourceType>();
 
     // ─── Constructor ─────────────────────────────────────────────────────
 
     public EditionFileViewModel(
         IEditionFileService editionFileService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IRepository<Formes> formesRepository,
+        IRepository<Labos> labosRepository,
+        IRepository<Families> familiesRepository,
+        IRepository<Voies> voiesRepository,
+        IRepository<Specialites> specialitesRepository)
     {
         _editionFileService = editionFileService;
         _dialogService = dialogService;
+        _formesRepository = formesRepository;
+        _labosRepository = labosRepository;
+        _familiesRepository = familiesRepository;
+        _voiesRepository = voiesRepository;
+        _specialitesRepository = specialitesRepository;
+        _ = LoadLookupItemsAsync();
+    }
+
+    // ─── Lookup loading for inline FilterableComboBox editing ────────────
+
+    private async Task LoadLookupItemsAsync()
+    {
+        try
+        {
+            var formes = await _formesRepository.GetAllAsync();
+            FormeItems = new ObservableCollection<string>(
+                formes.Select(f => f.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+
+            var labos = await _labosRepository.GetAllAsync();
+            LaboItems = new ObservableCollection<string>(
+                labos.Select(l => l.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+
+            var families = await _familiesRepository.GetAllAsync();
+            FamilleItems = new ObservableCollection<string>(
+                families.Select(f => f.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+
+            var voies = await _voiesRepository.GetAllAsync();
+            VoieItems = new ObservableCollection<string>(
+                voies.Select(v => v.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+
+            var specs = await _specialitesRepository.GetAllAsync();
+            SpecialiteItems = new ObservableCollection<string>(
+                specs.Select(s => s.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+        }
+        catch { /* non-fatal — lookups are optional for inline editing */ }
     }
 
     // ─── Property change handlers ─────────────────────────────────────────

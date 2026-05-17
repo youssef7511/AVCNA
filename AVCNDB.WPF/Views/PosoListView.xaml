@@ -6,6 +6,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:vm="clr-namespace:AVCNDB.WPF.ViewModels"
              xmlns:helpers="clr-namespace:AVCNDB.WPF.Helpers"
+             xmlns:controls="clr-namespace:AVCNDB.WPF.Controls"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:PosoListViewModel}"
              Background="{DynamicResource MaterialDesignBackground}">
@@ -138,7 +139,7 @@
                 <DataGridTextColumn Header="Période" Binding="{Binding periode}" Width="130"/>
                 <DataGridTextColumn Header="Conditions" Binding="{Binding conditions}" Width="190"/>
                 <DataGridTextColumn Header="Nom formule" Binding="{Binding nameformul}" Width="170"/>
-                <DataGridTextColumn Header="Substitut" Binding="{Binding subvalue}" Width="170"/>
+                <DataGridTextColumn Header="Substitut" Binding="{Binding subvalue}" Width="*"/>
                 <DataGridTextColumn Header="addedat" Visibility="Collapsed" Binding="{Binding addedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
                 <DataGridTextColumn Header="updatedat" Visibility="Collapsed" Binding="{Binding updatedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
 
@@ -217,17 +218,19 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0"
+                            <controls:CharTextBox Grid.Column="0"
+                                     AllowedPattern="Decimal"
                                      materialDesign:TextFieldAssist.HasClearButton="True"
                                      Text="{Binding EditQty, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Qté / nombre"
                                      Style="{StaticResource DialogLineTextBoxStyle}"/>
-                            <TextBox Grid.Column="2"
-                                     materialDesign:TextFieldAssist.HasClearButton="True"
-                                     Text="{Binding EditPosoForm, UpdateSourceTrigger=PropertyChanged}"
+                            <controls:FilterableComboBox Grid.Column="2"
+                                     FilterableItemsSource="{Binding FormeOptions}"
+                                     SelectedItem="{Binding EditPosoForm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Forme posologique"
-                                     Style="{StaticResource DialogLineTextBoxStyle}"/>
-                            <TextBox Grid.Column="4"
+                                     Style="{StaticResource DialogLineComboBoxStyle}"/>
+                            <controls:CharTextBox Grid.Column="4"
+                                     AllowedPattern="Decimal"
                                      materialDesign:TextFieldAssist.HasClearButton="True"
                                      Text="{Binding EditPrises, UpdateSourceTrigger=PropertyChanged}"
                                      materialDesign:HintAssist.Hint="Prises"

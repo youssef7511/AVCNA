@@ -248,35 +248,6 @@ public partial class MedicListViewModel : ViewModelBase
         _ = LoadDataAsync();
     }
 
-    [RelayCommand]
-    private async Task SaveInlineEdit(Medic? medic)
-    {
-        if (medic == null || medic.recordid == 0) return;
-        try
-        {
-            medic.itemname = MedicDenominationHelper.BuildDenomination(medic);
-            await _repository.UpdateAsync(medic);
-
-            // Force the DataGrid to refresh this row's Dénomination cell
-            // (Medic is a POCO without INotifyPropertyChanged).
-            var idx = Medics.IndexOf(medic);
-            if (idx >= 0)
-            {
-                Medics[idx] = medic;
-            }
-
-            await _dialogService.ShowSuccessAsync(
-                "Modification enregistrée",
-                $"« {medic.itemname} » a été mis à jour avec succès.");
-        }
-        catch (Exception ex)
-        {
-            await _dialogService.ShowErrorAsync(
-                "Échec de la modification",
-                $"La modification du médicament n'a pas pu être enregistrée.\n\n{ex.Message}");
-        }
-    }
-
     private async Task LoadDataAsync()
     {
         await ExecuteAsync(async () =>
@@ -438,14 +409,39 @@ public partial class MedicListViewModel : ViewModelBase
             "Confirmer la suppression",
             $"Voulez-vous vraiment supprimer le médicament '{target.itemname}' ?");
 
-        if (confirm)
+        if (!confirm) return;
+
+        // Explicit try/catch — ExecuteAsync swallows exceptions into ErrorMessage
+        // without surfacing a popup, which made delete failures invisible.
+        try
         {
-            await ExecuteAsync(async () =>
-            {
-                await _repository.DeleteAsync(target);
-                await LoadDataAsync();
-                await _dialogService.ShowSuccessAsync("Succès", "Médicament supprimé avec succès.");
-            });
+            IsBusy = true;
+            IsLoading = true;
+            StatusMessage = "Suppression...";
+
+            await _repository.DeleteAsync(target);
+            await LoadDataAsync();
+
+            IsBusy = false;
+            IsLoading = false;
+            StatusMessage = string.Empty;
+
+            await _dialogService.ShowSuccessAsync(
+                "Succès",
+                $"« {target.itemname} » a été supprimé avec succès.");
+        }
+        catch (Exception ex)
+        {
+            IsBusy = false;
+            IsLoading = false;
+            StatusMessage = "Erreur";
+
+            var innermost = ex;
+            while (innermost.InnerException != null) innermost = innermost.InnerException;
+
+            await _dialogService.ShowErrorAsync(
+                "Erreur lors de la suppression",
+                $"La suppression de « {target.itemname} » a échoué.\n\n{innermost.Message}");
         }
     }
 

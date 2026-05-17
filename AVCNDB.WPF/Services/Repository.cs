@@ -89,11 +89,28 @@ public class Repository<T> : IRepository<T> where T : class
         if (entity is ISoftDeletable softDeletable)
         {
             softDeletable.deletedat = DateTime.Now;
-            _context.Entry(entity).State = EntityState.Modified;
+
+            // Attach detached entities (loaded via AsNoTracking) and only flag
+            // `deletedat` as modified. Setting State=Modified would mark ALL
+            // columns and send a full UPDATE — which can fail on unique/NOT-NULL
+            // constraints on unrelated columns and silently swallow the delete.
+            var entry = _context.Entry(entity);
+            if (entry.State == EntityState.Detached)
+            {
+                _dbSet.Attach(entity);
+            }
+            entry.Property(nameof(ISoftDeletable.deletedat)).IsModified = true;
+
             Log.Information("Soft-delete {EntityType} (ID: {Id})", typeof(T).Name, GetEntityId(entity));
         }
         else
         {
+            // Hard-delete: ensure the entity is tracked before removing
+            var entry = _context.Entry(entity);
+            if (entry.State == EntityState.Detached)
+            {
+                _dbSet.Attach(entity);
+            }
             _dbSet.Remove(entity);
             Log.Information("Hard-delete {EntityType} (ID: {Id})", typeof(T).Name, GetEntityId(entity));
         }
