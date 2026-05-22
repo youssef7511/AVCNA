@@ -191,7 +191,7 @@
                                    Style="{StaticResource MaterialDesignBody2TextBlock}"
                                    TextAlignment="Center"
                                    Foreground="{DynamicResource MaterialDesignBodyLight}"/>
-                        <Button Command="{Binding ShowStatsCommand}" 
+                        <Button Command="{Binding ShowStatsCommand}"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Margin="0,16,0,0"
                                 HorizontalAlignment="Center">
@@ -202,7 +202,35 @@
                         </Button>
                     </StackPanel>
                 </materialDesign:Card>
-                
+
+                <!-- Outil: Réentraîner le modèle IA (ML_pfe) -->
+                <materialDesign:Card Width="280" Margin="8" Padding="16">
+                    <StackPanel>
+                        <materialDesign:PackIcon Kind="BrainOutline"
+                                                 Width="48" Height="48"
+                                                 Foreground="#1565C0"
+                                                 HorizontalAlignment="Center"/>
+                        <TextBlock Text="Réentraîner le modèle IA"
+                                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,12,0,4"/>
+                        <TextBlock Text="Reconstruire le modèle des contre-indications à partir des interactions approuvées dans la base."
+                                   Style="{StaticResource MaterialDesignBody2TextBlock}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource MaterialDesignBodyLight}"/>
+                        <Button Command="{Binding RetrainMlPfeCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Margin="0,16,0,0"
+                                HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" VerticalAlignment="Center"/>
+                                <TextBlock Text="Réentraîner" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </materialDesign:Card>
+
             </WrapPanel>
         </ScrollViewer>
 

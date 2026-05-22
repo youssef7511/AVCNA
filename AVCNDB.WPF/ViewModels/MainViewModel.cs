@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Services;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -13,6 +14,8 @@ public partial class MainViewModel : ViewModelBase
     private readonly INavigationService _navigationService;
     private readonly IThemeService _themeService;
     private readonly IStockService _stockService;
+    private readonly ISessionService _sessionService;
+    private readonly RememberMeService _rememberMeService;
 
     [ObservableProperty]
     private object? _currentView;
@@ -32,14 +35,22 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private bool _isDarkTheme;
 
+    /// <summary>Nom d'utilisateur connecté affiché dans le chip du menu latéral.</summary>
+    public string CurrentUsername =>
+        _sessionService.CurrentUser?.username ?? string.Empty;
+
     public MainViewModel(
         INavigationService navigationService,
         IThemeService themeService,
-        IStockService stockService)
+        IStockService stockService,
+        ISessionService sessionService,
+        RememberMeService rememberMeService)
     {
         _navigationService = navigationService;
         _themeService = themeService;
         _stockService = stockService;
+        _sessionService = sessionService;
+        _rememberMeService = rememberMeService;
 
         // S'abonner aux changements de navigation
         _navigationService.NavigationChanged += OnNavigationChanged;
@@ -194,6 +205,22 @@ public partial class MainViewModel : ViewModelBase
         if (_navigationService.CanGoBack)
         {
             _navigationService.GoBack();
+        }
+    }
+
+    [RelayCommand]
+    private void Logout()
+    {
+        var result = System.Windows.MessageBox.Show(
+            "Voulez-vous vraiment vous déconnecter ?",
+            "Déconnexion",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (result == System.Windows.MessageBoxResult.Yes)
+        {
+            try { _sessionService.Clear(); _rememberMeService.Clear(); }
+            finally { System.Windows.Application.Current.Shutdown(); }
         }
     }
 }

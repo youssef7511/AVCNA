@@ -1,5 +1,9 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
@@ -231,6 +235,97 @@ public partial class ToolsViewModel : ViewModelBase
             await _dialogService.ShowSuccessAsync("Restauration réussie",
                 "La base de données a été restaurée avec succès.\nRedémarrez l'application pour appliquer les changements.");
         }, "Restauration en cours...");
+    }
+
+    // ============================================
+    // RÉENTRAÎNEMENT DU MODÈLE IA (ML_pfe)
+    // ============================================
+    /// <summary>
+    /// Confirme avec l'utilisateur puis POST /admin/retrain sur le service
+    /// Flask ML_pfe. Renvoie une boîte de dialogue succès/erreur avec le
+    /// nombre de lignes utilisées et le score F1 retourné par l'endpoint.
+    /// </summary>
+    [RelayCommand]
+    private async Task RetrainMlPfeAsync()
+    {
+        var confirmed = await _dialogService.ShowConfirmAsync(
+            "Réentraîner le modèle IA",
+            "Cette opération va reconstruire le modèle des contre-indications " +
+            "à partir des interactions actuellement approuvées dans la base.\n\n" +
+            "L'opération prend généralement quelques secondes. Continuer ?");
+        if (!confirmed) return;
+
+        await ExecuteAsync(async () =>
+        {
+            var baseUrl = _configuration["MlPfe:BaseUrl"] ?? $"http://127.0.0.1:{_configuration["MlPfe:Port"] ?? "5000"}";
+            var token   = _configuration["MlPfe:RetrainToken"] ?? "change-me";
+            var url     = baseUrl.TrimEnd('/') + "/admin/retrain";
+
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+            using var req  = new HttpRequestMessage(HttpMethod.Post, url);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            req.Content = new StringContent("{}", Encoding.UTF8, "application/json");
+
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await http.SendAsync(req);
+            }
+            catch (Exception ex)
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Service ML_pfe injoignable",
+                    $"Impossible de contacter {url}.\n\n" +
+                    $"Détails : {ex.Message}\n\n" +
+                    "Vérifiez que le service Flask est démarré "
+                    + "(python app.py dans le dossier ML_pfe).");
+                return;
+            }
+
+            var body = await resp.Content.ReadAsStringAsync();
+            if (!resp.IsSuccessStatusCode)
+            {
+                await _dialogService.ShowErrorAsync(
+                    "Échec du réentraînement",
+                    $"Le service a répondu {(int)resp.StatusCode} {resp.StatusCode}.\n\n{body}");
+                return;
+            }
+
+            // Parse the JSON { ok: true, metrics: { rows_positive, rows_negative, dci_count,
+            //                                       macro_f1_train, macro_f1_cv, ... } }
+            int  positives = 0;
+            int  negatives = 0;
+            int  dciCount  = 0;
+            double? macroF1Cv = null;
+            double  macroF1Train = 0;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var metrics  = doc.RootElement.GetProperty("metrics");
+                positives    = metrics.GetProperty("rows_positive").GetInt32();
+                negatives    = metrics.GetProperty("rows_negative").GetInt32();
+                dciCount     = metrics.GetProperty("dci_count").GetInt32();
+                macroF1Train = metrics.GetProperty("macro_f1_train").GetDouble();
+                if (metrics.TryGetProperty("macro_f1_cv", out var cv) && cv.ValueKind == JsonValueKind.Number)
+                    macroF1Cv = cv.GetDouble();
+            }
+            catch
+            {
+                // The endpoint returned an unexpected shape — surface the raw body.
+                await _dialogService.ShowSuccessAsync("Modèle réentraîné", body);
+                return;
+            }
+
+            var cvLine = macroF1Cv.HasValue
+                ? $"\nMacro F1 (CV 5-fold) : {macroF1Cv.Value:F3}"
+                : "";
+            await _dialogService.ShowSuccessAsync(
+                "Modèle réentraîné",
+                $"Modèle reconstruit à partir de {positives} interaction(s) approuvée(s)\n" +
+                $"+ {negatives} paire(s) tirée(s) au sort comme négatifs.\n\n" +
+                $"DCIs connues : {dciCount}\n" +
+                $"Macro F1 (train) : {macroF1Train:F3}" + cvLine);
+        }, "Réentraînement du modèle IA...");
     }
 
     // ============================================

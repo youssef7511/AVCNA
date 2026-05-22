@@ -458,8 +458,11 @@
                     </DataGridTemplateColumn.CellTemplate>
                     <DataGridTemplateColumn.CellEditingTemplate>
                         <DataTemplate>
-                            <TextBox Text="{Binding Dci1, UpdateSourceTrigger=PropertyChanged}"
-                                     VerticalContentAlignment="Center"/>
+                            <controls:FilterableComboBox
+                                FilterableItemsSource="{Binding Data.DciItems, Source={StaticResource vmProxy}}"
+                                SelectedItem="{Binding Dci1, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>

@@ -274,14 +274,14 @@ public class FilterableComboBox : ComboBox
         // Reset the view filter via the existing helper (already guards re-entrancy).
         ClearFilter();
 
-        // SelectedIndex = -1 nulls both SelectedItem and SelectedValue, which fires
-        // the SelectedValue binding. RestoreDisplayText (called immediately after by
-        // OnLostFocus / OnDropDownClosed) will see both null and leave the edit-box
-        // empty via its existing else-branch.
-        if (SelectedIndex != -1)
-        {
-            SelectedIndex = -1;
-        }
+        // Explicit clear — works around WPF's incomplete SelectedIndex→SelectedValue
+        // sync when ListCollectionView + SelectedValuePath are in play.
+        // Writes empty string (not null) so the bound non-nullable string field stays
+        // schema-compatible with NOT NULL DEFAULT '' columns in MySQL.
+        if (SelectedItem != null)
+            SetCurrentValue(SelectedItemProperty, null);
+        if (SelectedValue is not string s || s.Length > 0)
+            SetCurrentValue(SelectedValueProperty, string.Empty);
     }
 
     /// <summary>

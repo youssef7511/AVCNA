@@ -371,6 +371,54 @@ public class PdfService : IPdfService
                 col.Item().Text("Indication :").Bold();
                 col.Item().PaddingTop(5).Text(medic.indication);
             }
+
+            // Monographie Markdown (Sprint 5) — rendu structuré
+            if (!string.IsNullOrWhiteSpace(medic.monographie))
+            {
+                col.Item().PaddingTop(20);
+                col.Item().Text("Monographie complète").Bold().FontSize(13).FontColor("#1B5E20");
+                col.Item().PaddingBottom(4);
+
+                foreach (var block in MonographieMarkdownToBlocks.Parse(medic.monographie))
+                {
+                    if (string.IsNullOrWhiteSpace(block.Text))
+                    {
+                        col.Item().PaddingTop(4);
+                        continue;
+                    }
+                    switch (block.Kind)
+                    {
+                        case MonographieMarkdownToBlocks.BlockKind.H2:
+                            col.Item().PaddingTop(10)
+                                .Background("#C62828")
+                                .Padding(6)
+                                .Text(block.Text).Bold().FontColor("#FFFFFF").FontSize(11);
+                            col.Item().PaddingTop(2);
+                            break;
+                        case MonographieMarkdownToBlocks.BlockKind.H3:
+                            col.Item().PaddingTop(6)
+                                .Text(block.Text).Bold().FontColor("#424242").FontSize(11);
+                            break;
+                        case MonographieMarkdownToBlocks.BlockKind.ListItem:
+                            col.Item().PaddingLeft(8).Text(t =>
+                            {
+                                t.Span("• ").Bold().FontColor("#1B5E20");
+                                t.Span(block.Text);
+                            });
+                            break;
+                        case MonographieMarkdownToBlocks.BlockKind.OrderedItem:
+                            col.Item().PaddingLeft(8).Text(t =>
+                            {
+                                t.Span("— ").Bold().FontColor("#1B5E20");
+                                t.Span(block.Text);
+                            });
+                            break;
+                        default:
+                            col.Item().PaddingTop(2).Text(block.Text);
+                            break;
+                    }
+                }
+            }
         });
     }
 

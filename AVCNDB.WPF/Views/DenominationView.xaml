@@ -223,6 +223,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding forme}" VerticalAlignment="Center"
+                                       Margin="8,0"
                                        TextTrimming="CharacterEllipsis"
                                        ToolTip="{Binding forme}"/>
                         </DataTemplate>
@@ -233,9 +234,14 @@
                                       Text="{Binding forme, UpdateSourceTrigger=PropertyChanged}"
                                       IsEditable="True"
                                       IsTextSearchEnabled="True"
-                                      FontSize="12"
-                                      Padding="4,2"
-                                      VerticalAlignment="Center"/>
+                                      Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                      Foreground="{DynamicResource MaterialDesignBody}"
+                                      Background="{DynamicResource MaterialDesignPaper}"
+                                      FontSize="13"
+                                      Padding="10,6"
+                                      Height="32"
+                                      VerticalAlignment="Center"
+                                      VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -245,6 +251,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding present}" VerticalAlignment="Center"
+                                       Margin="8,0"
                                        TextTrimming="CharacterEllipsis"
                                        ToolTip="{Binding present}"/>
                         </DataTemplate>
@@ -255,9 +262,14 @@
                                       Text="{Binding present, UpdateSourceTrigger=PropertyChanged}"
                                       IsEditable="True"
                                       IsTextSearchEnabled="True"
-                                      FontSize="12"
-                                      Padding="4,2"
-                                      VerticalAlignment="Center"/>
+                                      Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                      Foreground="{DynamicResource MaterialDesignBody}"
+                                      Background="{DynamicResource MaterialDesignPaper}"
+                                      FontSize="13"
+                                      Padding="10,6"
+                                      Height="32"
+                                      VerticalAlignment="Center"
+                                      VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>
@@ -277,6 +289,7 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding labo}" VerticalAlignment="Center"
+                                       Margin="8,0"
                                        TextTrimming="CharacterEllipsis"
                                        ToolTip="{Binding labo}"/>
                         </DataTemplate>
@@ -287,9 +300,14 @@
                                       Text="{Binding labo, UpdateSourceTrigger=PropertyChanged}"
                                       IsEditable="True"
                                       IsTextSearchEnabled="True"
-                                      FontSize="12"
-                                      Padding="4,2"
-                                      VerticalAlignment="Center"/>
+                                      Style="{StaticResource MaterialDesignDataGridComboBox}"
+                                      Foreground="{DynamicResource MaterialDesignBody}"
+                                      Background="{DynamicResource MaterialDesignPaper}"
+                                      FontSize="13"
+                                      Padding="10,6"
+                                      Height="32"
+                                      VerticalAlignment="Center"
+                                      VerticalContentAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellEditingTemplate>
                 </DataGridTemplateColumn>

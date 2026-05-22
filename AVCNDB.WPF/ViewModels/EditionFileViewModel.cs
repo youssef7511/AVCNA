@@ -21,6 +21,7 @@ public partial class EditionFileViewModel : ViewModelBase
     private readonly IRepository<Families> _familiesRepository;
     private readonly IRepository<Voies> _voiesRepository;
     private readonly IRepository<Specialites> _specialitesRepository;
+    private readonly IRepository<Dci> _dciRepository;
 
     // ─── Source rows (all) ────────────────────────────────────────────────
     private List<EditionRowViewModel> _allRows = new();
@@ -77,6 +78,8 @@ public partial class EditionFileViewModel : ViewModelBase
     private ObservableCollection<string> _voieItems = new();
     [ObservableProperty]
     private ObservableCollection<string> _specialiteItems = new();
+    [ObservableProperty]
+    private ObservableCollection<string> _dciItems = new();
 
     // ─── Display filter ──────────────────────────────────────────────────
     /// <summary>
@@ -97,7 +100,8 @@ public partial class EditionFileViewModel : ViewModelBase
         IRepository<Labos> labosRepository,
         IRepository<Families> familiesRepository,
         IRepository<Voies> voiesRepository,
-        IRepository<Specialites> specialitesRepository)
+        IRepository<Specialites> specialitesRepository,
+        IRepository<Dci> dciRepository)
     {
         _editionFileService = editionFileService;
         _dialogService = dialogService;
@@ -106,6 +110,7 @@ public partial class EditionFileViewModel : ViewModelBase
         _familiesRepository = familiesRepository;
         _voiesRepository = voiesRepository;
         _specialitesRepository = specialitesRepository;
+        _dciRepository = dciRepository;
         _ = LoadLookupItemsAsync();
     }
 
@@ -134,6 +139,10 @@ public partial class EditionFileViewModel : ViewModelBase
             var specs = await _specialitesRepository.GetAllAsync();
             SpecialiteItems = new ObservableCollection<string>(
                 specs.Select(s => s.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
+
+            var dcis = await _dciRepository.GetAllAsync();
+            DciItems = new ObservableCollection<string>(
+                dcis.Select(d => d.itemname).Where(n => !string.IsNullOrWhiteSpace(n)).OrderBy(n => n));
         }
         catch { /* non-fatal — lookups are optional for inline editing */ }
     }

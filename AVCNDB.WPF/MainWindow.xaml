@@ -18,6 +18,33 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- Sidebar navigation button — keeps text white on dark green at every state.
+             Hover feedback = subtle left accent stripe + slight DARKER overlay (no
+             whitening so the white text/icon stays crisp). -->
+        <Style x:Key="SidebarNavButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource MaterialDesignFlatButton}">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Margin" Value="8,2"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1F000000"/>
+                    <Setter Property="BorderBrush" Value="White"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#33000000"/>
+                    <Setter Property="BorderBrush" Value="White"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -79,7 +106,7 @@
                     <StackPanel>
                         <!-- Accueil -->
                         <Button Command="{Binding NavigateToHomeCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -97,7 +124,7 @@
 
                         <!-- Bibliothèque -->
                         <Button Command="{Binding NavigateToLibraryCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -115,7 +142,7 @@
 
                         <!-- Base de données -->
                         <Button Command="{Binding NavigateToDatabaseCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -133,7 +160,7 @@
 
                         <!-- Mouvements -->
                         <Button Command="{Binding NavigateToMovementsCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -153,7 +180,7 @@
 
                         <!-- Paramètres -->
                         <Button Command="{Binding NavigateToSettingsCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -171,7 +198,7 @@
 
                         <!-- Outils -->
                         <Button Command="{Binding NavigateToToolsCommand}" 
-                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Style="{StaticResource SidebarNavButtonStyle}"
                                 Foreground="White" 
                                 HorizontalContentAlignment="Left"
                                 Height="48"
@@ -191,9 +218,65 @@
 
                 <!-- Bas du menu -->
                 <StackPanel Grid.Row="2" Margin="8,16">
+                    <!-- User chip + logout -->
+                    <Border Background="#1F000000"
+                            CornerRadius="6"
+                            Padding="10,8"
+                            Margin="0,0,0,8"
+                            Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <materialDesign:PackIcon Kind="AccountCircle"
+                                                         Width="20" Height="20"
+                                                         Foreground="White"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding CurrentUsername}"
+                                           Foreground="White"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"
+                                           MaxWidth="120"/>
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Command="{Binding LogoutCommand}"
+                                    Style="{StaticResource MaterialDesignIconButton}"
+                                    ToolTip="Déconnexion"
+                                    Width="28" Height="28"
+                                    Padding="0">
+                                <materialDesign:PackIcon Kind="Logout"
+                                                         Width="16" Height="16"
+                                                         Foreground="White"/>
+                            </Button>
+                        </Grid>
+                    </Border>
+
+                    <!-- Logout (menu collapsed — icon only) -->
+                    <Button Command="{Binding LogoutCommand}"
+                            Foreground="White"
+                            HorizontalContentAlignment="Center"
+                            Height="40"
+                            ToolTip="Déconnexion">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+                                <Setter Property="Visibility" Value="Visible"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMenuExpanded}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <materialDesign:PackIcon Kind="Logout" Width="22" Height="22"/>
+                    </Button>
+
                     <!-- Toggle thème -->
                     <Button Command="{Binding ToggleThemeCommand}"
-                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Style="{StaticResource SidebarNavButtonStyle}"
                             Foreground="White"
                             HorizontalContentAlignment="Left"
                             Height="48">
@@ -219,7 +302,7 @@
 
                     <!-- Toggle menu -->
                     <Button Command="{Binding ToggleMenuCommand}" 
-                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Style="{StaticResource SidebarNavButtonStyle}"
                             Foreground="White" 
                             HorizontalContentAlignment="Center"
                             Height="40"
