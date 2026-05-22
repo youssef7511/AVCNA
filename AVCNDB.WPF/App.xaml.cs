@@ -8,6 +8,7 @@ using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.ViewModels;
 using AVCNDB.WPF.Views;
+using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -154,6 +155,7 @@ public partial class App : Application
         // ============================================
         // REPOSITORIES
         // ============================================
+        services.AddTransient<IRepository<User>, Repository<User>>();
         services.AddTransient<IRepository<Medic>, Repository<Medic>>();
         services.AddTransient<IRepository<Dci>, Repository<Dci>>();
         services.AddTransient<IRepository<Labos>, Repository<Labos>>();
@@ -166,6 +168,13 @@ public partial class App : Application
         services.AddTransient<IRepository<Presents>, Repository<Presents>>();
         services.AddTransient<IRepository<Poso>, Repository<Poso>>();
         services.AddTransient<IRepository<Catveic>, Repository<Catveic>>();
+
+        // ============================================
+        // AUTH SERVICES (Sprint 1)
+        // ============================================
+        services.AddSingleton<ISessionService, SessionService>();
+        services.AddTransient<IAuthService, AuthService>();
+        services.AddSingleton<RememberMeService>();
 
         // ============================================
         // SERVICES
@@ -215,6 +224,8 @@ public partial class App : Application
         services.AddTransient<ToolsViewModel>();
         services.AddSingleton<EditionFileViewModel>();
         services.AddTransient<SimilaritySearchViewModel>();
+        services.AddTransient<LoginViewModel>();
+        services.AddTransient<ChangePasswordDialogViewModel>();
 
         // ============================================
         // VIEWS
@@ -228,6 +239,7 @@ public partial class App : Application
         services.AddTransient<MedicDetailView>();
         services.AddTransient<MedicEditView>();
         services.AddTransient<MedicUpsertDialog>();
+        services.AddTransient<MonographiePreviewWindow>();
         services.AddTransient<InteractionsView>();
         services.AddTransient<DenominationView>();
         services.AddTransient<PrixView>();
@@ -244,6 +256,8 @@ public partial class App : Application
         services.AddTransient<MovementsView>();
         services.AddTransient<SimilaritySearchDialog>();
         services.AddTransient<ToolsView>();
+        services.AddTransient<LoginWindow>();
+        services.AddTransient<ChangePasswordDialog>();
     }
 
     private void SetDefaultCulture()
@@ -255,33 +269,101 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        await _host.StartAsync();
-
-        Log.Information("Application AVCNDB démarrée");
-
-        await ApplyPendingSchemaMigrationsAsync();
+        // Default WPF ShutdownMode is OnLastWindowClose. With the auth gate we
+        // open a LoginWindow as a modal dialog, then close it, THEN open MainWindow.
+        // Between those two steps WPF sees "all windows closed" and schedules a
+        // shutdown — which fires before MainWindow.Show() can paint, so the app
+        // appears to silently exit after the user clicks "Connexion".
+        // Force explicit shutdown during the gate; flip back to OnMainWindowClose
+        // once MainWindow is on screen.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
         try
         {
-            var diagnostics = Services.GetService<DatabaseDiagnosticsService>();
-            if (diagnostics != null)
+            await _host.StartAsync();
+
+            Log.Information("Application AVCNDB démarrée");
+
+            await ApplyPendingSchemaMigrationsAsync();
+
+            try
             {
-                await diagnostics.LogDiagnosticsAsync();
+                var diagnostics = Services.GetService<DatabaseDiagnosticsService>();
+                if (diagnostics != null)
+                {
+                    await diagnostics.LogDiagnosticsAsync();
+                }
             }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Startup diagnostics failed");
+            }
+
+            // Apply saved theme BEFORE the window paints, so dark mode users
+            // don't see a white flash before the palette is muted in-place.
+            Services.GetRequiredService<IThemeService>().Initialize();
+
+            // ── Auth gate (Sprint 1) ─────────────────────────────────────────
+            var rememberMe = Services.GetRequiredService<RememberMeService>();
+            var auth       = Services.GetRequiredService<IAuthService>();
+            var session    = Services.GetRequiredService<ISessionService>();
+
+            if (rememberMe.TryLoad(out var token))
+            {
+                var user = await auth.SignInFromTokenAsync(token.Username);
+                if (user != null)
+                    session.SetCurrentUser(user);
+                else
+                    rememberMe.Clear();
+            }
+
+            if (!session.IsAuthenticated)
+            {
+                var login = Services.GetRequiredService<LoginWindow>();
+                var ok = login.ShowDialog() == true;
+                if (!ok)
+                {
+                    Shutdown();
+                    return;
+                }
+            }
+
+            if (session.CurrentUser!.must_change_password)
+            {
+                var change = Services.GetRequiredService<ChangePasswordDialog>();
+                var ok = change.ShowDialog() == true;
+                if (!ok)
+                {
+                    // User closed or cancelled the forced password-change dialog.
+                    // Do not allow entry into the app with must_change_password still set.
+                    session.Clear();
+                    rememberMe.Clear();
+                    Shutdown();
+                    return;
+                }
+            }
+            // ────────────────────────────────────────────────────────────────
+
+            var mainWindow = Services.GetRequiredService<MainWindow>();
+            MainWindow = mainWindow;
+            mainWindow.Show();
+
+            // Now that MainWindow is on screen, restore the normal "close-to-exit"
+            // behaviour: when the user closes MainWindow the app terminates.
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+            base.OnStartup(e);
         }
         catch (Exception ex)
         {
-            Log.Error(ex, "Startup diagnostics failed");
+            Log.Fatal(ex, "Startup failed");
+            MessageBox.Show(
+                $"Échec du démarrage de l'application.\n\n{ex.Message}",
+                "Erreur fatale",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown();
         }
-
-        // Apply saved theme BEFORE the window paints, so dark mode users
-        // don't see a white flash before the palette is muted in-place.
-        Services.GetRequiredService<IThemeService>().Initialize();
-
-        var mainWindow = Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
-
-        base.OnStartup(e);
     }
 
     private async Task ApplyPendingSchemaMigrationsAsync()
@@ -308,6 +390,133 @@ public partial class App : Application
                     await alter.ExecuteNonQueryAsync();
                     Log.Information("Added column interact.{Column}", col);
                 }
+            }
+
+            // Widen description / mecanisme / conduite on interact from VARCHAR to TEXT.
+            // Older schema imposed VARCHAR(500/200/500); AI responses occasionally
+            // overflowed and were silently truncated. TEXT removes the ceiling.
+            foreach (var (col, expectedType) in new[]
+            {
+                ("description", "text"),
+                ("mecanisme",   "text"),
+                ("conduite",    "text"),
+            })
+            {
+                using var checkType = conn.CreateCommand();
+                checkType.CommandText = "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'interact' AND COLUMN_NAME = @col";
+                var p = checkType.CreateParameter();
+                p.ParameterName = "@col"; p.Value = col;
+                checkType.Parameters.Add(p);
+                var currentType = (await checkType.ExecuteScalarAsync())?.ToString()?.ToLowerInvariant();
+                if (currentType != null && currentType != expectedType)
+                {
+                    using var alter = conn.CreateCommand();
+                    alter.CommandText = $"ALTER TABLE interact MODIFY COLUMN {col} TEXT NOT NULL";
+                    await alter.ExecuteNonQueryAsync();
+                    Log.Information("Widened interact.{Column} from {Old} to TEXT", col, currentType);
+                }
+            }
+
+            // Widen level on interact to VARCHAR(30) (was 20) so "Contre-indiqué" fits cleanly.
+            using (var checkLevel = conn.CreateCommand())
+            {
+                checkLevel.CommandText = "SELECT CHARACTER_MAXIMUM_LENGTH FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'interact' AND COLUMN_NAME = 'level'";
+                var rawLen = await checkLevel.ExecuteScalarAsync();
+                var currentLen = (rawLen != null && rawLen != DBNull.Value) ? Convert.ToInt32(rawLen) : 0;
+                if (currentLen > 0 && currentLen < 30)
+                {
+                    using var alterLevel = conn.CreateCommand();
+                    alterLevel.CommandText = "ALTER TABLE interact MODIFY COLUMN level VARCHAR(30) NOT NULL DEFAULT ''";
+                    await alterLevel.ExecuteNonQueryAsync();
+                    Log.Information("Widened interact.level from VARCHAR({Old}) to VARCHAR(30)", currentLen);
+                }
+            }
+
+            // Provenance columns: source ("manual" / "ai") + model (AI model name when ai).
+            // Lets the UI mark AI-sourced rows and supports future re-validation.
+            foreach (var (col, ddl) in new[]
+            {
+                ("source", "ALTER TABLE interact ADD COLUMN source VARCHAR(20) NOT NULL DEFAULT 'manual'"),
+                ("model",  "ALTER TABLE interact ADD COLUMN model VARCHAR(100) NOT NULL DEFAULT ''"),
+            })
+            {
+                using var check = conn.CreateCommand();
+                check.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'interact' AND COLUMN_NAME = @col";
+                var p = check.CreateParameter();
+                p.ParameterName = "@col"; p.Value = col;
+                check.Parameters.Add(p);
+                var exists = Convert.ToInt32(await check.ExecuteScalarAsync()) > 0;
+                if (!exists)
+                {
+                    using var alter = conn.CreateCommand();
+                    alter.CommandText = ddl;
+                    await alter.ExecuteNonQueryAsync();
+                    Log.Information("Added column interact.{Column}", col);
+                }
+            }
+
+            // Sprint 5 — Monographie Markdown column on medic
+            using (var checkMono = conn.CreateCommand())
+            {
+                checkMono.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'medic' AND COLUMN_NAME = 'monographie'";
+                var monoCount = Convert.ToInt32(await checkMono.ExecuteScalarAsync());
+                if (monoCount == 0)
+                {
+                    using var alterMono = conn.CreateCommand();
+                    // LONGTEXT cannot have a literal DEFAULT in MySQL; add as nullable,
+                    // then backfill existing rows with empty string so the non-nullable
+                    // C# property (string monographie = "") never reads NULL.
+                    alterMono.CommandText = "ALTER TABLE medic ADD COLUMN monographie LONGTEXT NULL";
+                    await alterMono.ExecuteNonQueryAsync();
+
+                    using var backfill = conn.CreateCommand();
+                    backfill.CommandText = "UPDATE medic SET monographie = '' WHERE monographie IS NULL";
+                    var rows = await backfill.ExecuteNonQueryAsync();
+                    Log.Information("Added column medic.monographie (LONGTEXT) and backfilled {Rows} rows", rows);
+                }
+            }
+
+            // Sprint 1 — User table + default admin seed
+            try
+            {
+                using var createUser = conn.CreateCommand();
+                createUser.CommandText = @"
+CREATE TABLE IF NOT EXISTS user (
+  recordid INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(60) NOT NULL,
+  displayname VARCHAR(120) NOT NULL DEFAULT '',
+  password_hash VARCHAR(120) NOT NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  must_change_password TINYINT(1) NOT NULL DEFAULT 0,
+  last_login DATETIME NULL,
+  addedat DATETIME NULL,
+  updatedat DATETIME NULL,
+  UNIQUE KEY uk_user_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+                await createUser.ExecuteNonQueryAsync();
+                Log.Information("User table ensured (CREATE TABLE IF NOT EXISTS).");
+
+                using var countUsers = conn.CreateCommand();
+                countUsers.CommandText = "SELECT COUNT(*) FROM user";
+                var userCount = Convert.ToInt32(await countUsers.ExecuteScalarAsync());
+                if (userCount == 0)
+                {
+                    var defaultHash = BCrypt.Net.BCrypt.HashPassword("admin", workFactor: 11);
+                    using var seedAdmin = conn.CreateCommand();
+                    seedAdmin.CommandText = @"
+INSERT INTO user (username, displayname, password_hash, must_change_password, addedat)
+VALUES ('admin', 'Administrateur', @hash, 1, NOW())";
+                    var ph = seedAdmin.CreateParameter();
+                    ph.ParameterName = "@hash";
+                    ph.Value = defaultHash;
+                    seedAdmin.Parameters.Add(ph);
+                    await seedAdmin.ExecuteNonQueryAsync();
+                    Log.Warning("Default admin seeded with password 'admin' — CHANGE IT IMMEDIATELY after first login.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "User table migration failed (non-fatal)");
             }
         }
         catch (Exception ex)

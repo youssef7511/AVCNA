@@ -49,6 +49,13 @@
     
     <!-- PDF Reports -->
     <PackageReference Include="QuestPDF" Version="2024.10.2" />
+
+    <!-- Markdown editor + HTML preview (Sprint 5 monographie) -->
+    <PackageReference Include="Markdig" Version="0.37.0" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2592.51" />
+
+    <!-- Authentication (Sprint 1) — BCrypt password hashing -->
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
   <!-- ============================================== -->

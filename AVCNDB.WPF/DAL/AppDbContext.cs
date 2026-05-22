@@ -62,6 +62,11 @@ public class AppDbContext : DbContext
     public DbSet<Stock> Stocks { get; set; } = null!;
 
     // ============================================
+    // AUTHENTIFICATION
+    // ============================================
+    public DbSet<User> Users { get; set; } = null!;
+
+    // ============================================
     // FICHIER D'ÉDITION
     // ============================================
     public DbSet<EditionFileSession> EditionFileSessions { get; set; } = null!;
