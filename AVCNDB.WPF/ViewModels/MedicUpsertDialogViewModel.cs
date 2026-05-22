@@ -4,11 +4,13 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using FuzzySharp;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AVCNDB.WPF.ViewModels;
 
@@ -67,10 +69,18 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         SetError(nameof(Medic.pctcode),   ValidationRules.Required(Medic.pctcode, "Code PCT")
                                        ?? ValidationRules.MaxLength(Medic.pctcode, 20, "Code PCT"));
         SetError(nameof(Medic.amm),       ValidationRules.MaxLength(Medic.amm, 30, "N° AMM"));
-        // DCI is optional — no Required check on dci1
-        // Famille fields are all optional and clearable. Cascade-order rules
-        // below still enforce consistency (fam2 set requires fam1 set, etc.).
-        SetError(nameof(Medic.fam1),      null);
+        // Edit-mode only: critical reference fields cannot be cleared.
+        // In create-mode (IsEditMode == false), only itemname + pctcode are required;
+        // the other references can be filled in later.
+        SetError(nameof(Medic.dci1), IsEditMode
+            ? ValidationRules.Required(Medic.dci1, "DCI Principal")
+            : null);
+        SetError(nameof(Medic.fam1), IsEditMode
+            ? ValidationRules.Required(Medic.fam1, "Famille 1")
+            : null);
+        SetError(nameof(Medic.labo), IsEditMode
+            ? ValidationRules.Required(Medic.labo, "Laboratoire")
+            : null);
         // Famille order: fam2 requires fam1, fam3 requires fam2, family requires fam1
         SetError("fam2Order", !string.IsNullOrWhiteSpace(Medic.fam2) && string.IsNullOrWhiteSpace(Medic.fam1)
             ? "Famille 2 ne peut pas être renseignée sans Famille 1." : null);
@@ -78,6 +88,12 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
             ? "Famille 3 ne peut pas être renseignée sans Famille 2." : null);
         SetError("familyOrder", !string.IsNullOrWhiteSpace(Medic.family) && string.IsNullOrWhiteSpace(Medic.fam1)
             ? "Famille 4 ne peut pas être renseignée sans Famille 1." : null);
+        SetError("dci2Order", !string.IsNullOrWhiteSpace(Medic.dci2) && string.IsNullOrWhiteSpace(Medic.dci1)
+            ? "DCI 2 ne peut pas être renseignée sans DCI Principal." : null);
+        SetError("dci3Order", !string.IsNullOrWhiteSpace(Medic.dci3) && string.IsNullOrWhiteSpace(Medic.dci2)
+            ? "DCI 3 ne peut pas être renseignée sans DCI 2." : null);
+        SetError("dci4Order", !string.IsNullOrWhiteSpace(Medic.dci4) && string.IsNullOrWhiteSpace(Medic.dci3)
+            ? "DCI 4 ne peut pas être renseignée sans DCI 3." : null);
         SetError(nameof(Medic.price),     ValidationRules.NonNegative(Medic.price, "Prix Fab. HT"));
         SetError(nameof(Medic.refprice),  ValidationRules.NonNegative(Medic.refprice, "Prix Hospitalier"));
         SetError(nameof(Medic.pamount),   ValidationRules.NonNegative(Medic.pamount, "PPV"));
@@ -95,11 +111,100 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public bool IsFam2Filled => !string.IsNullOrWhiteSpace(Medic?.fam2);
     public bool IsFam3Filled => !string.IsNullOrWhiteSpace(Medic?.fam3);
 
+    // ── Famille proxies — cascade-clear descendants when a parent is cleared ──
+    public string Fam1
+    {
+        get => Medic?.fam1 ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.fam1 == value) return;
+            Medic.fam1 = value;
+            OnPropertyChanged();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Medic.fam2   = string.Empty;
+                Medic.fam3   = string.Empty;
+                Medic.family = string.Empty;
+                OnPropertyChanged(nameof(Fam2));
+                OnPropertyChanged(nameof(Fam3));
+                OnPropertyChanged(nameof(Family));
+            }
+            OnPropertyChanged(nameof(IsFam1Filled));
+            OnPropertyChanged(nameof(IsFam2Filled));
+            OnPropertyChanged(nameof(IsFam3Filled));
+            ValidateAll();
+        }
+    }
+
+    public string Fam2
+    {
+        get => Medic?.fam2 ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.fam2 == value) return;
+            Medic.fam2 = value;
+            OnPropertyChanged();
+            // Cascade: clearing Fam2 invalidates Fam3 (fam3Order rule: fam3 needs fam2).
+            // `family` is intentionally NOT cleared — familyOrder depends on fam1 only.
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Medic.fam3 = string.Empty;
+                OnPropertyChanged(nameof(Fam3));
+            }
+            OnPropertyChanged(nameof(IsFam2Filled));
+            OnPropertyChanged(nameof(IsFam3Filled));
+            ValidateAll();
+        }
+    }
+
+    public string Fam3
+    {
+        get => Medic?.fam3 ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.fam3 == value) return;
+            Medic.fam3 = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsFam3Filled));
+            ValidateAll();
+        }
+    }
+
+    // Note: named `Family` (not `Fam4`) because the underlying POCO field is `Medic.family`.
+    // Semantically it is the 4th-level Famille and depends on `fam1` only (see familyOrder rule).
+    public string Family
+    {
+        get => Medic?.family ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.family == value) return;
+            Medic.family = value;
+            OnPropertyChanged();
+            ValidateAll();
+        }
+    }
+
     // ── DCI/Dose/Unit proxies — wired to refresh the summary band on each keystroke ──
     public string Dci1
     {
         get => Medic?.dci1 ?? string.Empty;
-        set { if (Medic == null || Medic.dci1 == value) return; Medic.dci1 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+        set
+        {
+            if (Medic == null || Medic.dci1 == value) return;
+            Medic.dci1 = value;
+            OnPropertyChanged();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Medic.dci2 = string.Empty; Medic.dose2 = string.Empty; Medic.u2 = string.Empty;
+                Medic.dci3 = string.Empty; Medic.dose3 = string.Empty; Medic.u3 = string.Empty;
+                Medic.dci4 = string.Empty; Medic.dose4 = string.Empty; Medic.u4 = string.Empty;
+                OnPropertyChanged(nameof(Dci2)); OnPropertyChanged(nameof(Dose2)); OnPropertyChanged(nameof(U2));
+                OnPropertyChanged(nameof(Dci3)); OnPropertyChanged(nameof(Dose3)); OnPropertyChanged(nameof(U3));
+                OnPropertyChanged(nameof(Dci4)); OnPropertyChanged(nameof(Dose4)); OnPropertyChanged(nameof(U4));
+            }
+            RefreshComputedDciSummary();
+            ValidateAll();
+        }
     }
     public string Dose1
     {
@@ -114,7 +219,21 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public string Dci2
     {
         get => Medic?.dci2 ?? string.Empty;
-        set { if (Medic == null || Medic.dci2 == value) return; Medic.dci2 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+        set
+        {
+            if (Medic == null || Medic.dci2 == value) return;
+            Medic.dci2 = value;
+            OnPropertyChanged();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Medic.dci3 = string.Empty; Medic.dose3 = string.Empty; Medic.u3 = string.Empty;
+                Medic.dci4 = string.Empty; Medic.dose4 = string.Empty; Medic.u4 = string.Empty;
+                OnPropertyChanged(nameof(Dci3)); OnPropertyChanged(nameof(Dose3)); OnPropertyChanged(nameof(U3));
+                OnPropertyChanged(nameof(Dci4)); OnPropertyChanged(nameof(Dose4)); OnPropertyChanged(nameof(U4));
+            }
+            RefreshComputedDciSummary();
+            ValidateAll();
+        }
     }
     public string Dose2
     {
@@ -129,7 +248,19 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public string Dci3
     {
         get => Medic?.dci3 ?? string.Empty;
-        set { if (Medic == null || Medic.dci3 == value) return; Medic.dci3 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+        set
+        {
+            if (Medic == null || Medic.dci3 == value) return;
+            Medic.dci3 = value;
+            OnPropertyChanged();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                Medic.dci4 = string.Empty; Medic.dose4 = string.Empty; Medic.u4 = string.Empty;
+                OnPropertyChanged(nameof(Dci4)); OnPropertyChanged(nameof(Dose4)); OnPropertyChanged(nameof(U4));
+            }
+            RefreshComputedDciSummary();
+            ValidateAll();
+        }
     }
     public string Dose3
     {
@@ -144,7 +275,14 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     public string Dci4
     {
         get => Medic?.dci4 ?? string.Empty;
-        set { if (Medic == null || Medic.dci4 == value) return; Medic.dci4 = value; OnPropertyChanged(); RefreshComputedDciSummary(); }
+        set
+        {
+            if (Medic == null || Medic.dci4 == value) return;
+            Medic.dci4 = value;
+            OnPropertyChanged();
+            RefreshComputedDciSummary();
+            ValidateAll();
+        }
     }
     public string Dose4
     {
@@ -167,6 +305,10 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         OnPropertyChanged(nameof(IsFam1Filled));
         OnPropertyChanged(nameof(IsFam2Filled));
         OnPropertyChanged(nameof(IsFam3Filled));
+        OnPropertyChanged(nameof(Fam1));
+        OnPropertyChanged(nameof(Fam2));
+        OnPropertyChanged(nameof(Fam3));
+        OnPropertyChanged(nameof(Family));
         OnPropertyChanged(nameof(Dci1));
         OnPropertyChanged(nameof(Dose1));
         OnPropertyChanged(nameof(U1));
@@ -184,6 +326,22 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         ValidateAll();
     }
 
+    partial void OnCompareSearchTextChanged(string value)
+    {
+        // Debounce: fires 300 ms after the last keystroke so the DB is not
+        // queried on every character. Clears results when the box is emptied.
+        DebounceSearch(async () =>
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                CompareSearchResults = new ObservableCollection<Medic>();
+                return;
+            }
+            var results = await _repository.FindAsync(m => m.itemname.Contains(value));
+            CompareSearchResults = new ObservableCollection<Medic>(results.Take(15));
+        });
+    }
+
     partial void OnSelectedCompareDrugChanged(Medic? value)
     {
         CompareInteractions = new();
@@ -198,6 +356,46 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         RunDeepAnalysisCommand.NotifyCanExecuteChanged();
     }
 
+    // ─── Monographie (Sprint 5) ───────────────────────────────────────────
+    /// <summary>Liste figée des rubriques insérables dans la monographie.</summary>
+    public static readonly string[] Rubriques =
+    {
+        "INDICATIONS THÉRAPEUTIQUES",
+        "POSOLOGIE & ADMINISTRATION",
+        "CONTRE-INDICATIONS",
+        "MISES EN GARDE & PRÉCAUTIONS",
+        "INTERACTIONS MÉDICAMENTEUSES",
+        "EFFETS INDÉSIRABLES",
+        "SURDOSAGE",
+        "PHARMACOCINÉTIQUE",
+        "PHARMACODYNAMIE",
+        "CONDITIONS DE CONSERVATION",
+        "SÉCURITÉ PRÉCLINIQUE",
+        "PROCRÉATION & ALLAITEMENT"
+    };
+
+    [ObservableProperty]
+    private string _selectedRubrique = string.Empty;
+
+    /// <summary>
+    /// Ouvre la fenêtre d'aperçu HTML de la monographie courante.
+    /// Le HTML est généré à partir du Markdown saisi (champ <c>Medic.monographie</c>)
+    /// puis affiché dans une WebView2.
+    /// </summary>
+    [RelayCommand]
+    private void OpenMonographiePreview()
+    {
+        var html = MonographieHtmlRenderer.Render(
+            Medic?.monographie ?? string.Empty,
+            Medic?.itemname ?? "Médicament");
+        var window = App.Services.GetRequiredService<Views.MonographiePreviewWindow>();
+        window.LoadHtml(html);
+        window.Owner = System.Windows.Application.Current?.Windows
+            .OfType<Views.MedicUpsertDialog>()
+            .FirstOrDefault();
+        window.ShowDialog();
+    }
+
     private readonly IRepository<Medic> _repository;
     private readonly IRepository<Families> _familyRepository;
     private readonly IRepository<Labos> _laboRepository;
@@ -205,6 +403,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     private readonly IRepository<Formes> _formeRepository;
     private readonly IRepository<Presents> _presentRepository;
     private readonly IRepository<Voies> _voieRepository;
+    private readonly IRepository<Specialites> _specialiteRepository;
     private readonly IRepository<Interact> _interactRepository;
     private readonly IOpenRouterService _openRouterService;
     private readonly IMLPfeService _mlPfeService;
@@ -343,6 +542,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     [ObservableProperty]
     private ObservableCollection<Voies> _voies = new();
 
+    [ObservableProperty]
+    private ObservableCollection<Specialites> _specialites = new();
+
     /// <summary>Set to true when Save completes successfully; the dialog reads this to decide DialogResult.</summary>
     public bool SavedSuccessfully { get; private set; }
 
@@ -354,6 +556,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         IRepository<Formes> formeRepository,
         IRepository<Presents> presentRepository,
         IRepository<Voies> voieRepository,
+        IRepository<Specialites> specialiteRepository,
         IRepository<Interact> interactRepository,
         IOpenRouterService openRouterService,
         IMLPfeService mlPfeService,
@@ -367,6 +570,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         _formeRepository = formeRepository;
         _presentRepository = presentRepository;
         _voieRepository = voieRepository;
+        _specialiteRepository = specialiteRepository;
         _interactRepository = interactRepository;
         _openRouterService = openRouterService;
         _mlPfeService = mlPfeService;
@@ -447,6 +651,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
             var voies = await _voieRepository.GetAllAsync();
             Voies = new ObservableCollection<Voies>(voies);
+
+            var specialites = await _specialiteRepository.GetAllAsync();
+            Specialites = new ObservableCollection<Specialites>(specialites);
         }, "Chargement des données de référence...");
     }
 
@@ -575,6 +782,25 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
                 .Where(s => !string.IsNullOrWhiteSpace(s))
                 .Select(s => s!.Trim()));
 
+            // Resolve duplicates / fuzzy matches before persisting
+            if (!await ResolveReferenceDuplicatesAsync()) return;
+
+            // Defensive: coalesce all string fields to "" before EF persists.
+            // Any path that left a field as null (e.g. third-party paste, future
+            // bindings) would otherwise hit NOT NULL constraints on the schema.
+            Medic.dci1     ??= string.Empty; Medic.dci2 ??= string.Empty;
+            Medic.dci3     ??= string.Empty; Medic.dci4 ??= string.Empty;
+            Medic.dose1    ??= string.Empty; Medic.dose2 ??= string.Empty;
+            Medic.dose3    ??= string.Empty; Medic.dose4 ??= string.Empty;
+            Medic.u1       ??= string.Empty; Medic.u2 ??= string.Empty;
+            Medic.u3       ??= string.Empty; Medic.u4 ??= string.Empty;
+            Medic.fam1     ??= string.Empty; Medic.fam2 ??= string.Empty;
+            Medic.fam3     ??= string.Empty; Medic.family ??= string.Empty;
+            Medic.labo     ??= string.Empty; Medic.specialite ??= string.Empty;
+            Medic.forme    ??= string.Empty; Medic.voie ??= string.Empty;
+            Medic.present  ??= string.Empty; Medic.veic ??= string.Empty;
+            Medic.tableau  ??= string.Empty;
+
             // Set timestamps
             var now = DateTime.Now;
             if (IsEditMode)
@@ -615,6 +841,73 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
             ErrorMessage = innermost.Message;
             await _dialogService.ShowErrorAsync("Erreur de sauvegarde", innermost.Message);
         }
+    }
+
+    /// <summary>
+    /// For each reference field on the Medic, checks if the user-typed value matches
+    /// an existing canonical entry in the reference list. If so, rewrites the field
+    /// to use the existing entry's exact spelling (silent canonical normalization).
+    /// If no canonical match but a high-confidence fuzzy match (>= 85) exists, prompts
+    /// the user to either use the existing entry or create the new one.
+    /// Returns true if the save should proceed, false if the user cancelled.
+    /// </summary>
+    private async Task<bool> ResolveReferenceDuplicatesAsync()
+    {
+        // Each tuple: (field-name-for-logging, current value, ref-list item names, setter)
+        var fields = new (string Label, string Value, IEnumerable<string> Existing, Action<string> Set)[]
+        {
+            ("DCI Principal", Medic.dci1, Dcis.Select(d => d.itemname),         v => Medic.dci1 = v),
+            ("DCI 2",         Medic.dci2, Dcis.Select(d => d.itemname),         v => Medic.dci2 = v),
+            ("DCI 3",         Medic.dci3, Dcis.Select(d => d.itemname),         v => Medic.dci3 = v),
+            ("DCI 4",         Medic.dci4, Dcis.Select(d => d.itemname),         v => Medic.dci4 = v),
+            ("Famille 1",     Medic.fam1, Families.Select(f => f.itemname),     v => Medic.fam1 = v),
+            ("Famille 2",     Medic.fam2, Families.Select(f => f.itemname),     v => Medic.fam2 = v),
+            ("Famille 3",     Medic.fam3, Families.Select(f => f.itemname),     v => Medic.fam3 = v),
+            ("Famille 4",     Medic.family, Families.Select(f => f.itemname),   v => Medic.family = v),
+            ("Laboratoire",   Medic.labo, Labos.Select(l => l.itemname),        v => Medic.labo = v),
+            ("Forme",         Medic.forme, Formes.Select(f => f.itemname),      v => Medic.forme = v),
+            ("Voie",          Medic.voie, Voies.Select(v2 => v2.itemname),      v => Medic.voie = v),
+            ("Présentation",  Medic.present, Presents.Select(p => p.itemname),  v => Medic.present = v),
+        };
+
+        foreach (var f in fields)
+        {
+            if (string.IsNullOrWhiteSpace(f.Value)) continue;
+
+            var canon = NameNormalizer.Canonical(f.Value);
+            var existingList = f.Existing.Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
+
+            // 1) Exact canonical match → silently rewrite to the existing spelling.
+            var canonicalMatch = existingList.FirstOrDefault(n => NameNormalizer.Canonical(n) == canon);
+            if (canonicalMatch != null)
+            {
+                if (canonicalMatch != f.Value) f.Set(canonicalMatch);
+                continue;
+            }
+
+            // 2) No canonical match — try fuzzy >= 85 against existing entries.
+            var best = existingList
+                .Select(n => new { Name = n, Score = Fuzz.TokenSortRatio(f.Value, n) })
+                .Where(x => x.Score >= 85)
+                .OrderByDescending(x => x.Score)
+                .FirstOrDefault();
+
+            if (best == null) continue;  // No fuzzy hit → will be inserted as new entry.
+
+            // 3) Ask the user.
+            var useExisting = await _dialogService.ShowConfirmAsync(
+                $"{f.Label} — entrée similaire détectée",
+                $"« {f.Value} » n'existe pas dans le référentiel.\n\n" +
+                $"Une entrée similaire existe : « {best.Name} »\n" +
+                $"Score de similarité : {best.Score}/100.\n\n" +
+                $"Utiliser « {best.Name} » à la place ?\n" +
+                $"(Cliquer « Non » pour créer la nouvelle entrée tel quel.)");
+
+            if (useExisting) f.Set(best.Name);
+            // If user said No, leave the value as-is — SyncLookupTablesAsync will create it.
+        }
+
+        return true;
     }
 
     // ── Cancel ──
@@ -740,17 +1033,30 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
         try
         {
+            // Resolve DCI spelling against the canonical ref list (Dcis is already
+            // loaded for the dialog) so we don't grow accent-fragmented duplicates.
+            string Canonicalize(string raw)
+            {
+                var t = raw?.Trim() ?? string.Empty;
+                if (string.IsNullOrEmpty(t)) return string.Empty;
+                var match = Dcis.FirstOrDefault(d =>
+                    AVCNDB.WPF.Helpers.NameNormalizer.AreSame(d.itemname, t));
+                return match?.itemname ?? t;
+            }
+
             var now = DateTime.Now;
             var interact = new Interact
             {
-                dci1        = Medic.dci1.Trim(),
-                dci2        = SelectedCompareDrug.dci1.Trim(),
+                dci1        = Canonicalize(Medic.dci1),
+                dci2        = Canonicalize(SelectedCompareDrug.dci1),
                 voie1       = Medic.voie?.Trim() ?? string.Empty,
                 voie2       = SelectedCompareDrug.voie?.Trim() ?? string.Empty,
-                level       = Cap(DeepAnalysisLevel,       LevelMaxLength),
-                description = Cap(DeepAnalysisDescription, DescriptionMaxLength),
-                mecanisme   = Cap(DeepAnalysisMecanisme,   MecanismeMaxLength),
-                conduite    = Cap(DeepAnalysisConduite,    ConduiteMaxLength),
+                level       = CapLevel(DeepAnalysisLevel),
+                description = DeepAnalysisDescription ?? string.Empty,
+                mecanisme   = DeepAnalysisMecanisme   ?? string.Empty,
+                conduite    = DeepAnalysisConduite    ?? string.Empty,
+                source      = "ai",
+                model       = _openRouterService.ModelName,
                 addedat     = now,
                 updatedat   = now
             };
@@ -791,16 +1097,15 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         return sb.ToString();
     }
 
-    // Column bounds mirror StringLength attributes on Models/Interact.cs.
-    private const int LevelMaxLength       = 20;
-    private const int DescriptionMaxLength = 500;
-    private const int MecanismeMaxLength   = 200;
-    private const int ConduiteMaxLength    = 500;
+    // level is VARCHAR(30); always one of the 5 canonical values produced by
+    // OpenRouterService.NormalizeLevel. description / mecanisme / conduite are
+    // TEXT (no length cap) — silent truncation was hiding clinical detail.
+    private const int LevelMaxLength = 30;
 
-    private static string Cap(string? value, int max)
+    private static string CapLevel(string? value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Length <= max ? value : value.Substring(0, max - 1) + "…";
+        return value.Length <= LevelMaxLength ? value : value.Substring(0, LevelMaxLength);
     }
 
     // INavigationAware — not used in dialog mode

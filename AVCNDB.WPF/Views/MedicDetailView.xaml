@@ -657,23 +657,26 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- NOTES -->
+                        <!-- MONOGRAPHIE (aperçu Markdown) -->
                         <Border Style="{StaticResource DetailCardStyle}" Margin="0,0,0,10"
                                 Visibility="{Binding HasNotes, Converter={StaticResource BoolToVis}}">
                             <StackPanel>
                                 <StackPanel Style="{StaticResource SectionHeaderPanel}">
-                                    <materialDesign:PackIcon Kind="NoteText" Width="20" Height="20"
+                                    <materialDesign:PackIcon Kind="BookOpenPageVariant" Width="20" Height="20"
                                                              VerticalAlignment="Center"
                                                              Foreground="{StaticResource PrimaryBrush}"/>
-                                    <TextBlock Text="Notes et indications"
+                                    <TextBlock Text="Monographie"
                                                Style="{StaticResource TitleH3Style}"
                                                Margin="6,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
 
                                 <Border Background="{StaticResource BorderLightBrush}"
                                         CornerRadius="6" Padding="12,10">
-                                    <TextBlock Text="{Binding Medic.indication}"
-                                               TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                                    <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock Text="{Binding Medic.monographie}"
+                                                   TextWrapping="Wrap" FontSize="13" LineHeight="20"
+                                                   FontFamily="Consolas, Cascadia Mono, Courier New"/>
+                                    </ScrollViewer>
                                 </Border>
                             </StackPanel>
                         </Border>

@@ -162,7 +162,7 @@ public partial class MedicDetailViewModel : ViewModelBase
 
                 // Conduite
                 VeicDescription = GetVeicDescription(Medic.veic);
-                HasNotes = !string.IsNullOrWhiteSpace(Medic.indication);
+                HasNotes = !string.IsNullOrWhiteSpace(Medic.monographie);
                 HasPosology = !string.IsNullOrWhiteSpace(Medic.posology);
                 IsOtc = Medic.isotc == 1;
                 HasSpecialite = !string.IsNullOrWhiteSpace(Medic.specialite);

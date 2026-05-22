@@ -196,6 +196,13 @@ public class Medic : ITrackable, ISoftDeletable
     [StringLength(500)]
     public string mgarde { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Monographie complète au format Markdown (rubriques, sous-titres, listes).
+    /// Sprint 5 — éditeur Markdown + aperçu HTML (WebView2).
+    /// </summary>
+    [Column(TypeName = "LONGTEXT")]
+    public string monographie { get; set; } = string.Empty;
+
     // ============================================
     // DATES & STATUT
     // ============================================

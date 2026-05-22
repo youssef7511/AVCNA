@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using AVCNDB.WPF.DAL;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 
 namespace AVCNDB.WPF.Services;
@@ -50,12 +51,16 @@ public class MedicSyncService
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            var existingDciCanonical = new HashSet<string>(
+                (await ctx.Dcis.Select(d => d.itemname).ToListAsync())
+                    .Select(NameNormalizer.Canonical));
+
             foreach (var dciName in dciValues)
             {
-                var exists = await ctx.Dcis.AnyAsync(d => d.itemname == dciName);
-                if (!exists)
+                if (!existingDciCanonical.Contains(NameNormalizer.Canonical(dciName)))
                 {
                     ctx.Dcis.Add(new Dci { itemname = dciName, addedat = DateTime.Now });
+                    existingDciCanonical.Add(NameNormalizer.Canonical(dciName));
                     _logger.LogInformation("Auto-ajout DCI: {Name}", dciName);
                 }
             }
@@ -67,12 +72,16 @@ public class MedicSyncService
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
+            var existingFamCanonical = new HashSet<string>(
+                (await ctx.Families.Select(f => f.itemname).ToListAsync())
+                    .Select(NameNormalizer.Canonical));
+
             foreach (var famName in famValues)
             {
-                var exists = await ctx.Families.AnyAsync(f => f.itemname == famName);
-                if (!exists)
+                if (!existingFamCanonical.Contains(NameNormalizer.Canonical(famName)))
                 {
                     ctx.Families.Add(new Families { itemname = famName, addedat = DateTime.Now });
+                    existingFamCanonical.Add(NameNormalizer.Canonical(famName));
                     _logger.LogInformation("Auto-ajout Famille: {Name}", famName);
                 }
             }
@@ -81,8 +90,10 @@ public class MedicSyncService
             if (!string.IsNullOrWhiteSpace(medic.labo))
             {
                 var laboName = medic.labo.Trim();
-                var exists = await ctx.Labos.AnyAsync(l => l.itemname == laboName);
-                if (!exists)
+                var existingLaboCanonical = new HashSet<string>(
+                    (await ctx.Labos.Select(l => l.itemname).ToListAsync())
+                        .Select(NameNormalizer.Canonical));
+                if (!existingLaboCanonical.Contains(NameNormalizer.Canonical(laboName)))
                 {
                     ctx.Labos.Add(new Labos { itemname = laboName, addedat = DateTime.Now });
                     _logger.LogInformation("Auto-ajout Labo: {Name}", laboName);
@@ -93,8 +104,10 @@ public class MedicSyncService
             if (!string.IsNullOrWhiteSpace(medic.forme))
             {
                 var formeName = medic.forme.Trim();
-                var exists = await ctx.Formes.AnyAsync(f => f.itemname == formeName);
-                if (!exists)
+                var existingFormeCanonical = new HashSet<string>(
+                    (await ctx.Formes.Select(f => f.itemname).ToListAsync())
+                        .Select(NameNormalizer.Canonical));
+                if (!existingFormeCanonical.Contains(NameNormalizer.Canonical(formeName)))
                 {
                     ctx.Formes.Add(new Formes { itemname = formeName, addedat = DateTime.Now });
                     _logger.LogInformation("Auto-ajout Forme: {Name}", formeName);
@@ -105,8 +118,10 @@ public class MedicSyncService
             if (!string.IsNullOrWhiteSpace(medic.voie))
             {
                 var voieName = medic.voie.Trim();
-                var exists = await ctx.Voies.AnyAsync(v => v.itemname == voieName);
-                if (!exists)
+                var existingVoieCanonical = new HashSet<string>(
+                    (await ctx.Voies.Select(v => v.itemname).ToListAsync())
+                        .Select(NameNormalizer.Canonical));
+                if (!existingVoieCanonical.Contains(NameNormalizer.Canonical(voieName)))
                 {
                     ctx.Voies.Add(new Voies { itemname = voieName, addedat = DateTime.Now });
                     _logger.LogInformation("Auto-ajout Voie: {Name}", voieName);
@@ -117,8 +132,10 @@ public class MedicSyncService
             if (!string.IsNullOrWhiteSpace(medic.present))
             {
                 var presentName = medic.present.Trim();
-                var exists = await ctx.Presents.AnyAsync(p => p.itemname == presentName);
-                if (!exists)
+                var existingPresentCanonical = new HashSet<string>(
+                    (await ctx.Presents.Select(p => p.itemname).ToListAsync())
+                        .Select(NameNormalizer.Canonical));
+                if (!existingPresentCanonical.Contains(NameNormalizer.Canonical(presentName)))
                 {
                     ctx.Presents.Add(new Presents { itemname = presentName, addedat = DateTime.Now });
                     _logger.LogInformation("Auto-ajout Présentation: {Name}", presentName);

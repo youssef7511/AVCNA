@@ -224,16 +224,19 @@
                                           materialDesign:HintAssist.Hint="Laboratoire"
                                           Style="{StaticResource DialogLineComboBoxStyle}"
                                           Margin="0,0,8,8"/>
-                                <TextBox Grid.Row="0" Grid.Column="1"
-                                         Text="{Binding Medic.specialite, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Spécialité"
-                                         Style="{StaticResource DialogLineTextBoxStyle}"
-                                         Margin="0,0,8,8"/>
+                                <controls:FilterableComboBox Grid.Row="0" Grid.Column="1"
+                                          FilterableItemsSource="{Binding Specialites}"
+                                          SelectedValue="{Binding Medic.specialite}"
+                                          SelectedValuePath="itemname"
+                                          DisplayMemberPath="itemname"
+                                          materialDesign:HintAssist.Hint="Spécialité"
+                                          Style="{StaticResource DialogLineComboBoxStyle}"
+                                          Margin="0,0,8,8"/>
 
                                 <!-- Fam 1 | Fam 2 | Fam 3 -->
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="0"
                                           FilterableItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.fam1}"
+                                          SelectedValue="{Binding Fam1}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 1"
@@ -241,7 +244,7 @@
                                           Margin="0,0,8,8"/>
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="1"
                                           FilterableItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.fam2}"
+                                          SelectedValue="{Binding Fam2}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 2"
@@ -250,7 +253,7 @@
                                           Margin="0,0,8,8"/>
                                 <controls:FilterableComboBox Grid.Row="1" Grid.Column="2"
                                           FilterableItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.fam3}"
+                                          SelectedValue="{Binding Fam3}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 3"
@@ -261,7 +264,7 @@
                                 <!-- Fam 4 (full row left) -->
                                 <controls:FilterableComboBox Grid.Row="2" Grid.Column="0"
                                           FilterableItemsSource="{Binding Families}"
-                                          SelectedValue="{Binding Medic.family}"
+                                          SelectedValue="{Binding Family}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Famille 4"
@@ -869,12 +872,17 @@
                                                   AutoGenerateColumns="False"
                                                   IsReadOnly="True"
                                                   HeadersVisibility="Column"
-                                                  MaxHeight="180">
+                                                  MaxHeight="280"
+                                                  RowHeight="48"
+                                                  ColumnHeaderHeight="36"
+                                                  MouseDoubleClick="MedicInteractionsGrid_MouseDoubleClick"
+                                                  ToolTip="Double-cliquez sur une ligne pour voir le détail complet.">
                                             <DataGrid.Columns>
-                                                <DataGridTemplateColumn Header="Niveau" Width="110" SortMemberPath="level">
+                                                <DataGridTemplateColumn Header="Niveau" Width="140" SortMemberPath="level">
                                                     <DataGridTemplateColumn.CellTemplate>
                                                         <DataTemplate>
-                                                            <Border CornerRadius="3" Padding="5,2" HorizontalAlignment="Left" Margin="2,1">
+                                                            <Border CornerRadius="6" Padding="12,6" MinHeight="30"
+                                                                    HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,6">
                                                                 <Border.Style>
                                                                     <Style TargetType="Border">
                                                                         <Setter Property="Background" Value="#E8F5E9"/>
@@ -891,7 +899,9 @@
                                                                         </Style.Triggers>
                                                                     </Style>
                                                                 </Border.Style>
-                                                                <TextBlock Text="{Binding level}" FontSize="11" FontWeight="SemiBold">
+                                                                <TextBlock Text="{Binding level}" FontSize="12" FontWeight="SemiBold"
+                                                                           VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                                           LineHeight="16" TextOptions.TextFormattingMode="Display">
                                                                     <TextBlock.Style>
                                                                         <Style TargetType="TextBlock">
                                                                             <Setter Property="Foreground" Value="#2E7D32"/>
@@ -913,9 +923,25 @@
                                                         </DataTemplate>
                                                     </DataGridTemplateColumn.CellTemplate>
                                                 </DataGridTemplateColumn>
-                                                <DataGridTextColumn Header="DCI 1" Binding="{Binding dci1}" Width="120"/>
-                                                <DataGridTextColumn Header="DCI 2" Binding="{Binding dci2}" Width="120"/>
-                                                <DataGridTextColumn Header="Mécanisme" Binding="{Binding mecanisme}" Width="140">
+                                                <DataGridTextColumn Header="DCI 1" Binding="{Binding dci1}" Width="140">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                            <Setter Property="FontSize" Value="12"/>
+                                                            <Setter Property="Margin" Value="2,0"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="DCI 2" Binding="{Binding dci2}" Width="140">
+                                                    <DataGridTextColumn.ElementStyle>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                                            <Setter Property="FontSize" Value="12"/>
+                                                            <Setter Property="Margin" Value="2,0"/>
+                                                        </Style>
+                                                    </DataGridTextColumn.ElementStyle>
+                                                </DataGridTextColumn>
+                                                <DataGridTextColumn Header="Mécanisme" Binding="{Binding mecanisme}" Width="180">
                                                     <DataGridTextColumn.ElementStyle>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
@@ -971,11 +997,12 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <TextBox Grid.Column="0"
+                                                     x:Name="CompareSearchTextBox"
                                                      Text="{Binding CompareSearchText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
-                                                     InputMethod.IsInputMethodEnabled="False"
-                                                     SpellCheck.IsEnabled="False"
                                                      materialDesign:HintAssist.Hint="Nom du médicament à comparer..."
-                                                     Style="{StaticResource DialogLineTextBoxStyle}"
+                                                     Style="{StaticResource MaterialDesignFilledTextBox}"
+                                                     FontSize="14"
+                                                     VerticalContentAlignment="Center"
                                                      Margin="0,0,8,0">
                                                 <TextBox.InputBindings>
                                                     <KeyBinding Key="Return" Command="{Binding SearchCompareDrugCommand}"/>
@@ -1310,29 +1337,6 @@
                             <StackPanel>
                                 <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
                                     <StackPanel>
-                                        <TextBlock Text="📋 Indications &amp; mises en garde"
-                                                   Style="{StaticResource DialogSectionTitleStyle}"
-                                                   Margin="0,0,0,8"/>
-                                        <TextBox Text="{Binding Medic.indication, UpdateSourceTrigger=PropertyChanged}"
-                                                 materialDesign:HintAssist.Hint="Indications"
-                                                 Style="{StaticResource DialogLineTextBoxStyle}"
-                                                 TextWrapping="Wrap"
-                                                 AcceptsReturn="True"
-                                                 MinHeight="80"
-                                                 VerticalContentAlignment="Top"
-                                                 Margin="0,0,0,10"/>
-                                        <TextBox Text="{Binding Medic.mgarde, UpdateSourceTrigger=PropertyChanged}"
-                                                 materialDesign:HintAssist.Hint="Mise en garde"
-                                                 Style="{StaticResource DialogLineTextBoxStyle}"
-                                                 TextWrapping="Wrap"
-                                                 AcceptsReturn="True"
-                                                 MinHeight="60"
-                                                 VerticalContentAlignment="Top"/>
-                                    </StackPanel>
-                                </Border>
-
-                                <Border Style="{StaticResource CompactCardStyle}">
-                                    <StackPanel>
                                         <TextBlock Text="📅 Données complémentaires"
                                                    Style="{StaticResource DialogSectionTitleStyle}"
                                                    Margin="0,0,0,8"/>
@@ -1357,6 +1361,85 @@
                                                         materialDesign:HintAssist.Hint="Date CI"
                                                         Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
                                         </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ═══ Éditeur Markdown — Monographie complète ═══ -->
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="📖 Monographie complète (Markdown)"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+
+                                        <!-- Toolbar : combo rubriques + boutons -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ComboBox Grid.Column="0"
+                                                      ItemsSource="{Binding Source={x:Static vm:MedicUpsertDialogViewModel.Rubriques}}"
+                                                      SelectedItem="{Binding SelectedRubrique, Mode=TwoWay}"
+                                                      Text="{Binding SelectedRubrique, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      IsEditable="True"
+                                                      IsTextSearchEnabled="True"
+                                                      StaysOpenOnEdit="True"
+                                                      materialDesign:HintAssist.Hint="Choisir une rubrique à insérer…"
+                                                      materialDesign:HintAssist.IsFloating="True"
+                                                      materialDesign:HintAssist.Foreground="#1565C0"
+                                                      materialDesign:TextFieldAssist.HasClearButton="True"
+                                                      Style="{StaticResource MaterialDesignFloatingHintComboBox}"
+                                                      Margin="0,8,8,0"/>
+                                            <Button Grid.Column="1"
+                                                    x:Name="InsertRubriqueButton"
+                                                    Click="InsertRubriqueButton_Click"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    Height="36" Padding="10,0"
+                                                    Margin="0,0,8,0"
+                                                    ToolTip="Insère la rubrique au curseur sous la forme &quot;## NOM&quot;">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FormatHeader2" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Insérer rubrique" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Grid.Column="2"
+                                                    Command="{Binding OpenMonographiePreviewCommand}"
+                                                    Style="{StaticResource MaterialDesignRaisedAccentButton}"
+                                                    Height="36" Padding="10,0"
+                                                    ToolTip="Affiche le rendu HTML tel que le médecin le verra">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Eye" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Aperçu HTML" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+
+                                        <!-- Aide rapide Markdown -->
+                                        <TextBlock FontSize="11"
+                                                   Foreground="{DynamicResource MaterialDesignBodyLight}"
+                                                   TextWrapping="Wrap"
+                                                   Margin="0,0,0,8"
+                                                   Text="Syntaxe Markdown : ## TITRE pour une rubrique, ### Sous-titre, **gras**, *italique*, - puce. Le bouton « Aperçu HTML » affiche le rendu côté médecin."/>
+
+                                        <!-- Editor (large multiline TextBox) -->
+                                        <TextBox x:Name="MonographieEditor"
+                                                 Text="{Binding Medic.monographie, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 AcceptsTab="True"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 HorizontalScrollBarVisibility="Auto"
+                                                 MinHeight="280"
+                                                 MaxHeight="500"
+                                                 FontFamily="Consolas, Courier New"
+                                                 FontSize="13"
+                                                 Padding="10"
+                                                 SpellCheck.IsEnabled="False"
+                                                 InputMethod.IsInputMethodEnabled="False"
+                                                 BorderBrush="#BDBDBD"
+                                                 BorderThickness="1"
+                                                 Background="#FAFAFA"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -1391,8 +1474,10 @@
                 </Button>
 
                 <Button Grid.Column="1"
+                        x:Name="SaveButton"
                         Command="{Binding SaveCommand}"
-                        Style="{StaticResource TabDialogPrimaryButtonStyle}">
+                        Style="{StaticResource TabDialogPrimaryButtonStyle}"
+                        PreviewMouseLeftButtonDown="SaveButton_PreviewMouseLeftButtonDown">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="ContentSave" Width="16" Height="16" VerticalAlignment="Center"/>
                         <TextBlock Text="Enregistrer" Margin="6,0,0,0" VerticalAlignment="Center"/>
