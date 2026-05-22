@@ -33,9 +33,10 @@ public class MedicUpsertDialogClearFieldTests
         var formeRepo   = new Mock<IRepository<Formes>>();
         var presentRepo = new Mock<IRepository<Presents>>();
         var voieRepo    = new Mock<IRepository<Voies>>();
-        var catveicRepo = new Mock<IRepository<Catveic>>();
+        var specialiteRepo = new Mock<IRepository<Specialites>>();
         var interactRepo = new Mock<IRepository<Interact>>();
         var openRouter  = new Mock<IOpenRouterService>();
+        var mlPfeService = new Mock<IMLPfeService>();
         dialog          = new Mock<IDialogService>();
 
         // MedicSyncService requires IDbContextFactory<AppDbContext> + ILogger.
@@ -58,15 +59,16 @@ public class MedicUpsertDialogClearFieldTests
             formeRepo.Object,
             presentRepo.Object,
             voieRepo.Object,
-            catveicRepo.Object,
+            specialiteRepo.Object,
             interactRepo.Object,
             openRouter.Object,
+            mlPfeService.Object,
             dialog.Object,
             syncService);
     }
 
     [Fact]
-    public async Task ClearingFam2ToNull_PersistsNullViaUpdateAsync()
+    public async Task ClearingFam2ToNull_PersistsEmptyStringViaUpdateAsync()
     {
         var vm = BuildVm(out var medicRepo, out var dialog);
 
@@ -96,7 +98,8 @@ public class MedicUpsertDialogClearFieldTests
             fam1     = "ANTALGIQUE",
             fam2     = null,                  // cleared — the value the fixed control produces
             dci1     = "PARACETAMOL",         // Required — must be non-empty
-            voie     = "Orale"
+            voie     = "Orale",
+            labo     = "SANOFI"
         };
 
         // Use reflection to set IsEditMode and Medic.
@@ -107,9 +110,10 @@ public class MedicUpsertDialogClearFieldTests
 
         await vm.SaveCommand.ExecuteAsync(null);
 
-        // If fam2 null were silently swallowed (e.g., defaulted to string.Empty
-        // before UpdateAsync), this assertion would fail — pinning the regression.
+        // If fam2 was not updated (swallowed), this assertion would fail.
+        // Due to the NOT NULL constraints on the database schema, null is
+        // defensively coalesced to string.Empty before UpdateAsync.
         captured.Should().NotBeNull("UpdateAsync should have been called in edit mode");
-        captured!.fam2.Should().BeNull("null famille must reach the repository unchanged");
+        captured!.fam2.Should().BeEmpty("null famille must be converted to empty string to satisfy database constraints");
     }
 }

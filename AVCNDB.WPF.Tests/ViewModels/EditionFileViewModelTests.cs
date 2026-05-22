@@ -24,7 +24,8 @@ public class EditionFileViewModelTests
             new Mock<IRepository<Labos>>().Object,
             new Mock<IRepository<Families>>().Object,
             new Mock<IRepository<Voies>>().Object,
-            new Mock<IRepository<Specialites>>().Object);
+            new Mock<IRepository<Specialites>>().Object,
+            new Mock<IRepository<Dci>>().Object);
     }
 
     private void SetAllRows(EditionFileViewModel vm, List<EditionRowViewModel> rows)

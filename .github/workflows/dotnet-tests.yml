@@ -15,7 +15,7 @@ on:
 env:
   DOTNET_VERSION: '8.0.x'
   SOLUTION_PATH: 'AVCNDB.WPF.sln'
-  TEST_PROJECT: 'AVCNDB.Tests/AVCNDB.Tests.csproj'
+  TEST_PROJECT: 'AVCNDB.WPF.Tests/AVCNDB.WPF.Tests.csproj'
 
 jobs:
   # ============================================================================

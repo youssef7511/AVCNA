@@ -22,9 +22,12 @@ public class InteractionsViewModelTests
         pdf          = new Mock<IPdfService>();
         mlPfe        = new Mock<IMLPfeService>();
 
+        var dciRepo  = new Mock<IRepository<Dci>>();
+
         return new InteractionsViewModel(
             interactRepo.Object,
             medicRepo.Object,
+            dciRepo.Object,
             openRouter.Object,
             dialog.Object,
             pdf.Object,
@@ -220,7 +223,8 @@ public class InteractionsViewModelTests
                 "AI description",
                 "AI mecanisme",
                 "AI conduite",
-                "{ \"level\": \"Déconseillé\" }"));
+                "{ \"level\": \"Déconseillé\" }",
+                "nvidia/nemotron-3-super-120b-a12b"));
 
         await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
 
@@ -253,7 +257,7 @@ public class InteractionsViewModelTests
 
         openRouter
             .Setup(s => s.AnalyzeInteractionAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new InteractionAnalysis("Contre-indiqué", "d", "m", "c", "r"));
+            .ReturnsAsync(new InteractionAnalysis("Contre-indiqué", "d", "m", "c", "r", "nvidia/nemotron-3-super-120b-a12b"));
 
         await vm.AnalyzeWithAiCommand.ExecuteAsync(null);
 
