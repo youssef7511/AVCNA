@@ -52,12 +52,11 @@
                         <TextBox Text="{Binding DrugASearchText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                  InputMethod.IsInputMethodEnabled="False"
                                  SpellCheck.IsEnabled="False"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Style="{StaticResource MaterialDesignFilledTextBox}"
                                  materialDesign:HintAssist.Hint="Rechercher un médicament..."
-                                 materialDesign:HintAssist.IsFloating="False"
                                  materialDesign:TextFieldAssist.HasClearButton="True"
-                                 Height="36"
-                                 FontSize="13"
+                                 Foreground="Black"
+                                 FontSize="14"
                                  VerticalContentAlignment="Center"
                                  Margin="0,0,0,8"/>
 
@@ -172,12 +171,11 @@
                         <TextBox Text="{Binding DrugBSearchText, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                                  InputMethod.IsInputMethodEnabled="False"
                                  SpellCheck.IsEnabled="False"
-                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                 Style="{StaticResource MaterialDesignFilledTextBox}"
                                  materialDesign:HintAssist.Hint="Rechercher un médicament..."
-                                 materialDesign:HintAssist.IsFloating="False"
                                  materialDesign:TextFieldAssist.HasClearButton="True"
-                                 Height="36"
-                                 FontSize="13"
+                                 Foreground="Black"
+                                 FontSize="14"
                                  VerticalContentAlignment="Center"
                                  Margin="0,0,0,8"/>
 

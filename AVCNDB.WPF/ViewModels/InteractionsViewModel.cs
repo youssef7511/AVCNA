@@ -21,10 +21,17 @@ public partial class InteractionsViewModel : ViewModelBase
 {
     private readonly IRepository<Interact> _interactRepository;
     private readonly IRepository<Medic> _medicRepository;
+    private readonly IRepository<Dci> _dciRepository;
     private readonly IOpenRouterService _openRouterService;
     private readonly IDialogService _dialogService;
     private readonly IPdfService _pdfService;
     private readonly IMLPfeService _mlPfeService;
+
+    /// <summary>
+    /// DCI ref list loaded lazily and cached. Used to canonicalize DCI spelling
+    /// at save time so accent/case drift never fragments the interact table.
+    /// </summary>
+    private List<Dci>? _dciCache;
 
     /// <summary>
     /// CancellationTokenSource for the in-flight AI analysis. Cancelled and
@@ -71,6 +78,7 @@ public partial class InteractionsViewModel : ViewModelBase
     public InteractionsViewModel(
         IRepository<Interact> interactRepository,
         IRepository<Medic> medicRepository,
+        IRepository<Dci> dciRepository,
         IOpenRouterService openRouterService,
         IDialogService dialogService,
         IPdfService pdfService,
@@ -78,10 +86,33 @@ public partial class InteractionsViewModel : ViewModelBase
     {
         _interactRepository = interactRepository;
         _medicRepository = medicRepository;
+        _dciRepository = dciRepository;
         _openRouterService = openRouterService;
         _dialogService = dialogService;
         _pdfService = pdfService;
         _mlPfeService = mlPfeService;
+    }
+
+    /// <summary>
+    /// Resolves <paramref name="raw"/> against the canonical DCI ref list.
+    /// If a row exists whose name is canonically equal (case/accent/whitespace),
+    /// returns that row's exact spelling; otherwise returns the trimmed input.
+    /// Loads the ref list once and caches it on the VM.
+    /// </summary>
+    private async Task<string> ResolveCanonicalDciAsync(string raw)
+    {
+        var trimmed = raw?.Trim() ?? string.Empty;
+        if (string.IsNullOrEmpty(trimmed)) return string.Empty;
+
+        if (_dciCache == null)
+        {
+            try { _dciCache = (await _dciRepository.GetAllAsync()).ToList(); }
+            catch { _dciCache = new List<Dci>(); }
+        }
+
+        var match = _dciCache.FirstOrDefault(d =>
+            AVCNDB.WPF.Helpers.NameNormalizer.AreSame(d.itemname, trimmed));
+        return match?.itemname ?? trimmed;
     }
 
     // ── Search-text debounce hooks ──
@@ -287,16 +318,14 @@ public partial class InteractionsViewModel : ViewModelBase
         return sb.ToString();
     }
 
-    // Column bounds mirror StringLength attributes on Models/Interact.cs.
-    private const int LevelMaxLength       = 20;
-    private const int DescriptionMaxLength = 500;
-    private const int MecanismeMaxLength   = 200;
-    private const int ConduiteMaxLength    = 500;
+    // level is VARCHAR(30) in the DB but is always one of the 5 canonical values
+    // produced by OpenRouterService.NormalizeLevel — no truncation needed.
+    private const int LevelMaxLength = 30;
 
-    private static string Cap(string? value, int max)
+    private static string CapLevel(string? value)
     {
         if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Length <= max ? value : value.Substring(0, max - 1) + "…";
+        return value.Length <= LevelMaxLength ? value : value.Substring(0, LevelMaxLength);
     }
 
     private static string BuildAiErrorMessage(Exception ex)
@@ -345,15 +374,22 @@ public partial class InteractionsViewModel : ViewModelBase
         _isSaving = true;
         try
         {
+            // Resolve DCI spelling against the canonical ref list so we never
+            // grow accent-/case-fragmented duplicates in the interact table.
+            var canonicalDciA = await ResolveCanonicalDciAsync(dciA);
+            var canonicalDciB = await ResolveCanonicalDciAsync(dciB);
+
             var now = DateTime.Now;
             var interact = new Interact
             {
-                dci1 = dciA, dci2 = dciB,
+                dci1 = canonicalDciA, dci2 = canonicalDciB,
                 voie1 = voieA, voie2 = voieB,
-                level       = Cap(DeepAnalysisLevel,       LevelMaxLength),
-                description = Cap(DeepAnalysisDescription, DescriptionMaxLength),
-                mecanisme   = Cap(DeepAnalysisMecanisme,   MecanismeMaxLength),
-                conduite    = Cap(DeepAnalysisConduite,    ConduiteMaxLength),
+                level       = CapLevel(DeepAnalysisLevel),
+                description = DeepAnalysisDescription ?? string.Empty,
+                mecanisme   = DeepAnalysisMecanisme   ?? string.Empty,
+                conduite    = DeepAnalysisConduite    ?? string.Empty,
+                source      = "ai",
+                model       = _openRouterService.ModelName,
                 addedat     = now,
                 updatedat   = now
             };
@@ -434,7 +470,8 @@ public partial class InteractionsViewModel : ViewModelBase
                     DeepAnalysisDescription,
                     DeepAnalysisMecanisme,
                     DeepAnalysisConduite,
-                    string.Empty);
+                    string.Empty,
+                    _openRouterService.ModelName);
             }
 
             await _pdfService.GenerateInteractionReportForDrugsAsync(a, b, aiPending, filePath);

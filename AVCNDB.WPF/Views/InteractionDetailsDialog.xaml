@@ -1,0 +1,156 @@
+<Window x:Class="AVCNDB.WPF.Views.InteractionDetailsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Détail de l'interaction"
+        Height="640" Width="780"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        FontFamily="Segoe UI"
+        ResizeMode="CanResize">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header band: level pill + the two DCIs -->
+        <Border Grid.Row="0" Padding="20,16">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Background" Value="#E8F5E9"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                            <Setter Property="Background" Value="#FFEBEE"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                            <Setter Property="Background" Value="#FFF3E0"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding level}" Value="Précaution">
+                            <Setter Property="Background" Value="#FFFDE7"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding level}" Value="A surveiller">
+                            <Setter Property="Background" Value="#EEEEEE"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+
+            <StackPanel>
+                <Border CornerRadius="4"
+                        Padding="10,4"
+                        HorizontalAlignment="Left"
+                        Background="White"
+                        BorderThickness="1"
+                        Margin="0,0,0,10">
+                    <Border.BorderBrush>
+                        <SolidColorBrush Color="#BDBDBD"/>
+                    </Border.BorderBrush>
+                    <TextBlock Text="{Binding level}" FontWeight="SemiBold" FontSize="13">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding level}" Value="Contre-indiqué">
+                                        <Setter Property="Foreground" Value="#C62828"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding level}" Value="Déconseillé">
+                                        <Setter Property="Foreground" Value="#E65100"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding level}" Value="Précaution">
+                                        <Setter Property="Foreground" Value="#F57F17"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding level}" Value="A surveiller">
+                                        <Setter Property="Foreground" Value="#616161"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding dci1}" FontSize="18" FontWeight="SemiBold"/>
+                    <materialDesign:PackIcon Kind="SwapHorizontal" Width="22" Height="22"
+                                             Margin="12,0" VerticalAlignment="Center"
+                                             Foreground="#757575"/>
+                    <TextBlock Text="{Binding dci2}" FontSize="18" FontWeight="SemiBold"/>
+                </StackPanel>
+
+                <TextBlock FontSize="11" Foreground="#757575" Margin="0,4,0,0">
+                    <Run Text="Voie 1: "/>
+                    <Run Text="{Binding voie1, TargetNullValue='—'}"/>
+                    <Run Text="    ·    "/>
+                    <Run Text="Voie 2: "/>
+                    <Run Text="{Binding voie2, TargetNullValue='—'}"/>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+
+        <!-- Body: scrolling text blocks (no ellipsis) -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20,16">
+            <StackPanel>
+                <TextBlock Text="DESCRIPTION" FontWeight="SemiBold" FontSize="11"
+                           Foreground="#757575" Margin="0,0,0,6"/>
+                <TextBlock Text="{Binding description}"
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           LineHeight="20"
+                           Margin="0,0,0,16"/>
+
+                <TextBlock Text="MÉCANISME" FontWeight="SemiBold" FontSize="11"
+                           Foreground="#757575" Margin="0,0,0,6"/>
+                <Border Background="#F5F5F5" CornerRadius="6" Padding="14,12" Margin="0,0,0,16">
+                    <TextBlock Text="{Binding mecanisme}"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               LineHeight="20"/>
+                </Border>
+
+                <TextBlock Text="CONDUITE À TENIR" FontWeight="SemiBold" FontSize="11"
+                           Foreground="#2E7D32" Margin="0,0,0,6"/>
+                <Border Background="#E8F5E9" CornerRadius="6" Padding="14,12" Margin="0,0,0,16">
+                    <TextBlock Text="{Binding conduite}"
+                               TextWrapping="Wrap"
+                               FontSize="13"
+                               LineHeight="20"
+                               Foreground="#1B5E20"/>
+                </Border>
+
+                <!-- Provenance footer -->
+                <Border BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="0,10,0,0" Margin="0,8,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Information" Width="14" Height="14"
+                                                 VerticalAlignment="Center" Foreground="#9E9E9E"/>
+                        <TextBlock FontSize="11" Foreground="#9E9E9E" Margin="6,0,0,0" VerticalAlignment="Center">
+                            <Run Text="Source : "/>
+                            <Run Text="{Binding source, TargetNullValue='manual'}"/>
+                            <Run Text="    ·    "/>
+                            <Run Text="Modèle : "/>
+                            <Run Text="{Binding model, TargetNullValue='—'}"/>
+                            <Run Text="    ·    "/>
+                            <Run Text="Enregistré : "/>
+                            <Run Text="{Binding addedat, StringFormat='dd/MM/yyyy HH:mm', TargetNullValue='—'}"/>
+                        </TextBlock>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer: close button -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource MaterialDesignBackground}"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="20,12">
+            <Button Content="Fermer"
+                    HorizontalAlignment="Right"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    Height="34" Padding="16,0"
+                    Click="CloseButton_Click"/>
+        </Border>
+    </Grid>
+</Window>

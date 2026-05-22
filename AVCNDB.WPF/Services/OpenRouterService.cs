@@ -24,6 +24,8 @@ public class OpenRouterService : IOpenRouterService
         _model = configuration["OpenRouter:Model"] ?? "nvidia/nemotron-3-super-120b-a12b";
     }
 
+    public string ModelName => _model;
+
     public async Task<InteractionAnalysis> AnalyzeInteractionAsync(
         string dci1, string voie1,
         string dci2, string voie2,
@@ -89,10 +91,10 @@ public class OpenRouterService : IOpenRouterService
 
         var content = contentEl.GetString() ?? string.Empty;
 
-        return ParseAnalysis(content);
+        return ParseAnalysis(content, _model);
     }
 
-    private static InteractionAnalysis ParseAnalysis(string raw)
+    private static InteractionAnalysis ParseAnalysis(string raw, string modelName)
     {
         try
         {
@@ -109,17 +111,54 @@ public class OpenRouterService : IOpenRouterService
             using var doc = JsonDocument.Parse(clean.Trim());
             var root = doc.RootElement;
 
+            var rawLevel = root.TryGetProperty("level", out var l) ? l.GetString() ?? "" : "";
             return new InteractionAnalysis(
-                Level:       root.TryGetProperty("level",       out var l) ? l.GetString() ?? "" : "Modéré",
+                Level:       NormalizeLevel(rawLevel),
                 Description: root.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "",
                 Mecanisme:   root.TryGetProperty("mecanisme",   out var m) ? m.GetString() ?? "" : "",
                 Conduite:    root.TryGetProperty("conduite",    out var c) ? c.GetString() ?? "" : "",
-                RawText:     raw);
+                RawText:     raw,
+                Model:       modelName);
         }
         catch (Exception ex)
         {
             Log.Warning(ex, "OpenRouter JSON parse failed — returning raw text. Content: {Content}", raw);
-            return new InteractionAnalysis("À vérifier", raw, "", "", raw);
+            return new InteractionAnalysis("À vérifier", raw, "", "", raw, modelName);
         }
+    }
+
+    /// <summary>
+    /// Collapses any model-supplied severity label to one of five canonical values.
+    /// Accent- and case-insensitive; tolerates common synonyms ("CI", "interdit",
+    /// "modéré", "majeur", …) so the DB never grows a fragmented vocabulary that
+    /// would break filter-by-level lookups.
+    /// </summary>
+    private static string NormalizeLevel(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "À vérifier";
+
+        var key = AVCNDB.WPF.Helpers.NameNormalizer.Canonical(raw);
+
+        // Contre-indiqué — absolute prohibition
+        if (key.Contains("contre indique") || key.Contains("contre-indique")
+            || key == "ci" || key.Contains("interdit") || key.Contains("majeur"))
+            return "Contre-indiqué";
+
+        // Déconseillé — avoid unless no alternative
+        if (key.Contains("deconseille") || key.Contains("a eviter") || key.Contains("eviter"))
+            return "Déconseillé";
+
+        // Précaution — significant risk, dose adjustment / monitoring required
+        if (key.Contains("precaution") || key.Contains("modere") || key.Contains("attention")
+            || key.Contains("prudence"))
+            return "Précaution";
+
+        // A surveiller — mild interaction, monitor for symptoms
+        if (key.Contains("surveiller") || key.Contains("surveillance") || key.Contains("mineur")
+            || key.Contains("faible"))
+            return "A surveiller";
+
+        // Anything else (including blank) flagged for human review
+        return "À vérifier";
     }
 }
