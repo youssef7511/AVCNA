@@ -64,7 +64,11 @@ public partial class LoginViewModel : ViewModelBase
             _sessionService.SetCurrentUser(result.User!);
 
             if (RememberMe)
-                _rememberMeService.SaveForUser(result.User!.username);
+            {
+                var issued = await _authService.IssueRememberMeTokenAsync(result.User!.recordid);
+                if (issued != null)
+                    _rememberMeService.SaveForUser(result.User!.username, issued.Token, issued.ExpiresUtc);
+            }
 
             RequestClose?.Invoke(true);
         });

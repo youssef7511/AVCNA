@@ -118,29 +118,6 @@
                                            VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <!-- Seuil stock -->
-                            <Grid Margin="0,0,0,16">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="130"/>
-                                </Grid.ColumnDefinitions>
-
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Seuil d'alerte stock" FontWeight="SemiBold"/>
-                                    <TextBlock Text="Unités en dessous duquel l'alerte se déclenche"
-                                               Style="{StaticResource SubtitleStyle}"
-                                               TextWrapping="Wrap"/>
-                                </StackPanel>
-
-                                <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Grid.Column="1"
-                                         Text="{Binding StockAlertThreshold, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Seuil"
-                                         materialDesign:TextFieldAssist.SuffixText="unités"
-                                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
-                            </Grid>
-
-                            <Separator Margin="0,0,0,16"/>
-
                             <!-- Péremption -->
                             <Grid>
                                 <Grid.ColumnDefinitions>

@@ -218,7 +218,7 @@
                                 <!-- Labo | Spécialité -->
                                 <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
                                           FilterableItemsSource="{Binding Labos}"
-                                          SelectedValue="{Binding Medic.labo}"
+                                          SelectedValue="{Binding Laboratoire}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Laboratoire"
@@ -226,7 +226,7 @@
                                           Margin="0,0,8,8"/>
                                 <controls:FilterableComboBox Grid.Row="0" Grid.Column="1"
                                           FilterableItemsSource="{Binding Specialites}"
-                                          SelectedValue="{Binding Medic.specialite}"
+                                          SelectedValue="{Binding Specialite}"
                                           SelectedValuePath="itemname"
                                           DisplayMemberPath="itemname"
                                           materialDesign:HintAssist.Hint="Spécialité"
@@ -427,7 +427,7 @@
 
                                             <controls:FilterableComboBox Grid.Row="0" Grid.Column="0"
                                                       FilterableItemsSource="{Binding Formes}"
-                                                      SelectedValue="{Binding Medic.forme}"
+                                                      SelectedValue="{Binding MedicForme, UpdateSourceTrigger=PropertyChanged}"
                                                       SelectedValuePath="itemname"
                                                       DisplayMemberPath="itemname"
                                                       materialDesign:HintAssist.Hint="Forme"
@@ -491,10 +491,32 @@
                                                 </StackPanel>
                                             </Button>
                                         </Grid>
-                                        <TextBlock Text="{Binding ComputedPosology, TargetNullValue='(vide)'}"
-                                                   Foreground="{DynamicResource PrimaryHueMidBrush}"
-                                                   FontStyle="Italic" FontSize="12"
-                                                   Margin="0,4,0,6"/>
+                                        <!-- Bond bleu — même style que dans le dialogue Poso -->
+                                        <Border Background="{StaticResource InfoSurfaceBrush}" CornerRadius="6" Padding="12,10" Margin="0,4,0,8">
+                                            <StackPanel>
+                                                <TextBlock Text="Dénomination (autogénérée)"
+                                                           FontSize="11"
+                                                           Foreground="#5A6A8A"
+                                                           Margin="0,0,0,4"/>
+                                                <TextBlock Text="{Binding ComputedPosology, TargetNullValue='(vide)'}"
+                                                           FontSize="14"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="#1565C0"
+                                                           TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Poso usuelle : sélection rapide d'une dénomination déjà
+                                             enregistrée dans la table poso. Quand l'utilisateur
+                                             choisit une valeur, Qté / Forme / Prises / Période /
+                                             Conditions et Medic.posology sont pré-remplis depuis
+                                             la ligne Poso correspondante. -->
+                                        <controls:FilterableComboBox FilterableItemsSource="{Binding PosoUsuelleOptions}"
+                                                                     Text="{Binding PosoUsuelle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                     materialDesign:HintAssist.Hint="Poso usuelle (chercher une posologie déjà enregistrée)"
+                                                                     Style="{StaticResource DialogLineComboBoxStyle}"
+                                                                     Margin="0,0,0,10"/>
+
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="70"/>
@@ -601,17 +623,8 @@
                                                            LineHeight="26"
                                                            Margin="0,0,0,10"/>
 
-                                                <!-- Components chips row -->
+                                                <!-- Components chips row (DCI exclu : ne fait pas partie de la dénomination commerciale) -->
                                                 <WrapPanel Grid.Row="2" Orientation="Horizontal">
-                                                    <!-- DCI chip -->
-                                                    <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
-                                                            Background="{StaticResource BotanicalBrush}"
-                                                            Visibility="{Binding Medic.dci1, Converter={StaticResource StringNotNullOrEmptyToVisibility}}">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="DCI  " FontSize="10" Foreground="#AADEAA" FontWeight="SemiBold"/>
-                                                            <TextBlock Text="{Binding Medic.dci1}" FontSize="11" Foreground="White" FontWeight="Bold"/>
-                                                        </StackPanel>
-                                                    </Border>
                                                     <!-- Dose chip -->
                                                     <Border CornerRadius="12" Padding="10,4" Margin="0,0,6,4"
                                                             Background="{StaticResource BotanicalDarkBrush}"
@@ -738,6 +751,7 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
 
                                             <TextBox Grid.Column="0"
@@ -749,20 +763,74 @@
                                             <Button Grid.Column="1"
                                                     Command="{Binding UpdateDenominationCommand}"
                                                     Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    Background="#2E7D32"
+                                                    BorderBrush="#2E7D32"
+                                                    Foreground="White"
                                                     materialDesign:ButtonAssist.CornerRadius="6"
                                                     Height="42"
                                                     Padding="14,0"
+                                                    FontWeight="SemiBold"
+                                                    Margin="0,0,8,0"
                                                     ToolTip="Recalculer et écrire la dénomination autogénérée dans le champ ci-contre">
                                                 <StackPanel Orientation="Horizontal">
-                                                    <materialDesign:PackIcon Kind="Refresh" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <materialDesign:PackIcon Kind="AutoFix" Width="18" Height="18" VerticalAlignment="Center"/>
                                                     <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
-                                                        <TextBlock Text="Appliquer" FontSize="11" FontWeight="SemiBold"/>
-                                                        <TextBlock Text="la calculée" FontSize="9" Opacity="0.75"/>
+                                                        <TextBlock Text="Mettre à jour" FontSize="12" FontWeight="Bold"/>
+                                                        <TextBlock Text="la dénomination" FontSize="9" Opacity="0.9"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- Décomposer : sens inverse, parse le basename et remplit les champs -->
+                                            <Button Grid.Column="2"
+                                                    Command="{Binding DecomposeDenominationCommand}"
+                                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    Background="#1565C0"
+                                                    BorderBrush="#1565C0"
+                                                    Foreground="White"
+                                                    materialDesign:ButtonAssist.CornerRadius="6"
+                                                    Height="42"
+                                                    Padding="14,0"
+                                                    FontWeight="SemiBold"
+                                                    ToolTip="Parser la dénomination saisie et remplir Forme / Présentation / Voie / DCI à partir du texte">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CallSplit" Width="18" Height="18" VerticalAlignment="Center"/>
+                                                    <StackPanel Margin="8,0,0,0" VerticalAlignment="Center">
+                                                        <TextBlock Text="Décomposer" FontSize="12" FontWeight="Bold"/>
+                                                        <TextBlock Text="vers les champs" FontSize="9" Opacity="0.9"/>
                                                     </StackPanel>
                                                 </StackPanel>
                                             </Button>
                                         </Grid>
                                     </Grid>
+                                </Border>
+
+                                <!-- Bandeau d'avertissements non-bloquants : mots non reconnus
+                                     pendant la décomposition. La sauvegarde reste possible. -->
+                                <Border Background="#FFF8E1"
+                                        BorderBrush="#FFB300"
+                                        BorderThickness="1"
+                                        CornerRadius="6"
+                                        Padding="12,10"
+                                        Margin="0,8,0,0"
+                                        Visibility="{Binding HasDenominationWarnings, Converter={StaticResource BoolToVisibility}}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                            <materialDesign:PackIcon Kind="AlertCircleOutline" Width="18" Height="18"
+                                                                     Foreground="#E65100" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Tokens non reconnus lors de la décomposition"
+                                                       FontWeight="SemiBold" Foreground="#E65100"
+                                                       Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <ItemsControl ItemsSource="{Binding DenominationWarnings}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding}" Foreground="#5D4037"
+                                                               TextWrapping="Wrap" Margin="24,2,0,2"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </Border>
 
                             </StackPanel>
@@ -1335,6 +1403,7 @@
                         </TabItem.Header>
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
                             <StackPanel>
+                                <!-- Données complémentaires : dates liées au contenu clinique -->
                                 <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
                                     <StackPanel>
                                         <TextBlock Text="📅 Données complémentaires"
@@ -1344,19 +1413,13 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBox Grid.Column="0"
-                                                     Text="{Binding Medic.formgroup, UpdateSourceTrigger=PropertyChanged}"
-                                                     materialDesign:HintAssist.Hint="Groupe forme"
-                                                     Style="{StaticResource DialogLineTextBoxStyle}"
-                                                     Margin="0,0,6,0"/>
-                                            <DatePicker Grid.Column="1"
+                                            <DatePicker Grid.Column="0"
                                                         SelectedDate="{Binding Medic.monogat}"
                                                         materialDesign:HintAssist.Hint="Date monographie"
                                                         Style="{StaticResource MaterialDesignOutlinedDatePicker}"
                                                         Margin="0,0,6,0"/>
-                                            <DatePicker Grid.Column="2"
+                                            <DatePicker Grid.Column="1"
                                                         SelectedDate="{Binding Medic.ciat}"
                                                         materialDesign:HintAssist.Hint="Date CI"
                                                         Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
@@ -1442,6 +1505,84 @@
                                                  Background="#FAFAFA"/>
                                     </StackPanel>
                                 </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- ═══ Tab 6: Infos de contrôle ═══ -->
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ClipboardCheckOutline" Width="16" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="Infos de contrôle" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="6,8">
+                            <StackPanel>
+
+                                <!-- Statut + tatouage + suppression -->
+                                <Border Style="{StaticResource CompactCardStyle}" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <TextBlock Text="⚙ Statut"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <CheckBox Grid.Column="0"
+                                                      Content="Médicament actif"
+                                                      IsChecked="{Binding Medic.isactive, Converter={StaticResource IntToBoolConverter}}"
+                                                      VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding SoftDeleteMedicCommand}"
+                                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                                    Foreground="#C62828"
+                                                    Padding="10,2"
+                                                    ToolTip="Mettre ce médicament à la corbeille (suppression logique)">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="DeleteOutline" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Supprimer" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="12"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </Grid>
+                                        <TextBox Text="{Binding Medic.tatouage, UpdateSourceTrigger=PropertyChanged}"
+                                                 materialDesign:HintAssist.Hint="Tatouage"
+                                                 Style="{StaticResource DialogLineTextBoxStyle}"
+                                                 Margin="0,12,0,0"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Dates système (lecture seule) -->
+                                <Border Style="{StaticResource CompactCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="🕓 Traçabilité (lecture seule)"
+                                                   Style="{StaticResource DialogSectionTitleStyle}"
+                                                   Margin="0,0,0,8"/>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="220"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Date d'ajout dans la base" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Medic.addedat, StringFormat='{}{0:dd/MM/yyyy HH:mm}', TargetNullValue='—'}" Margin="0,4"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Date de dernière modification" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Medic.updatedat, StringFormat='{}{0:dd/MM/yyyy HH:mm}', TargetNullValue='—'}" Margin="0,4"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Date de mise en corbeille" FontWeight="SemiBold" Margin="0,4"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Medic.deletedat, StringFormat='{}{0:dd/MM/yyyy HH:mm}', TargetNullValue='—'}" Margin="0,4"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>

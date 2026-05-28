@@ -306,8 +306,6 @@
 
                             <!-- Labos -->
                             <Border Padding="22,18,22,18"
-                                    BorderBrush="{StaticResource HairlineBrush}"
-                                    BorderThickness="0,0,0,1"
                                     Cursor="Hand">
                                 <Border.InputBindings>
                                     <MouseBinding Command="{Binding NavigateToLabosCommand}" MouseAction="LeftClick"/>
@@ -331,41 +329,6 @@
                                 </Grid>
                             </Border>
 
-                            <!-- Couverture -->
-                            <Border Padding="22,18,22,18"
-                                    Cursor="Hand">
-                                <Border.InputBindings>
-                                    <MouseBinding Command="{Binding NavigateToStockCommand}" MouseAction="LeftClick"/>
-                                </Border.InputBindings>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="COUVERTURE DU STOCK"
-                                                   Style="{StaticResource EyebrowStyle}"/>
-                                        <TextBlock Style="{StaticResource CaptionTextStyle}"
-                                                   Margin="0,2,0,0">
-                                            <Run Text="% médicaments en stock suffisant"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock HorizontalAlignment="Right"
-                                                   Style="{StaticResource LedgerNumberStyle}">
-                                            <Run Text="{Binding StockCoveragePercent}"/><Run Text=" %"/>
-                                        </TextBlock>
-                                        <!-- mini barre de couverture -->
-                                        <Grid Width="100" Height="4" Margin="0,6,0,0" HorizontalAlignment="Right">
-                                            <Border Background="{StaticResource HairlineBrush}"/>
-                                            <Border HorizontalAlignment="Left"
-                                                    Background="{StaticResource MossDarkBrush}"
-                                                    Width="{Binding StockCoveragePercent}"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Grid>
-                            </Border>
-
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -374,133 +337,9 @@
                      ALERTES + ACTIVITÉ MENSUELLE
                 ════════════════════════════════════════════════════ -->
                 <Grid Margin="0,0,0,28">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="5*"/>
-                        <ColumnDefinition Width="28"/>
-                        <ColumnDefinition Width="7*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Alertes — ledger des médicaments sous seuil -->
-                    <Border Grid.Column="0" Style="{StaticResource BaseCardStyle}" Padding="22">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <StackPanel Grid.Row="0" Margin="0,0,0,14">
-                                <TextBlock Text="ALERTES · STOCKS SOUS SEUIL"
-                                           Style="{StaticResource EyebrowStyle}"/>
-                                <TextBlock Text="Médicaments en rupture imminente"
-                                           Style="{StaticResource SubtitleStyle}"
-                                           Margin="0,4,0,0"/>
-                                <Border Height="1" Background="{StaticResource HairlineStrongBrush}" Margin="0,12,0,0"/>
-                            </StackPanel>
-
-                            <!-- Empty state -->
-                            <StackPanel Grid.Row="1"
-                                        HorizontalAlignment="Center" VerticalAlignment="Center"
-                                        Margin="0,32">
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding StockAlertsCount}" Value="0">
-                                                <Setter Property="Visibility" Value="Visible"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </StackPanel.Style>
-                                <materialDesign:PackIcon Kind="LeafCircleOutline" Width="32" Height="32"
-                                                         Foreground="{StaticResource MossDarkBrush}"
-                                                         HorizontalAlignment="Center"/>
-                                <TextBlock Text="Aucune alerte au registre"
-                                           FontFamily="{StaticResource DisplayFontFamily}"
-                                           FontSize="16"
-                                           Foreground="{StaticResource InkBrush}"
-                                           HorizontalAlignment="Center" Margin="0,10,0,2"/>
-                                <TextBlock Text="Tous les stocks sont au-dessus du seuil minimum."
-                                           Style="{StaticResource CaptionTextStyle}"
-                                           HorizontalAlignment="Center"/>
-                            </StackPanel>
-
-                            <!-- Liste des alertes : « ledger row » numérotée -->
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="300">
-                                <ScrollViewer.Style>
-                                    <Style TargetType="ScrollViewer">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding StockAlertsCount}" Value="0">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ScrollViewer.Style>
-                                <ItemsControl ItemsSource="{Binding RecentAlerts}"
-                                              AlternationCount="999">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Style="{StaticResource LedgerRowBorderStyle}">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="32"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock VerticalAlignment="Center"
-                                                               FontFamily="{StaticResource MonoFontFamily}"
-                                                               FontSize="11"
-                                                               Foreground="{StaticResource InkMuteBrush}"
-                                                               Text="{Binding (ItemsControl.AlternationIndex),
-                                                                       RelativeSource={RelativeSource AncestorType=ContentPresenter},
-                                                                       StringFormat={}{0:00}}"/>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding MedicName}"
-                                                                   Style="{StaticResource MedicNameStyle}"
-                                                                   FontSize="13"/>
-                                                        <TextBlock FontFamily="{StaticResource MonoFontFamily}"
-                                                                   FontSize="11"
-                                                                   Foreground="{StaticResource InkSoftBrush}"
-                                                                   Margin="0,2,0,0">
-                                                            <Run Text="stock"/>
-                                                            <Run Text="{Binding CurrentStock}"
-                                                                 Foreground="{StaticResource VermillionDarkBrush}"
-                                                                 FontWeight="SemiBold"/>
-                                                            <Run Text=" / min"/>
-                                                            <Run Text="{Binding MinStock}"/>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                    <Border Grid.Column="2"
-                                                            VerticalAlignment="Center"
-                                                            BorderBrush="{StaticResource VermillionBrush}"
-                                                            BorderThickness="1"
-                                                            Background="{StaticResource VermillionLightBrush}"
-                                                            Padding="8,3">
-                                                        <TextBlock Text="{Binding Severity}"
-                                                                   FontSize="10"
-                                                                   FontWeight="SemiBold"
-                                                                   Typography.Capitals="SmallCaps"
-                                                                   Foreground="{StaticResource VermillionDarkBrush}"/>
-                                                    </Border>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-
-                            <Button Grid.Row="2"
-                                    Content="Voir tout le stock"
-                                    Command="{Binding NavigateToStockCommand}"
-                                    Style="{StaticResource OutlineButtonStyle}"
-                                    HorizontalAlignment="Stretch"
-                                    Margin="0,16,0,0"/>
-                        </Grid>
-                    </Border>
 
                     <!-- Activité mensuelle — bar chart en ocre, baseline ink -->
-                    <Border Grid.Column="2" Style="{StaticResource BaseCardStyle}" Padding="22">
+                    <Border Style="{StaticResource BaseCardStyle}" Padding="22">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>

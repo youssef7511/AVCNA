@@ -1,4 +1,4 @@
-﻿<Window x:Class="AVCNDB.WPF.MainWindow"
+<Window x:Class="AVCNDB.WPF.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,30 +19,126 @@
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
 
-        <!-- Sidebar navigation button — keeps text white on dark green at every state.
-             Hover feedback = subtle left accent stripe + slight DARKER overlay (no
-             whitening so the white text/icon stays crisp). -->
-        <Style x:Key="SidebarNavButtonStyle"
-               TargetType="Button"
-               BasedOn="{StaticResource MaterialDesignFlatButton}">
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="3,0,0,0"/>
-            <Setter Property="HorizontalContentAlignment" Value="Left"/>
-            <Setter Property="Height" Value="48"/>
+        <!-- Sidebar navigation button base style (Aesthetic like Antigravity) -->
+        <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
+            <Setter Property="FontFamily" Value="{StaticResource BodyFontFamily}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Height" Value="40"/>
             <Setter Property="Margin" Value="8,2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#8E8E8E"/> <!-- muted grey -->
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2AFFFFFF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Button-specific navigation styles with selection triggers -->
+        <Style x:Key="HomeNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
             <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1F000000"/>
-                    <Setter Property="BorderBrush" Value="White"/>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Accueil">
+                    <Setter Property="Background" Value="#2D2D2D"/>
                     <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#33000000"/>
-                    <Setter Property="BorderBrush" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="LibraryNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Bibliothèque">
+                    <Setter Property="Background" Value="#2D2D2D"/>
                     <Setter Property="Foreground" Value="White"/>
-                </Trigger>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DatabaseNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Base de données">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Médicaments">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="DCI (Substances Actives)">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Familles Thérapeutiques">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Laboratoires">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Interactions">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Gestion du Stock">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="MovementsNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Fichier d'édition">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SettingsNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Paramètres">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ToolsNavButtonStyle" TargetType="Button" BasedOn="{StaticResource SidebarNavButtonStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.CurrentPageTitle, RelativeSource={RelativeSource AncestorType=Window}}" Value="Outils">
+                    <Setter Property="Background" Value="#2D2D2D"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
@@ -96,7 +192,7 @@
                                Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                     <TextBlock Text="Base Médicamenteuse"
                                FontSize="11"
-                               Foreground="#8BB89A"
+                               Foreground="#8E8E8E"
                                HorizontalAlignment="Center"
                                Visibility="{Binding IsMenuExpanded, Converter={StaticResource BoolToVisibility}}"/>
                 </StackPanel>
@@ -106,8 +202,7 @@
                     <StackPanel>
                         <!-- Accueil -->
                         <Button Command="{Binding NavigateToHomeCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource HomeNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -124,8 +219,7 @@
 
                         <!-- Bibliothèque -->
                         <Button Command="{Binding NavigateToLibraryCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource LibraryNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -142,8 +236,7 @@
 
                         <!-- Base de données -->
                         <Button Command="{Binding NavigateToDatabaseCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource DatabaseNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -160,8 +253,7 @@
 
                         <!-- Mouvements -->
                         <Button Command="{Binding NavigateToMovementsCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource MovementsNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -180,8 +272,7 @@
 
                         <!-- Paramètres -->
                         <Button Command="{Binding NavigateToSettingsCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource SettingsNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -198,8 +289,7 @@
 
                         <!-- Outils -->
                         <Button Command="{Binding NavigateToToolsCommand}" 
-                                Style="{StaticResource SidebarNavButtonStyle}"
-                                Foreground="White" 
+                                Style="{StaticResource ToolsNavButtonStyle}"
                                 HorizontalContentAlignment="Left"
                                 Height="48"
                                 Margin="8,2">
@@ -257,7 +347,6 @@
 
                     <!-- Logout (menu collapsed — icon only) -->
                     <Button Command="{Binding LogoutCommand}"
-                            Foreground="White"
                             HorizontalContentAlignment="Center"
                             Height="40"
                             ToolTip="Déconnexion">
@@ -277,7 +366,6 @@
                     <!-- Toggle thème -->
                     <Button Command="{Binding ToggleThemeCommand}"
                             Style="{StaticResource SidebarNavButtonStyle}"
-                            Foreground="White"
                             HorizontalContentAlignment="Left"
                             Height="48">
                         <StackPanel Orientation="Horizontal">
@@ -303,7 +391,6 @@
                     <!-- Toggle menu -->
                     <Button Command="{Binding ToggleMenuCommand}" 
                             Style="{StaticResource SidebarNavButtonStyle}"
-                            Foreground="White" 
                             HorizontalContentAlignment="Center"
                             Height="40"
                             Margin="0,8,0,0">

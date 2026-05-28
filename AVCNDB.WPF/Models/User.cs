@@ -34,6 +34,13 @@ public class User : ITrackable
     /// <summary>Horodatage de la dernière connexion réussie.</summary>
     public DateTime? last_login { get; set; }
 
+    /// <summary>Hash BCrypt du jeton persistant "Se souvenir de moi".</summary>
+    [StringLength(120)]
+    public string? remember_token_hash { get; set; }
+
+    /// <summary>Date d'expiration UTC du jeton persistant.</summary>
+    public DateTime? remember_token_expires_utc { get; set; }
+
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }
 }

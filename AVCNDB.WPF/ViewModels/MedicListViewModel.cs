@@ -1,8 +1,10 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.Helpers;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Views;
 
@@ -131,6 +133,15 @@ public partial class MedicListViewModel : ViewModelBase
         _excelService = excelService;
         _pdfService = pdfService;
         _strictExcelSyncService = strictExcelSyncService;
+
+        // Register to listen to database updates for medicines
+        WeakReferenceMessenger.Default.Register<DataChangedMessage>(this, (r, m) =>
+        {
+            if (m.Value.EntityType == "Medic")
+            {
+                App.Current.Dispatcher.InvokeAsync(async () => await LoadDataAsync());
+            }
+        });
 
         _ = InitializeAsync();
     }
@@ -501,29 +512,64 @@ public partial class MedicListViewModel : ViewModelBase
     [RelayCommand]
     private async Task ExportToPdfAsync()
     {
-        if (SelectedMedic == null)
+        // Stratégie cohérente avec l'export Excel (lignes 471-) :
+        //   - si N médicaments sont cochés (IsChecked = true) → on génère
+        //     un PDF multi-fiches via GenerateMedicListReportAsync ;
+        //   - sinon, fallback sur le médicament actuellement sélectionné
+        //     (1 fiche unique via GenerateMedicReportAsync).
+        var checkedItems = Medics.Where(m => m.IsChecked).ToList();
+
+        Medic? singleTarget = null;
+        if (checkedItems.Count == 0)
         {
-            await _dialogService.ShowWarningAsync("Attention", "Veuillez sélectionner un médicament.");
-            return;
+            if (SelectedMedic == null)
+            {
+                await _dialogService.ShowWarningAsync(
+                    "Attention",
+                    "Cochez un ou plusieurs médicaments dans la liste, ou sélectionnez-en un, puis relancez l'export PDF.");
+                return;
+            }
+            singleTarget = SelectedMedic;
         }
 
-        // Capture to locals before the async gap — SelectedMedic could change on the UI thread
-        var target = SelectedMedic;
-        var safeName = (target.itemname ?? target.basename ?? "medicament")
-            .Replace(" ", "_")
-            .Replace("/", "-");
+        // Nom de fichier suggéré
+        string suggestedName;
+        if (singleTarget != null)
+        {
+            var safeName = (singleTarget.itemname ?? singleTarget.basename ?? "medicament")
+                .Replace(" ", "_")
+                .Replace("/", "-");
+            suggestedName = $"Fiche_{safeName}_{DateTime.Now:yyyyMMdd}";
+        }
+        else
+        {
+            suggestedName = $"Fiches_{checkedItems.Count}_medicaments_{DateTime.Now:yyyyMMdd}";
+        }
 
         var filePath = _dialogService.ShowSaveFileDialog(
             "PDF Files|*.pdf",
-            $"Fiche_{safeName}_{DateTime.Now:yyyyMMdd}",
+            suggestedName,
             "Exporter vers PDF");
 
         if (!string.IsNullOrEmpty(filePath))
         {
             await ExecuteAsync(async () =>
             {
-                await _pdfService.GenerateMedicReportAsync(target.recordid, filePath);
-                await _dialogService.ShowSuccessAsync("Export réussi", $"Fiche exportée vers {filePath}");
+                if (singleTarget != null)
+                {
+                    await _pdfService.GenerateMedicReportAsync(singleTarget.recordid, filePath);
+                    await _dialogService.ShowSuccessAsync(
+                        "Export réussi",
+                        $"Fiche exportée vers {filePath}");
+                }
+                else
+                {
+                    var ids = checkedItems.Select(m => m.recordid).ToList();
+                    await _pdfService.GenerateMedicListReportAsync(ids, filePath);
+                    await _dialogService.ShowSuccessAsync(
+                        "Export réussi",
+                        $"{ids.Count} fiches exportées vers {filePath}");
+                }
             }, "Génération du PDF...");
         }
     }
@@ -555,5 +601,11 @@ public partial class MedicListViewModel : ViewModelBase
                     $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
             }, "Import en cours...");
         }
+    }
+
+    public override void Dispose()
+    {
+        WeakReferenceMessenger.Default.UnregisterAll(this);
+        base.Dispose();
     }
 }

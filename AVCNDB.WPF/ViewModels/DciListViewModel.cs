@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
@@ -30,18 +31,6 @@ public partial class DciListViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _searchText = string.Empty;
-
-    [ObservableProperty]
-    private int _currentPage = 1;
-
-    [ObservableProperty]
-    private int _pageSize = 50;
-
-    [ObservableProperty]
-    private int _totalPages;
-
-    [ObservableProperty]
-    private int _totalCount;
 
     // Formulaire d'édition intégré
     [ObservableProperty]
@@ -86,7 +75,6 @@ public partial class DciListViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value)
     {
-        CurrentPage = 1;
         DebounceSearch(LoadDataAsync);
     }
 
@@ -110,17 +98,14 @@ public partial class DciListViewModel : ViewModelBase
     {
         await ExecuteAsync(async () =>
         {
-            var result = await _repository.GetPagedAsync(
-                CurrentPage,
-                PageSize,
-                d => string.IsNullOrEmpty(SearchText) || 
-                     d.itemname.Contains(SearchText),
-                d => d.itemname
-            );
+            // Chargement complet (pas de pagination) : la grille DCI se comporte
+            // comme les autres tables de référence — la DataGrid virtualise et
+            // défile, donc toute DCI (y compris une nouvelle) reste atteignable.
+            var items = string.IsNullOrWhiteSpace(SearchText)
+                ? await _repository.GetAllAsync()
+                : await _repository.FindAsync(d => d.itemname.Contains(SearchText));
 
-            Dcis = new ObservableCollection<Dci>(result.Items);
-            TotalCount = result.TotalCount;
-            TotalPages = result.TotalPages;
+            Dcis = new ObservableCollection<Dci>(items.OrderBy(d => d.itemname));
         }, "Chargement des DCI...");
     }
 
@@ -133,7 +118,6 @@ public partial class DciListViewModel : ViewModelBase
     [RelayCommand]
     private async Task SearchAsync()
     {
-        CurrentPage = 1;
         await LoadDataAsync();
     }
 
@@ -207,17 +191,48 @@ public partial class DciListViewModel : ViewModelBase
             }
             else
             {
-                // Creation
-                var newDci = new Dci
+                // Création — une dénomination composée « X+Y » est scindée en DCI
+                // distinctes (règle métier : le « + » sépare deux principes actifs).
+                // On ne conserve QUE les segments séparés (jamais la ligne composée),
+                // et on ignore ceux qui existent déjà (comparaison canonique).
+                var segments = DciCompositeSplitter.Split(normalizedItemName);
+                var existing = await _repository.GetAllAsync();
+                var existingCanon = new HashSet<string>(
+                    existing.Select(d => NameNormalizer.Canonical(d.itemname)));
+
+                var addedCount = 0;
+                foreach (var seg in segments)
                 {
-                    itemname = normalizedItemName,
-                    subvalue = normalizedSubValue,
-                    iteminfo = normalizedItemInfo
-                };
-                await _repository.AddAsync(newDci);
+                    if (existingCanon.Contains(NameNormalizer.Canonical(seg))) continue;
+                    await _repository.AddAsync(new Dci
+                    {
+                        itemname = seg,
+                        // subvalue / iteminfo ne s'appliquent qu'à une DCI simple ;
+                        // sur une saisie composée, on ne les recopie pas sur chaque segment.
+                        subvalue = segments.Count == 1 ? normalizedSubValue : string.Empty,
+                        iteminfo = segments.Count == 1 ? normalizedItemInfo : string.Empty
+                    });
+                    existingCanon.Add(NameNormalizer.Canonical(seg));
+                    addedCount++;
+                }
+
+                if (addedCount == 0)
+                {
+                    await _dialogService.ShowWarningAsync(
+                        "Aucun ajout",
+                        "Toutes les DCI saisies existent déjà dans le référentiel.");
+                    // Rester dans le dialogue d'ajout (comme les autres tables de
+                    // référence) : ne pas fermer le formulaire ni afficher « Succès ».
+                    return;
+                }
             }
 
             IsEditing = false;
+
+            // Effacer un éventuel filtre de recherche pour que le nouvel item
+            // apparaisse dans la liste complète (la grille charge désormais tout).
+            SearchText = string.Empty;
+
             await LoadDataAsync();
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
                 new DataChangeInfo("Dci", SelectedDci != null ? ChangeOperation.Renamed : ChangeOperation.Created)));
@@ -398,25 +413,5 @@ public partial class DciListViewModel : ViewModelBase
                 "Import Excel terminé",
                 $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
         }, "Import en cours...");
-    }
-
-    [RelayCommand]
-    private void NextPage()
-    {
-        if (CurrentPage < TotalPages)
-        {
-            CurrentPage++;
-            _ = LoadDataAsync();
-        }
-    }
-
-    [RelayCommand]
-    private void PreviousPage()
-    {
-        if (CurrentPage > 1)
-        {
-            CurrentPage--;
-            _ = LoadDataAsync();
-        }
     }
 }

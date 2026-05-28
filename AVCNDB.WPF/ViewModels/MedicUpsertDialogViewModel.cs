@@ -81,6 +81,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         SetError(nameof(Medic.labo), IsEditMode
             ? ValidationRules.Required(Medic.labo, "Laboratoire")
             : null);
+        SetError(nameof(Medic.specialite), IsEditMode
+            ? ValidationRules.Required(Medic.specialite, "Spécialité")
+            : null);
         // Famille order: fam2 requires fam1, fam3 requires fam2, family requires fam1
         SetError("fam2Order", !string.IsNullOrWhiteSpace(Medic.fam2) && string.IsNullOrWhiteSpace(Medic.fam1)
             ? "Famille 2 ne peut pas être renseignée sans Famille 1." : null);
@@ -179,6 +182,34 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         {
             if (Medic == null || Medic.family == value) return;
             Medic.family = value;
+            OnPropertyChanged();
+            ValidateAll();
+        }
+    }
+
+    // ── Laboratoire / Spécialité proxies ──
+    // These bind the combos to the VM (not directly to the POCO Medic.*),
+    // so selecting a value re-runs ValidateAll() and clears the required-field
+    // error on its own — without depending on another field being edited next.
+    public string Laboratoire
+    {
+        get => Medic?.labo ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.labo == value) return;
+            Medic.labo = value;
+            OnPropertyChanged();
+            ValidateAll();
+        }
+    }
+
+    public string Specialite
+    {
+        get => Medic?.specialite ?? string.Empty;
+        set
+        {
+            if (Medic == null || Medic.specialite == value) return;
+            Medic.specialite = value;
             OnPropertyChanged();
             ValidateAll();
         }
@@ -309,6 +340,8 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         OnPropertyChanged(nameof(Fam2));
         OnPropertyChanged(nameof(Fam3));
         OnPropertyChanged(nameof(Family));
+        OnPropertyChanged(nameof(Laboratoire));
+        OnPropertyChanged(nameof(Specialite));
         OnPropertyChanged(nameof(Dci1));
         OnPropertyChanged(nameof(Dose1));
         OnPropertyChanged(nameof(U1));
@@ -409,6 +442,8 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     private readonly IMLPfeService _mlPfeService;
     private readonly IDialogService _dialogService;
     private readonly MedicSyncService _syncService;
+    private readonly FormePosoAbbreviationService _formeAbbrService;
+    private readonly PosoLookupService _posoLookup;
     private CancellationTokenSource? _analysisCts;
 
     // ── Dirty tracking ──
@@ -464,6 +499,19 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     [ObservableProperty]
     private string _computedPosology = string.Empty;
 
+    /// <summary>
+    /// Avertissements remontés par la commande « Décomposer la dénomination »
+    /// (mode tolérant : on remplit ce qu'on peut, on liste ce qui n'a pas été
+    /// reconnu sans bloquer la sauvegarde).
+    /// </summary>
+    [ObservableProperty]
+    private ObservableCollection<string> _denominationWarnings = new();
+
+    public bool HasDenominationWarnings => DenominationWarnings.Count > 0;
+
+    partial void OnDenominationWarningsChanged(ObservableCollection<string> value)
+        => OnPropertyChanged(nameof(HasDenominationWarnings));
+
     // ── Posology builder fields ──
     [ObservableProperty]
     private decimal _posoQty;
@@ -479,6 +527,50 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
     [ObservableProperty]
     private string _posoConditions = string.Empty;
+
+    // ── Objectif 2 : Poso usuelle (combobox alimentée par la table poso) ──
+    [ObservableProperty]
+    private ObservableCollection<string> _posoUsuelleOptions = new();
+
+    private string _posoUsuelle = string.Empty;
+    /// <summary>
+    /// Dénomination Poso usuelle sélectionnée dans la combobox. Quand l'utilisateur
+    /// choisit une valeur existante, on pré-remplit Qté / Forme poso / Prises /
+    /// Période / Conditions et Medic.posology depuis la ligne Poso correspondante.
+    /// </summary>
+    public string PosoUsuelle
+    {
+        get => _posoUsuelle;
+        set
+        {
+            if (_posoUsuelle == value) return;
+            _posoUsuelle = value ?? string.Empty;
+            OnPropertyChanged(nameof(PosoUsuelle));
+            _ = ApplyPosoUsuelleAsync(_posoUsuelle);
+        }
+    }
+
+    // ── Objectif 1 : wrapper sur Medic.forme pour déclencher l'auto-fill PosoForm ──
+    /// <summary>
+    /// Bridge observable sur <see cref="Medic"/>.forme. Toute écriture déclenche
+    /// l'auto-remplissage du champ « Forme poso » via
+    /// <see cref="FormePosoAbbreviationService"/> (toujours écraser).
+    /// </summary>
+    public string MedicForme
+    {
+        get => Medic?.forme ?? string.Empty;
+        set
+        {
+            if (Medic == null) return;
+            var newValue = value ?? string.Empty;
+            if (string.Equals(Medic.forme, newValue, StringComparison.Ordinal)) return;
+            Medic.forme = newValue;
+            OnPropertyChanged(nameof(MedicForme));
+            OnPropertyChanged(nameof(Medic));
+            // Auto-fill PosoForm depuis le service centralisé (toujours écraser).
+            _ = UpdatePosoFormFromFormeAsync(newValue);
+        }
+    }
 
     // ── Mode C: Interactions for this drug ──
     [ObservableProperty]
@@ -561,7 +653,9 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         IOpenRouterService openRouterService,
         IMLPfeService mlPfeService,
         IDialogService dialogService,
-        MedicSyncService syncService)
+        MedicSyncService syncService,
+        FormePosoAbbreviationService formeAbbrService,
+        PosoLookupService posoLookup)
     {
         _repository = repository;
         _familyRepository = familyRepository;
@@ -576,6 +670,8 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         _mlPfeService = mlPfeService;
         _dialogService = dialogService;
         _syncService = syncService;
+        _formeAbbrService = formeAbbrService;
+        _posoLookup = posoLookup;
     }
 
     [RelayCommand]
@@ -654,7 +750,55 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
             var specialites = await _specialiteRepository.GetAllAsync();
             Specialites = new ObservableCollection<Specialites>(specialites);
+
+            // Objectif 2 : liste des dénominations Poso usuelle pour la combobox.
+            var denoms = await _posoLookup.GetAllDenominationsAsync();
+            PosoUsuelleOptions = new ObservableCollection<string>(denoms);
         }, "Chargement des données de référence...");
+    }
+
+    // ── Objectif 1 : auto-fill PosoForm depuis la Forme sélectionnée ──
+
+    /// <summary>
+    /// Met à jour <see cref="PosoForm"/> avec l'abréviation associée à la
+    /// Forme galénique courante via <see cref="FormePosoAbbreviationService"/>.
+    /// Toujours écraser (choix utilisateur : « Toujours écraser PosoForm »).
+    /// </summary>
+    private async Task UpdatePosoFormFromFormeAsync(string forme)
+    {
+        if (_formeAbbrService == null) return;
+        var abbr = await _formeAbbrService.GetFormAbbreviationAsync(forme);
+        PosoForm = abbr;
+        // Rebuild la posologie auto-générée immédiatement.
+        UpdatePosology();
+    }
+
+    // ── Objectif 2 : Poso usuelle sélectionnée → pré-remplit le builder ──
+
+    /// <summary>
+    /// Quand l'utilisateur choisit une dénomination dans la combobox
+    /// « Poso usuelle », recharge les champs Qté / Forme poso / Prises /
+    /// Période / Conditions depuis la ligne Poso correspondante et applique
+    /// directement la dénomination à <see cref="Medic"/>.posology.
+    /// </summary>
+    private async Task ApplyPosoUsuelleAsync(string denomination)
+    {
+        if (string.IsNullOrWhiteSpace(denomination)) return;
+        var match = await _posoLookup.FindByDenominationAsync(denomination);
+        if (match is null) return;
+
+        PosoQty        = match.qty;
+        PosoForm       = match.posoform ?? string.Empty;
+        PosoPrises     = match.prises;
+        PosoPeriode    = match.periode ?? string.Empty;
+        PosoConditions = match.conditions ?? string.Empty;
+
+        if (Medic != null)
+        {
+            Medic.posology = denomination;
+            ComputedPosology = denomination;
+            OnPropertyChanged(nameof(Medic));
+        }
     }
 
     private async Task LoadMedicAsync(int medicId)
@@ -687,10 +831,65 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
     // ── Denomination builder ──
 
+    private string GetBrandNamePrefix(string basename, string computedDenom)
+    {
+        if (string.IsNullOrWhiteSpace(basename)) return string.Empty;
+        var trimmedBase = basename.Trim();
+
+        // Strip the computed denomination if it is at the end of the text
+        var trimmedComputed = computedDenom.Trim();
+        if (string.IsNullOrEmpty(trimmedComputed)) return trimmedBase;
+        if (trimmedBase.EndsWith(trimmedComputed, StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmedBase.Substring(0, trimmedBase.Length - trimmedComputed.Length).Trim();
+        }
+        return trimmedBase;
+    }
+
+    /// <summary>
+    /// Applique la dénomination auto-calculée tout en PRÉSERVANT le nom
+    /// commercial saisi librement par l'utilisateur. Convention : le premier
+    /// mot du basename existant (avant le premier espace) est considéré comme
+    /// le nom commercial libre — il est conservé. Le reste est remplacé par la
+    /// chaîne calculée (dose + unité + forme + présentation + colisage). La
+    /// DCI n'intervient jamais dans la formule. Le titre du dialogue
+    /// (<c>Medic.itemname</c>) est rafraîchi immédiatement.
+    /// </summary>
     [RelayCommand]
     private void UpdateDenomination()
     {
-        Medic.basename = MedicDenominationHelper.BuildDenomination(Medic);
+        var computed = MedicDenominationHelper.BuildDenomination(Medic);
+        if (string.IsNullOrWhiteSpace(computed) && string.IsNullOrWhiteSpace(Medic?.basename)) return;
+        if (Medic == null) return;
+
+        // Extraire le nom commercial = premier mot du basename actuel.
+        var current = (Medic.basename ?? string.Empty).TrimStart();
+        string commercial;
+        int firstSpace = current.IndexOf(' ');
+        if (firstSpace > 0)
+        {
+            commercial = current.Substring(0, firstSpace).Trim();
+        }
+        else
+        {
+            // Si le basename ne contient qu'un mot et qu'il ressemble PAS à un
+            // composant technique (chiffre, unité) → on l'assume être le nom
+            // commercial. Sinon on repart à vide.
+            commercial = (current.Length > 0 && !IsNumeric(current))
+                ? current
+                : string.Empty;
+        }
+
+        var newBasename = string.IsNullOrWhiteSpace(commercial)
+            ? computed.Trim()
+            : $"{commercial} {computed}".Trim();
+
+        Medic.basename = newBasename;
+        // Le titre du dialogue lit Medic.itemname → synchronisation immédiate.
+        Medic.itemname = newBasename;
+
+        OnPropertyChanged(nameof(Medic));
+        OnPropertyChanged(nameof(MedicForme));
         RefreshComputedDenomination();
     }
 
@@ -699,6 +898,162 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         ComputedDenomination = MedicDenominationHelper.BuildDenomination(Medic);
         RefreshComputedDciSummary();
     }
+
+    /// <summary>
+    /// Décomposition inverse : parse <see cref="Medic"/>.basename en tokens et
+    /// tente de retrouver Forme, Présentation, Voie, DCI(s)+doses+unités dans
+    /// les tables de référence chargées. Mode tolérant : on remplit ce qu'on
+    /// peut, on liste dans <see cref="DenominationWarnings"/> les tokens qui
+    /// n'ont pu être résolus contre aucune table — sans bloquer la sauvegarde.
+    /// </summary>
+    [RelayCommand]
+    private void DecomposeDenomination()
+    {
+        DenominationWarnings.Clear();
+        OnPropertyChanged(nameof(HasDenominationWarnings));
+
+        var basename = Medic?.basename;
+        if (string.IsNullOrWhiteSpace(basename) || Medic == null)
+        {
+            DenominationWarnings.Add("Dénomination vide : rien à décomposer.");
+            OnPropertyChanged(nameof(HasDenominationWarnings));
+            return;
+        }
+
+        // Pré-normalisation
+        var tokens = basename.Trim()
+            .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+            .ToList();
+
+        // Snapshots canoniques des tables de référence pour la résolution
+        var formesByCanonical = Formes
+            .Where(f => !string.IsNullOrWhiteSpace(f.itemname))
+            .GroupBy(f => NameNormalizer.Canonical(f.itemname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+        // Abréviations Formes (peut résoudre "Comp", "cp", etc.)
+        var formesByAbname = Formes
+            .Where(f => !string.IsNullOrWhiteSpace(f.abname))
+            .GroupBy(f => NameNormalizer.Canonical(f.abname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+        var presentsByCanonical = Presents
+            .Where(p => !string.IsNullOrWhiteSpace(p.itemname))
+            .GroupBy(p => NameNormalizer.Canonical(p.itemname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+        var voiesByCanonical = Voies
+            .Where(v => !string.IsNullOrWhiteSpace(v.itemname))
+            .GroupBy(v => NameNormalizer.Canonical(v.itemname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+        var voiesByAbname = Voies
+            .Where(v => !string.IsNullOrWhiteSpace(v.abname))
+            .GroupBy(v => NameNormalizer.Canonical(v.abname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+        var dcisByCanonical = Dcis
+            .Where(d => !string.IsNullOrWhiteSpace(d.itemname))
+            .GroupBy(d => NameNormalizer.Canonical(d.itemname))
+            .ToDictionary(g => g.Key, g => g.First().itemname);
+
+        // Réinitialisation des champs cibles (on va les remplir au fil de la parse).
+        // Forme passe par le setter MedicForme pour déclencher la chaîne
+        // Forme → PosoForm (Objectif 1) via FormePosoAbbreviationService.
+        MedicForme = string.Empty;
+        Medic.present = string.Empty;
+        Medic.voie = string.Empty;
+        Medic.colisage = 0;
+        Medic.ucol = string.Empty;
+        var doses = new List<(string dose, string unit)>();
+        var dcis = new List<string>();
+
+        // Unités courantes pour reconnaître un duo "valeur unité"
+        var knownUnits = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            { "mg", "g", "ml", "l", "µg", "ug", "ui", "ml.", "mg/ml", "mg/5ml", "%", "gtte", "gouttes" };
+
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            var raw = tokens[i].Trim().Trim(',', ';', ':');
+            if (string.IsNullOrWhiteSpace(raw)) continue;
+            var canon = NameNormalizer.Canonical(raw);
+
+            // 1) Dose numérique suivie d'une unité connue
+            if (IsNumeric(raw) && i + 1 < tokens.Count && knownUnits.Contains(tokens[i + 1].Trim().Trim(',', ';', ':')))
+            {
+                doses.Add((raw, tokens[i + 1].Trim().Trim(',', ';', ':')));
+                i++; // sauter l'unité
+                continue;
+            }
+
+            // 2) Colisage en fin de chaîne : nombre seul → Medic.colisage
+            if (IsNumeric(raw) && (i == tokens.Count - 1 || !knownUnits.Contains(tokens.ElementAtOrDefault(i + 1) ?? string.Empty)))
+            {
+                if (int.TryParse(raw, out var n) && n > 0 && Medic.colisage == 0) Medic.colisage = n;
+                continue;
+            }
+
+            // 3) Match Forme (itemname ou abname)
+            //    On passe par le setter MedicForme pour que la cascade Forme → PosoForm
+            //    (Objectif 1, via FormePosoAbbreviationService) se déclenche automatiquement.
+            if (string.IsNullOrEmpty(Medic.forme))
+            {
+                if (formesByCanonical.TryGetValue(canon, out var fname)) { MedicForme = fname; continue; }
+                if (formesByAbname.TryGetValue(canon, out var fnameAbbr)) { MedicForme = fnameAbbr; continue; }
+            }
+
+            // 4) Match Présentation
+            if (string.IsNullOrEmpty(Medic.present) && presentsByCanonical.TryGetValue(canon, out var pname))
+            {
+                Medic.present = pname;
+                continue;
+            }
+
+            // 5) Match Voie
+            if (string.IsNullOrEmpty(Medic.voie))
+            {
+                if (voiesByCanonical.TryGetValue(canon, out var vname)) { Medic.voie = vname; continue; }
+                if (voiesByAbname.TryGetValue(canon, out var vnameAbbr)) { Medic.voie = vnameAbbr; continue; }
+            }
+
+            // 6) Match DCI
+            if (dcisByCanonical.TryGetValue(canon, out var dname))
+            {
+                dcis.Add(dname);
+                continue;
+            }
+
+            // 7) Token alpha de 3+ caractères, jamais reconnu : warning
+            if (raw.Length >= 3 && raw.Any(char.IsLetter))
+            {
+                DenominationWarnings.Add($"Le mot « {raw} » n'a été trouvé dans aucune table de référence (Forme / Présentation / Voie / DCI).");
+            }
+        }
+
+        // Application des doses (jusqu'à 4)
+        Medic.dose1 = doses.ElementAtOrDefault(0).dose ?? string.Empty;
+        Medic.u1    = doses.ElementAtOrDefault(0).unit ?? string.Empty;
+        Medic.dose2 = doses.ElementAtOrDefault(1).dose ?? string.Empty;
+        Medic.u2    = doses.ElementAtOrDefault(1).unit ?? string.Empty;
+        Medic.dose3 = doses.ElementAtOrDefault(2).dose ?? string.Empty;
+        Medic.u3    = doses.ElementAtOrDefault(2).unit ?? string.Empty;
+        Medic.dose4 = doses.ElementAtOrDefault(3).dose ?? string.Empty;
+        Medic.u4    = doses.ElementAtOrDefault(3).unit ?? string.Empty;
+
+        // Application des DCIs (jusqu'à 4) — on conserve les DCIs existants si parse est vide
+        if (dcis.Count > 0)
+        {
+            Medic.dci1 = dcis.ElementAtOrDefault(0) ?? string.Empty;
+            Medic.dci2 = dcis.ElementAtOrDefault(1) ?? string.Empty;
+            Medic.dci3 = dcis.ElementAtOrDefault(2) ?? string.Empty;
+            Medic.dci4 = dcis.ElementAtOrDefault(3) ?? string.Empty;
+        }
+
+        OnPropertyChanged(nameof(Medic));
+        OnPropertyChanged(nameof(MedicForme));
+        OnPropertyChanged(nameof(HasDenominationWarnings));
+        RefreshComputedDenomination();
+        RefreshComputedDciSummary();
+    }
+
+    private static bool IsNumeric(string s)
+        => !string.IsNullOrWhiteSpace(s)
+        && s.All(c => char.IsDigit(c) || c == '.' || c == ',');
 
     public void RefreshComputedDciSummary()
     {
@@ -760,6 +1115,13 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync()
     {
+        // Transfer new denomination before validation so validation (required check on itemname) passes
+        if (!string.IsNullOrWhiteSpace(Medic.basename))
+        {
+            Medic.itemname = Medic.basename.Trim();
+            OnPropertyChanged(nameof(Medic));
+        }
+
         if (!Validate())
         {
             await _dialogService.ShowWarningAsync("Validation",
@@ -801,6 +1163,10 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
             Medic.present  ??= string.Empty; Medic.veic ??= string.Empty;
             Medic.tableau  ??= string.Empty;
 
+            // Now that we are actually persisting, clear basename
+            Medic.basename = string.Empty;
+            OnPropertyChanged(nameof(Medic));
+
             // Set timestamps
             var now = DateTime.Now;
             if (IsEditMode)
@@ -816,6 +1182,36 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
 
             // Sync lookup tables (non-fatal)
             try { await _syncService.SyncLookupTablesAsync(Medic); } catch { /* non-fatal */ }
+
+            // Objectif 2 — Contrôle de saisie bidirectionnel :
+            // si la posologie générée n'existe pas (canonique) dans la table poso,
+            // l'insérer pour qu'elle soit réutilisable comme « Poso usuelle ».
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Medic.posology))
+                {
+                    // posoform (FK) = NOM de la Forme galénique du médicament
+                    //   (ex. "Capsule"), pour préserver la contrainte FK_Poso_Forme.
+                    // posoverb        = VERBE snapshot (ex. "avaler") déjà auto-rempli
+                    //   dans PosoForm via FormePosoAbbreviationService.
+                    var formeName = string.IsNullOrWhiteSpace(Medic.forme) ? null : Medic.forme.Trim();
+                    var verbSnapshot = string.IsNullOrWhiteSpace(PosoForm) ? null : PosoForm.Trim();
+
+                    await _posoLookup.EnsureAsync(new Poso
+                    {
+                        itemname   = Medic.posology.Trim(),
+                        qty        = PosoQty,
+                        posoform   = formeName,
+                        posoverb   = verbSnapshot,
+                        prises     = PosoPrises,
+                        periode    = (PosoPeriode ?? string.Empty).Trim(),
+                        conditions = (PosoConditions ?? string.Empty).Trim(),
+                        nameformul = string.Empty,
+                        subvalue   = string.Empty,
+                    });
+                }
+            }
+            catch { /* non-fatal */ }
 
             // Notify other ViewModels
             WeakReferenceMessenger.Default.Send(new DataChangedMessage(
@@ -908,6 +1304,54 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         }
 
         return true;
+    }
+
+    // ── Suppression logique depuis l'onglet Infos de contrôle ──
+
+    /// <summary>
+    /// Met le médicament à la corbeille (suppression logique) : positionne
+    /// <c>deletedat</c> et <c>isactive=0</c>, persiste, puis ferme le dialogue.
+    /// Disponible uniquement en mode édition (un médicament inexistant n'a rien
+    /// à supprimer).
+    /// </summary>
+    [RelayCommand]
+    private async Task SoftDeleteMedicAsync()
+    {
+        if (!IsEditMode || Medic == null || Medic.recordid <= 0)
+        {
+            await _dialogService.ShowWarningAsync(
+                "Suppression impossible",
+                "Ce médicament n'est pas encore enregistré : il n'y a rien à mettre à la corbeille.");
+            return;
+        }
+
+        var confirm = await _dialogService.ShowConfirmAsync(
+            "Mettre à la corbeille",
+            $"Voulez-vous vraiment mettre le médicament\n« {Medic.itemname} » à la corbeille ?\n\n" +
+            "Il sera masqué des listes mais restera récupérable (suppression logique).");
+        if (!confirm) return;
+
+        try
+        {
+            Medic.deletedat = DateTime.Now;
+            Medic.isactive = 0;
+            await _repository.UpdateAsync(Medic);
+
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Medic", ChangeOperation.Deleted, Medic.recordid)));
+
+            await _dialogService.ShowSuccessAsync(
+                "Médicament supprimé",
+                $"« {Medic.itemname} » a été mis à la corbeille.");
+
+            RequestClose?.Invoke(true);
+        }
+        catch (Exception ex)
+        {
+            await _dialogService.ShowErrorAsync(
+                "Erreur de suppression",
+                $"Impossible de mettre le médicament à la corbeille :\n{ex.Message}");
+        }
     }
 
     // ── Cancel ──

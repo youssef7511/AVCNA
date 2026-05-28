@@ -159,10 +159,30 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Interact>()
             .HasIndex(i => i.dci1)
             .HasDatabaseName("IX_Interact_Dci1");
-        
+
         modelBuilder.Entity<Interact>()
             .HasIndex(i => i.dci2)
             .HasDatabaseName("IX_Interact_Dci2");
+
+        // ============================================
+        // FK STRICTE : Poso.posoform → Formes.itemname
+        // ============================================
+        // Seule relation à clé étrangère stricte du modèle : tous les autres liens
+        // medic ↔ tables de référence sont logiques (par dénomination) et gérés
+        // par MedicSyncService. Ici, l'organisme exige que la cohérence soit
+        // garantie au niveau base de données. Voir migration dans App.xaml.cs.
+        modelBuilder.Entity<Formes>()
+            .HasIndex(f => f.itemname)
+            .IsUnique()
+            .HasDatabaseName("UK_Formes_ItemName");
+
+        modelBuilder.Entity<Poso>()
+            .HasOne<Formes>()
+            .WithMany()
+            .HasPrincipalKey(f => f.itemname)
+            .HasForeignKey(p => p.posoform)
+            .OnDelete(DeleteBehavior.SetNull)
+            .HasConstraintName("FK_Poso_Forme");
 
         // ============================================
         // CONFIGURATION DES VALEURS PAR DÉFAUT

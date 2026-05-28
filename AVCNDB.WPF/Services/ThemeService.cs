@@ -82,7 +82,7 @@ public class ThemeService : IThemeService
         ["InkMuteBrush"]          = (C("#8A7F72"), C("#80766A")),
         ["TextPrimaryBrush"]      = (C("#141312"), C("#EFE6D6")),
         ["TextSecondaryBrush"]    = (C("#5C544B"), C("#B0A695")),
-        ["TextOnPrimaryBrush"]    = (C("#FBF8F2"), C("#1A1714")),
+        ["TextOnPrimaryBrush"]    = (C("#FFFFFF"), C("#FFFFFF")),
         ["TextOnSecondaryBrush"]  = (C("#141312"), C("#1A1714")),
 
         // Hairlines : la Color change, l'Opacité reste réglée dans XAML
@@ -90,12 +90,12 @@ public class ThemeService : IThemeService
         ["HairlineStrongBrush"]   = (C("#1F1A14"), C("#F0E6D6")),
 
         // Botanical (primaire)
-        ["BotanicalBrush"]        = (C("#1F3A2E"), C("#7BA585")),
-        ["BotanicalDarkBrush"]    = (C("#142821"), C("#5A8068")),
-        ["BotanicalLightBrush"]   = (C("#E4ECE5"), C("#2A3D32")),
+        ["BotanicalBrush"]        = (C("#1E1E1E"), C("#333333")),
+        ["BotanicalDarkBrush"]    = (C("#2D2D2D"), C("#555555")),
+        ["BotanicalLightBrush"]   = (C("#EAEAEA"), C("#2D2D2D")),
 
         // Sidebar : reste sombre en clair ET en sombre — découplée de la marque
-        ["SidebarBackgroundBrush"] = (C("#142821"), C("#0E1C13")),
+        ["SidebarBackgroundBrush"] = (C("#1E1E1E"), C("#1E1E1E")),
 
         // Info surface : panneaux d'aperçu / résultats IA
         ["InfoSurfaceBrush"]      = (C("#EBF0FB"), C("#1A2235")),
@@ -120,9 +120,9 @@ public class ThemeService : IThemeService
         ["IndigoLightBrush"]      = (C("#DCE2EE"), C("#1E2638")),
 
         // Anciennes clés Primary/Secondary/Accent (redirigées)
-        ["PrimaryBrush"]       = (C("#1F3A2E"), C("#7BA585")),
-        ["PrimaryDarkBrush"]   = (C("#142821"), C("#5A8068")),
-        ["PrimaryLightBrush"]  = (C("#E4ECE5"), C("#2A3D32")),
+        ["PrimaryBrush"]       = (C("#1E1E1E"), C("#333333")),
+        ["PrimaryDarkBrush"]   = (C("#2D2D2D"), C("#555555")),
+        ["PrimaryLightBrush"]  = (C("#EAEAEA"), C("#2D2D2D")),
         ["SecondaryBrush"]      = (C("#B5853A"), C("#D49E5C")),
         ["SecondaryDarkBrush"]  = (C("#7A5821"), C("#B5853A")),
         ["SecondaryLightBrush"] = (C("#F1E6D0"), C("#3A2C18")),
@@ -163,16 +163,16 @@ public class ThemeService : IThemeService
         ["MaterialDesignDivider"]        = (C("#D9CFBF"), C("#3A332D")),
         ["MaterialDesignToolForeground"] = (C("#5C544B"), C("#B0A695")),
         ["MaterialDesignToolBackground"] = (C("#FBF8F2"), C("#24201C")),
-        ["MaterialDesignSelection"]      = (C("#E4ECE5"), C("#2A3D32")),
-        ["MaterialDesignFlatButtonClick"] = (C("#E4ECE5"), C("#2A3D32")),
+        ["MaterialDesignSelection"]      = (C("#EAEAEA"), C("#2D2D2D")),
+        ["MaterialDesignFlatButtonClick"] = (C("#EAEAEA"), C("#2D2D2D")),
 
         // Material : palette primaire / secondaire
-        ["PrimaryHueLightBrush"]           = (C("#E4ECE5"), C("#2A3D32")),
+        ["PrimaryHueLightBrush"]           = (C("#EAEAEA"), C("#2D2D2D")),
         ["PrimaryHueLightForegroundBrush"] = (C("#141312"), C("#EFE6D6")),
-        ["PrimaryHueMidBrush"]             = (C("#1F3A2E"), C("#7BA585")),
-        ["PrimaryHueMidForegroundBrush"]   = (C("#FBF8F2"), C("#1A1714")),
-        ["PrimaryHueDarkBrush"]            = (C("#142821"), C("#5A8068")),
-        ["PrimaryHueDarkForegroundBrush"]  = (C("#FBF8F2"), C("#1A1714")),
+        ["PrimaryHueMidBrush"]             = (C("#1E1E1E"), C("#333333")),
+        ["PrimaryHueMidForegroundBrush"]   = (C("#FFFFFF"), C("#FFFFFF")),
+        ["PrimaryHueDarkBrush"]            = (C("#2D2D2D"), C("#555555")),
+        ["PrimaryHueDarkForegroundBrush"]  = (C("#FFFFFF"), C("#FFFFFF")),
 
         ["SecondaryHueLightBrush"]           = (C("#F1E6D0"), C("#3A2C18")),
         ["SecondaryHueLightForegroundBrush"] = (C("#141312"), C("#EFE6D6")),
@@ -195,8 +195,8 @@ public class ThemeService : IThemeService
     {
         // Primary : foncé → encore plus foncé (light) | clair → médian (dark)
         ["PrimaryGradientBrush"] = (
-            new[] { C("#1F3A2E"), C("#142821") },
-            new[] { C("#7BA585"), C("#5A8068") }
+            new[] { C("#1E1E1E"), C("#2D2D2D") },
+            new[] { C("#333333"), C("#4D4D4D") }
         ),
         ["SecondaryGradientBrush"] = (
             new[] { C("#B5853A"), C("#7A5821") },
@@ -204,8 +204,8 @@ public class ThemeService : IThemeService
         ),
         // Header gradient : 3 stops, symétriques
         ["HeaderGradientBrush"] = (
-            new[] { C("#142821"), C("#1F3A2E"), C("#142821") },
-            new[] { C("#5A8068"), C("#7BA585"), C("#5A8068") }
+            new[] { C("#2D2D2D"), C("#1E1E1E"), C("#2D2D2D") },
+            new[] { C("#555555"), C("#333333"), C("#555555") }
         ),
     };
 

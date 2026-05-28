@@ -189,6 +189,8 @@ public partial class App : Application
         services.AddSingleton<IValidationService, ValidationService>();
         services.AddSingleton<DatabaseDiagnosticsService>();
         services.AddSingleton<MedicSyncService>();
+        services.AddTransient<FormePosoAbbreviationService>();
+        services.AddTransient<PosoLookupService>();
         services.AddTransient<IExcelService, ExcelService>();
         services.AddTransient<IPdfService, PdfService>();
         services.AddTransient<IStockService, StockService>();
@@ -310,7 +312,7 @@ public partial class App : Application
 
             if (rememberMe.TryLoad(out var token))
             {
-                var user = await auth.SignInFromTokenAsync(token.Username);
+                var user = await auth.SignInFromRememberMeTokenAsync(token.Username, token.Token);
                 if (user != null)
                     session.SetCurrentUser(user);
                 else
@@ -489,12 +491,36 @@ CREATE TABLE IF NOT EXISTS user (
   is_active TINYINT(1) NOT NULL DEFAULT 1,
   must_change_password TINYINT(1) NOT NULL DEFAULT 0,
   last_login DATETIME NULL,
+  remember_token_hash VARCHAR(120) NULL,
+  remember_token_expires_utc DATETIME NULL,
   addedat DATETIME NULL,
   updatedat DATETIME NULL,
   UNIQUE KEY uk_user_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
                 await createUser.ExecuteNonQueryAsync();
                 Log.Information("User table ensured (CREATE TABLE IF NOT EXISTS).");
+
+                foreach (var (col, ddl) in new[]
+                {
+                    ("remember_token_hash", "ALTER TABLE user ADD COLUMN remember_token_hash VARCHAR(120) NULL"),
+                    ("remember_token_expires_utc", "ALTER TABLE user ADD COLUMN remember_token_expires_utc DATETIME NULL"),
+                })
+                {
+                    using var check = conn.CreateCommand();
+                    check.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user' AND COLUMN_NAME = @col";
+                    var p = check.CreateParameter();
+                    p.ParameterName = "@col";
+                    p.Value = col;
+                    check.Parameters.Add(p);
+                    var exists = Convert.ToInt32(await check.ExecuteScalarAsync()) > 0;
+                    if (!exists)
+                    {
+                        using var alter = conn.CreateCommand();
+                        alter.CommandText = ddl;
+                        await alter.ExecuteNonQueryAsync();
+                        Log.Information("Added column user.{Column}", col);
+                    }
+                }
 
                 using var countUsers = conn.CreateCommand();
                 countUsers.CommandText = "SELECT COUNT(*) FROM user";
@@ -517,6 +543,175 @@ VALUES ('admin', 'Administrateur', @hash, 1, NOW())";
             catch (Exception ex)
             {
                 Log.Warning(ex, "User table migration failed (non-fatal)");
+            }
+
+            // Sprint 3 (révision) — FK stricte Poso.posoform → Formes.itemname
+            // (exigence organisme : cohérence garantie au niveau base, pas seulement
+            // côté ViewModel).
+            //
+            // Sprint 6 (révision Option C) :
+            //   - formes.posoform RÉ-INTRODUIT : porte le VERBE générique
+            //     (ex. Capsule → "avaler", Pommade → "application")
+            //   - poso.posoverb AJOUTÉ : snapshot du verbe copié depuis
+            //     formes.posoform au moment de la création d'une Posologie
+            //   - poso.posoform conserve sa FK vers formes.itemname (= nom de la forme)
+            //   - formes.posoname reste supprimée (vestigiale, jamais réintroduite)
+            try
+            {
+                // 1. Drop UNIQUEMENT posoname (vestigial). posoform est restauré juste après.
+                using (var checkPosoname = conn.CreateCommand())
+                {
+                    checkPosoname.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'formes' AND COLUMN_NAME = 'posoname'";
+                    var existsPosoname = Convert.ToInt32(await checkPosoname.ExecuteScalarAsync()) > 0;
+                    if (existsPosoname)
+                    {
+                        using var dropCol = conn.CreateCommand();
+                        dropCol.CommandText = "ALTER TABLE formes DROP COLUMN posoname";
+                        await dropCol.ExecuteNonQueryAsync();
+                        Log.Information("Dropped vestigial column formes.posoname");
+                    }
+                }
+
+                // 1bis. Ré-introduire formes.posoform (verbe générique). Migration
+                // idempotente : on n'agit que si la colonne est absente.
+                using (var checkFormesPosoform = conn.CreateCommand())
+                {
+                    checkFormesPosoform.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'formes' AND COLUMN_NAME = 'posoform'";
+                    var existsFormesPosoform = Convert.ToInt32(await checkFormesPosoform.ExecuteScalarAsync()) > 0;
+                    if (!existsFormesPosoform)
+                    {
+                        using var addCol = conn.CreateCommand();
+                        addCol.CommandText = "ALTER TABLE formes ADD COLUMN posoform VARCHAR(50) NULL";
+                        await addCol.ExecuteNonQueryAsync();
+                        Log.Information("Re-added formes.posoform (VARCHAR(50) NULL) — verbe générique de la forme");
+                    }
+                }
+
+                // 1ter. Ajouter poso.posoverb (snapshot du verbe pris depuis formes.posoform
+                // au moment où l'admin sélectionne la Forme dans le dialogue Poso).
+                using (var checkPosoverb = conn.CreateCommand())
+                {
+                    checkPosoverb.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'poso' AND COLUMN_NAME = 'posoverb'";
+                    var existsPosoverb = Convert.ToInt32(await checkPosoverb.ExecuteScalarAsync()) > 0;
+                    if (!existsPosoverb)
+                    {
+                        using var addCol = conn.CreateCommand();
+                        addCol.CommandText = "ALTER TABLE poso ADD COLUMN posoverb VARCHAR(50) NULL";
+                        await addCol.ExecuteNonQueryAsync();
+                        Log.Information("Added poso.posoverb (VARCHAR(50) NULL) — snapshot du verbe formes.posoform");
+                    }
+                }
+
+                // 2. Élargir poso.posoform à VARCHAR(50) NULL (était VARCHAR(30) NOT NULL)
+                using (var checkType = conn.CreateCommand())
+                {
+                    checkType.CommandText = "SELECT CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'poso' AND COLUMN_NAME = 'posoform'";
+                    using var reader = await checkType.ExecuteReaderAsync();
+                    int len = 0; string nullable = "NO";
+                    if (await reader.ReadAsync())
+                    {
+                        var rawLen = reader.GetValue(0);
+                        len = (rawLen != DBNull.Value) ? Convert.ToInt32(rawLen) : 0;
+                        nullable = reader.GetString(1);
+                    }
+                    reader.Close();
+                    if (len > 0 && (len < 50 || nullable == "NO"))
+                    {
+                        // Convertir les chaînes vides en NULL avant d'élargir la colonne.
+                        using (var blankToNull = conn.CreateCommand())
+                        {
+                            blankToNull.CommandText = "UPDATE poso SET posoform = NULL WHERE posoform = ''";
+                            await blankToNull.ExecuteNonQueryAsync();
+                        }
+                        using var alterPosoform = conn.CreateCommand();
+                        alterPosoform.CommandText = "ALTER TABLE poso MODIFY COLUMN posoform VARCHAR(50) NULL DEFAULT NULL";
+                        await alterPosoform.ExecuteNonQueryAsync();
+                        Log.Information("Widened poso.posoform to VARCHAR(50) NULL (was VARCHAR({Old}) {Nul})", len, nullable);
+                    }
+                }
+
+                // 3. Nettoyer les valeurs orphelines (poso.posoform pointant vers une
+                //    formes.itemname inexistante) avant d'appliquer la FK.
+                using (var cleanup = conn.CreateCommand())
+                {
+                    cleanup.CommandText = "UPDATE poso SET posoform = NULL WHERE posoform IS NOT NULL AND posoform NOT IN (SELECT itemname FROM formes)";
+                    var orphans = await cleanup.ExecuteNonQueryAsync();
+                    if (orphans > 0)
+                    {
+                        Log.Warning("Cleared {Count} orphan poso.posoform value(s) before applying FK", orphans);
+                    }
+                }
+
+                // 4. Ajouter UNIQUE sur formes.itemname si absent (prérequis de la FK).
+                //    On vérifie d'abord l'absence de doublons : sinon on log et on
+                //    abandonne sans bloquer le démarrage de l'application.
+                using (var checkUnique = conn.CreateCommand())
+                {
+                    checkUnique.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'formes' AND INDEX_NAME = 'UK_Formes_ItemName'";
+                    var hasIndex = Convert.ToInt32(await checkUnique.ExecuteScalarAsync()) > 0;
+                    if (!hasIndex)
+                    {
+                        using var checkDup = conn.CreateCommand();
+                        checkDup.CommandText = "SELECT COUNT(*) FROM (SELECT itemname FROM formes GROUP BY itemname HAVING COUNT(*) > 1) AS d";
+                        var duplicates = Convert.ToInt32(await checkDup.ExecuteScalarAsync());
+                        if (duplicates > 0)
+                        {
+                            Log.Warning("Cannot add UNIQUE on formes.itemname: {Count} duplicate value(s) detected. Resolve manually then restart.", duplicates);
+                        }
+                        else
+                        {
+                            using var addUnique = conn.CreateCommand();
+                            addUnique.CommandText = "CREATE UNIQUE INDEX UK_Formes_ItemName ON formes(itemname)";
+                            await addUnique.ExecuteNonQueryAsync();
+                            Log.Information("Added UNIQUE index UK_Formes_ItemName on formes(itemname)");
+                        }
+                    }
+                }
+
+                // 5. Ajouter la FK stricte si absente (et si UNIQUE est en place).
+                using (var checkFk = conn.CreateCommand())
+                {
+                    checkFk.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = 'FK_Poso_Forme'";
+                    var hasFk = Convert.ToInt32(await checkFk.ExecuteScalarAsync()) > 0;
+                    if (!hasFk)
+                    {
+                        using var checkUniqueReady = conn.CreateCommand();
+                        checkUniqueReady.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'formes' AND INDEX_NAME = 'UK_Formes_ItemName'";
+                        var uniqueReady = Convert.ToInt32(await checkUniqueReady.ExecuteScalarAsync()) > 0;
+                        if (uniqueReady)
+                        {
+                            using var addFk = conn.CreateCommand();
+                            addFk.CommandText = "ALTER TABLE poso ADD CONSTRAINT FK_Poso_Forme FOREIGN KEY (posoform) REFERENCES formes(itemname) ON UPDATE CASCADE ON DELETE SET NULL";
+                            await addFk.ExecuteNonQueryAsync();
+                            Log.Information("Added FK FK_Poso_Forme: poso.posoform -> formes.itemname (ON UPDATE CASCADE, ON DELETE SET NULL)");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Poso ↔ Formes FK migration failed (non-fatal)");
+            }
+
+            // Ré-introduction de formes.posoform (sémantique nouvelle : abréviation
+            // libre saisie par l'admin, servant à l'auto-génération de la dénomination
+            // de posologie côté dialogue Médicament — ex. « appl. » pour Pommade).
+            try
+            {
+                using var checkCol = conn.CreateCommand();
+                checkCol.CommandText = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'formes' AND COLUMN_NAME = 'posoform'";
+                var exists = Convert.ToInt32(await checkCol.ExecuteScalarAsync()) > 0;
+                if (!exists)
+                {
+                    using var addCol = conn.CreateCommand();
+                    addCol.CommandText = "ALTER TABLE formes ADD COLUMN posoform VARCHAR(50) NULL";
+                    await addCol.ExecuteNonQueryAsync();
+                    Log.Information("Re-added formes.posoform (VARCHAR(50) NULL) — abréviation pour posologie auto-générée");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Re-add formes.posoform migration failed (non-fatal)");
             }
         }
         catch (Exception ex)

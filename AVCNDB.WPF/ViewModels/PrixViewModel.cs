@@ -3,7 +3,9 @@ using System.ComponentModel;
 using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 
 namespace AVCNDB.WPF.ViewModels;
@@ -56,6 +58,19 @@ public partial class PrixViewModel : ViewModelBase
     {
         _repository = repository;
         _dialogService = dialogService;
+
+        // Refresh when another view modifies Medic
+        WeakReferenceMessenger.Default.Register<DataChangedMessage>(this, (r, m) =>
+        {
+            var info = m.Value;
+            if (info.EntityType == "Medic")
+            {
+                if (!HasUnsavedChanges)
+                {
+                    App.Current.Dispatcher.InvokeAsync(async () => await LoadDataAsync());
+                }
+            }
+        });
 
         _ = LoadDataAsync();
     }
@@ -252,6 +267,9 @@ public partial class PrixViewModel : ViewModelBase
 
             HasUnsavedChanges = false;
 
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Medic", ChangeOperation.BulkUpdated)));
+
             await _dialogService.ShowSuccessAsync(
                 "Sauvegarde réussie",
                 $"{saved} médicament(s) mis à jour dans la base de données.");
@@ -268,5 +286,11 @@ public partial class PrixViewModel : ViewModelBase
         Inconsistencies,
         EmptyPrices,
         CnamReferences
+    }
+
+    public override void Dispose()
+    {
+        WeakReferenceMessenger.Default.UnregisterAll(this);
+        base.Dispose();
     }
 }

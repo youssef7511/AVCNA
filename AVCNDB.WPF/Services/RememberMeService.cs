@@ -7,7 +7,7 @@ using Serilog;
 namespace AVCNDB.WPF.Services;
 
 /// <summary>Token sérialisé dans auth.dat.</summary>
-public record RememberMeToken(string Username, DateTime ExpiresUtc, string Nonce);
+public record RememberMeToken(string Username, string Token, DateTime ExpiresUtc);
 
 /// <summary>
 /// Persistance "Se souvenir de moi" via Windows DPAPI.
@@ -21,14 +21,12 @@ public class RememberMeService
         "AVCNDB",
         "auth.dat");
 
-    private static readonly TimeSpan Expiry = TimeSpan.FromDays(14);
-
     /// <summary>Chiffre et persiste le token.</summary>
-    public void Save(string username, string nonce, DateTime expiresUtc)
+    public void Save(string username, string tokenValue, DateTime expiresUtc)
     {
         try
         {
-            var token = new RememberMeToken(username, expiresUtc, nonce);
+            var token = new RememberMeToken(username, tokenValue, expiresUtc);
             var json = JsonSerializer.Serialize(token);
             var plain = Encoding.UTF8.GetBytes(json);
             var cipher = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
@@ -45,14 +43,10 @@ public class RememberMeService
         }
     }
 
-    /// <summary>
-    /// Crée et persiste un token valide 14 jours pour l'utilisateur donné.
-    /// </summary>
-    public void SaveForUser(string username)
+    /// <summary>Persiste localement un token émis et hashé côté base.</summary>
+    public void SaveForUser(string username, string tokenValue, DateTime expiresUtc)
     {
-        var nonce = Guid.NewGuid().ToString("N");
-        // Use UTC so the expiry is not affected by daylight-saving transitions.
-        Save(username, nonce, DateTime.UtcNow.Add(Expiry));
+        Save(username, tokenValue, expiresUtc);
     }
 
     /// <summary>
@@ -70,7 +64,7 @@ public class RememberMeService
             var plain = ProtectedData.Unprotect(cipher, null, DataProtectionScope.CurrentUser);
             var json = Encoding.UTF8.GetString(plain);
             var t = JsonSerializer.Deserialize<RememberMeToken>(json);
-            if (t == null) return false;
+            if (t == null || string.IsNullOrWhiteSpace(t.Token)) return false;
 
             if (t.ExpiresUtc < DateTime.UtcNow)
             {

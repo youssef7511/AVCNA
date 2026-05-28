@@ -57,7 +57,7 @@
     <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="{DynamicResource BotanicalBrush}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource BotanicalDarkBrush}"/>
-        <Setter Property="Foreground" Value="{DynamicResource BoneBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextOnPrimaryBrush}"/>
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource BotanicalDarkBrush}"/>

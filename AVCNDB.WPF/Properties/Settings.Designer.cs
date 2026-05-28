@@ -73,15 +73,6 @@ internal sealed partial class Settings : global::System.Configuration.Applicatio
 
     [global::System.Configuration.UserScopedSettingAttribute()]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-    [global::System.Configuration.DefaultSettingValueAttribute("10")]
-    public int StockAlertThreshold
-    {
-        get => ((int)(this["StockAlertThreshold"]));
-        set => this["StockAlertThreshold"] = value;
-    }
-
-    [global::System.Configuration.UserScopedSettingAttribute()]
-    [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Configuration.DefaultSettingValueAttribute("30")]
     public int ExpiryAlertDays
     {

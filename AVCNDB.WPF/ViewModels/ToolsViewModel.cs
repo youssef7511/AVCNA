@@ -297,7 +297,10 @@ public partial class ToolsViewModel : ViewModelBase
             int  negatives = 0;
             int  dciCount  = 0;
             double? macroF1Cv = null;
+            double? macroF1Test = null;
             double  macroF1Train = 0;
+            string negativeLabel = "Aucune interaction connue";
+            var warnings = new List<string>();
             try
             {
                 using var doc = JsonDocument.Parse(body);
@@ -308,6 +311,18 @@ public partial class ToolsViewModel : ViewModelBase
                 macroF1Train = metrics.GetProperty("macro_f1_train").GetDouble();
                 if (metrics.TryGetProperty("macro_f1_cv", out var cv) && cv.ValueKind == JsonValueKind.Number)
                     macroF1Cv = cv.GetDouble();
+                if (metrics.TryGetProperty("macro_f1_test", out var test) && test.ValueKind == JsonValueKind.Number)
+                    macroF1Test = test.GetDouble();
+                if (metrics.TryGetProperty("negative_label", out var neg) && neg.ValueKind == JsonValueKind.String)
+                    negativeLabel = neg.GetString() ?? negativeLabel;
+                if (metrics.TryGetProperty("warnings", out var warns) && warns.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var warning in warns.EnumerateArray())
+                    {
+                        if (warning.ValueKind == JsonValueKind.String)
+                            warnings.Add(warning.GetString() ?? "");
+                    }
+                }
             }
             catch
             {
@@ -319,12 +334,18 @@ public partial class ToolsViewModel : ViewModelBase
             var cvLine = macroF1Cv.HasValue
                 ? $"\nMacro F1 (CV 5-fold) : {macroF1Cv.Value:F3}"
                 : "";
+            var testLine = macroF1Test.HasValue
+                ? $"\nMacro F1 (test) : {macroF1Test.Value:F3}"
+                : "";
+            var warningLine = warnings.Count > 0
+                ? "\n\nAvertissement(s) :\n- " + string.Join("\n- ", warnings.Where(w => !string.IsNullOrWhiteSpace(w)))
+                : "";
             await _dialogService.ShowSuccessAsync(
                 "Modèle réentraîné",
                 $"Modèle reconstruit à partir de {positives} interaction(s) approuvée(s)\n" +
-                $"+ {negatives} paire(s) tirée(s) au sort comme négatifs.\n\n" +
+                $"+ {negatives} paire(s) tirée(s) au sort comme \"{negativeLabel}\".\n\n" +
                 $"DCIs connues : {dciCount}\n" +
-                $"Macro F1 (train) : {macroF1Train:F3}" + cvLine);
+                $"Macro F1 (train - contrôle technique) : {macroF1Train:F3}" + cvLine + testLine + warningLine);
         }, "Réentraînement du modèle IA...");
     }
 

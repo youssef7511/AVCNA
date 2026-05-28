@@ -206,7 +206,7 @@
                 <!-- Outil: Réentraîner le modèle IA (ML_pfe) -->
                 <materialDesign:Card Width="280" Margin="8" Padding="16">
                     <StackPanel>
-                        <materialDesign:PackIcon Kind="BrainOutline"
+                        <materialDesign:PackIcon Kind="Refresh"
                                                  Width="48" Height="48"
                                                  Foreground="#1565C0"
                                                  HorizontalAlignment="Center"/>

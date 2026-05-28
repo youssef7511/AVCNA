@@ -227,8 +227,10 @@ public partial class EditionFileViewModel : ViewModelBase
             // 2. Run ML detection
             var unknownCount = await _editionFileService.ValidateAgainstLibraryAsync(importResult.Rows);
 
-            // 3. Wrap in ViewModels
-            _allRows = importResult.Rows.Select(r => new EditionRowViewModel(r)).ToList();
+            // 3. Wrap in ViewModels (with live re-validation on inline edit)
+            _allRows = importResult.Rows
+                .Select(r => new EditionRowViewModel(r, _editionFileService.IsFieldKnownAsync))
+                .ToList();
 
             // 4. Update stats
             CurrentFilePath = filePath;

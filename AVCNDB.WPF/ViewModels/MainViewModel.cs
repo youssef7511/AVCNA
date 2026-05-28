@@ -16,6 +16,7 @@ public partial class MainViewModel : ViewModelBase
     private readonly IStockService _stockService;
     private readonly ISessionService _sessionService;
     private readonly RememberMeService _rememberMeService;
+    private readonly IAuthService _authService;
 
     [ObservableProperty]
     private object? _currentView;
@@ -44,13 +45,15 @@ public partial class MainViewModel : ViewModelBase
         IThemeService themeService,
         IStockService stockService,
         ISessionService sessionService,
-        RememberMeService rememberMeService)
+        RememberMeService rememberMeService,
+        IAuthService authService)
     {
         _navigationService = navigationService;
         _themeService = themeService;
         _stockService = stockService;
         _sessionService = sessionService;
         _rememberMeService = rememberMeService;
+        _authService = authService;
 
         // S'abonner aux changements de navigation
         _navigationService.NavigationChanged += OnNavigationChanged;
@@ -209,7 +212,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void Logout()
+    private async Task LogoutAsync()
     {
         var result = System.Windows.MessageBox.Show(
             "Voulez-vous vraiment vous déconnecter ?",
@@ -219,7 +222,14 @@ public partial class MainViewModel : ViewModelBase
 
         if (result == System.Windows.MessageBoxResult.Yes)
         {
-            try { _sessionService.Clear(); _rememberMeService.Clear(); }
+            try
+            {
+                var userId = _sessionService.CurrentUser?.recordid;
+                if (userId.HasValue)
+                    await _authService.RevokeRememberMeTokenAsync(userId.Value);
+                _sessionService.Clear();
+                _rememberMeService.Clear();
+            }
             finally { System.Windows.Application.Current.Shutdown(); }
         }
     }

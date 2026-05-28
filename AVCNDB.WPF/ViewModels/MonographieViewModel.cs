@@ -87,11 +87,18 @@ public partial class MonographieViewModel : ViewModelBase
         _labosRepository = labosRepository;
         _dialogService = dialogService;
 
-        // Refresh library lists when data changes
+        // Refresh when library data changes or another view modifies Medic
         WeakReferenceMessenger.Default.Register<DataChangedMessage>(this, (r, m) =>
         {
-            var entity = m.Value.EntityType;
-            if (entity is "Voies" or "Dci" or "Formes" or "Labos")
+            var info = m.Value;
+            if (info.EntityType == "Medic")
+            {
+                if (!HasUnsavedChanges)
+                {
+                    App.Current.Dispatcher.InvokeAsync(async () => await LoadDataAsync());
+                }
+            }
+            else if (info.EntityType is "Voies" or "Dci" or "Formes" or "Labos")
             {
                 App.Current.Dispatcher.InvokeAsync(async () => await LoadLibraryListsAsync());
             }
@@ -410,6 +417,9 @@ public partial class MonographieViewModel : ViewModelBase
             }
 
             HasUnsavedChanges = false;
+
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Medic", ChangeOperation.BulkUpdated)));
 
             await _dialogService.ShowSuccessAsync(
                 "Sauvegarde réussie",

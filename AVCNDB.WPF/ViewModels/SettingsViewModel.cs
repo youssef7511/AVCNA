@@ -54,9 +54,6 @@ public partial class SettingsViewModel : ViewModelBase
 
     // ── Alertes ──
     [ObservableProperty]
-    private int _stockAlertThreshold;
-
-    [ObservableProperty]
     private int _expiryAlertDays;
 
     // ── Infos ──
@@ -96,7 +93,6 @@ public partial class SettingsViewModel : ViewModelBase
         ParseConnectionString(connStr);
 
         // Alertes (stockées dans Properties.Settings car hors appsettings)
-        StockAlertThreshold = Properties.Settings.Default.StockAlertThreshold;
         ExpiryAlertDays = Properties.Settings.Default.ExpiryAlertDays;
 
         // Version
@@ -205,7 +201,6 @@ public partial class SettingsViewModel : ViewModelBase
             SaveConnectionStringToAppSettings(newConnStr);
 
             // 2) Sauvegarder alertes dans Properties.Settings
-            Properties.Settings.Default.StockAlertThreshold = StockAlertThreshold;
             Properties.Settings.Default.ExpiryAlertDays = ExpiryAlertDays;
             Properties.Settings.Default.Save();
 
@@ -266,7 +261,6 @@ public partial class SettingsViewModel : ViewModelBase
         if (confirm)
         {
             // Alertes
-            Properties.Settings.Default.StockAlertThreshold = 10;
             Properties.Settings.Default.ExpiryAlertDays = 30;
             Properties.Settings.Default.Save();
 

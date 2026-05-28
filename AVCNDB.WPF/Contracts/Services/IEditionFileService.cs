@@ -103,4 +103,13 @@ public interface IEditionFileService
     /// <param name="maxResults">Nombre maximum de résultats (défaut 20)</param>
     /// <returns>Liste de résultats triés par score décroissant</returns>
     Task<List<SimilarMedicResult>> SearchSimilarAsync(EditionRow row, int maxResults = 20);
+
+    /// <summary>
+    /// Re-vérifie un champ de référence unique contre la bibliothèque, pour la
+    /// re-validation à l'édition d'une cellule (sélection dans un combo). Retourne
+    /// true si la valeur est désormais reconnue.
+    /// </summary>
+    /// <param name="fieldName">Nom du champ de détection (« Dci », « Forme », « Labo »…).</param>
+    /// <param name="value">Nouvelle valeur saisie.</param>
+    Task<bool> IsFieldKnownAsync(string fieldName, string value);
 }

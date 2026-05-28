@@ -18,7 +18,7 @@ import pymysql
 DB_CFG = dict(host='127.0.0.1', port=3307, user='medwin', password='0101',
               database='MEDICDB', charset='utf8mb4')
 
-XLSX_PATH = Path(r"c:\Users\youss\OneDrive\Desktop\AVCNA  FULL\MEDIC-CNAM-V E I-18-03-2025.xlsx")
+XLSX_PATH = Path(__file__).resolve().parents[3] / "MEDIC-CNAM-V-E-I-18-03-2025.xlsx"
 
 WIPE_TABLES = [
     'specmedic', 'stock', 'interact', 'poso',

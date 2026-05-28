@@ -19,8 +19,10 @@ public class MLPfeService : IMLPfeService
     public MLPfeService(HttpClient http, IConfiguration configuration)
     {
         _http = http;
-        _workingDirectory = configuration["MlPfe:WorkingDirectory"]
-            ?? Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\ML_pfe");
+        var configuredWorkingDirectory = configuration["MlPfe:WorkingDirectory"];
+        _workingDirectory = string.IsNullOrWhiteSpace(configuredWorkingDirectory)
+            ? Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\..\ML_pfe")
+            : configuredWorkingDirectory;
         _pythonExe = configuration["MlPfe:PythonExe"] ?? "python";
         _port = int.TryParse(configuration["MlPfe:Port"], out var p) ? p : 5000;
     }
@@ -49,7 +51,10 @@ public class MLPfeService : IMLPfeService
         }
 
         // Resolve and validate the working directory
-        var dir = Path.GetFullPath(_workingDirectory);
+        var dir = Path.GetFullPath(
+            Path.IsPathRooted(_workingDirectory)
+                ? _workingDirectory
+                : Path.Combine(AppContext.BaseDirectory, _workingDirectory));
         if (!Directory.Exists(dir))
             return $"Dossier ML_pfe introuvable :\n{dir}\n\nVérifiez MlPfe:WorkingDirectory dans appsettings.json.";
 

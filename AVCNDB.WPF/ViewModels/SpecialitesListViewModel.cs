@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
@@ -112,6 +113,19 @@ public partial class SpecialitesListViewModel : ViewModelBase
         {
             await _dialogService.ShowWarningAsync("Validation", "itemname est obligatoire.");
             return;
+        }
+
+        // Anti-doublon sur création : comparaison canonique (insensible à la casse
+        // et aux accents).
+        if (SelectedSpecialite == null)
+        {
+            var all = await _repository.GetAllAsync();
+            if (all.Any(s => NameNormalizer.AreSame(s.itemname, EditItemName)))
+            {
+                await _dialogService.ShowWarningAsync("Doublon",
+                    $"« {EditItemName.Trim()} » existe déjà (comparaison insensible à la casse et aux accents).");
+                return;
+            }
         }
 
         await ExecuteAsync(async () =>

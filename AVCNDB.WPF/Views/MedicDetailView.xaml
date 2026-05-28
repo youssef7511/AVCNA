@@ -90,25 +90,6 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Command="{Binding PrintCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                Margin="0,0,6,0" Padding="10,6" Height="34">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Printer" Width="15" Height="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Imprimer" Margin="5,0,0,0" VerticalAlignment="Center" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding EditCommand}"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                Background="{StaticResource PrimaryBrush}"
-                                Foreground="White"
-                                Padding="14,6" Height="34">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Pencil" Width="15" Height="15" VerticalAlignment="Center"/>
-                                <TextBlock Text="Modifier" Margin="6,0,0,0" VerticalAlignment="Center" FontSize="12"/>
-                            </StackPanel>
-                        </Button>
                     </StackPanel>
                 </Grid>
 

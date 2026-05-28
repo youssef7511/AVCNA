@@ -102,7 +102,6 @@
                 <DataGridTextColumn Header="Groupe" Binding="{Binding formgroup}" Width="1.2*" MinWidth="110"/>
                 <DataGridTextColumn Header="Abréviation" Binding="{Binding abname}" Width="2*" MinWidth="140"/>
                 <DataGridTextColumn Header="Poso form" Binding="{Binding posoform}" Width="1.2*" MinWidth="110"/>
-                <DataGridTextColumn Header="Poso name" Binding="{Binding posoname}" Width="1.2*" MinWidth="110"/>
                 <DataGridTextColumn Header="addedat" Visibility="Collapsed" Binding="{Binding addedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
                 <DataGridTextColumn Header="updatedat" Visibility="Collapsed" Binding="{Binding updatedat, StringFormat={}{0:yyyy-MM-dd HH:mm}}" Width="170"/>
                 <!-- Actions (⋮ menu) -->
@@ -192,17 +191,10 @@
                              Style="{StaticResource DialogLineTextBoxStyle}"
                              Margin="0,0,0,12"/>
 
-                    <controls:FilterableComboBox FilterableItemsSource="{Binding PosoFormOptions}"
-                                                 Text="{Binding EditPosoForm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 materialDesign:HintAssist.Hint="Poso form"
-                                                 Style="{StaticResource DialogLineComboBoxStyle}"
-                                                 Margin="0,0,0,12"/>
-
-                    <controls:FilterableComboBox FilterableItemsSource="{Binding PosoNameOptions}"
-                                                 Text="{Binding EditPosoName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 materialDesign:HintAssist.Hint="Poso name"
-                                                 Style="{StaticResource DialogLineComboBoxStyle}"
-                                                 Margin="0,0,0,16"/>
+                    <TextBox materialDesign:TextFieldAssist.HasClearButton="True" Text="{Binding EditPosoForm, UpdateSourceTrigger=PropertyChanged}"
+                             materialDesign:HintAssist.Hint="Forme poso (abréviation pour posologie auto-générée)"
+                             Style="{StaticResource DialogLineTextBoxStyle}"
+                             Margin="0,0,0,16"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Command="{Binding CancelEditCommand}"

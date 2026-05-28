@@ -11,9 +11,16 @@ public partial class EditionRowViewModel : ObservableObject
 {
     public EditionRow Row { get; }
 
-    public EditionRowViewModel(EditionRow row)
+    /// <summary>
+    /// Callback de re-validation : (nom du champ de détection, nouvelle valeur) → la valeur est-elle connue ?
+    /// Fourni par le ViewModel parent. Null = pas de re-validation (ex: tests).
+    /// </summary>
+    private readonly Func<string, string, Task<bool>>? _isFieldKnownAsync;
+
+    public EditionRowViewModel(EditionRow row, Func<string, string, Task<bool>>? isFieldKnownAsync = null)
     {
         Row = row;
+        _isFieldKnownAsync = isFieldKnownAsync;
         row.PropertyChanged += (_, e) =>
         {
             // Bubble property changes from the underlying EditionRow
@@ -48,6 +55,44 @@ public partial class EditionRowViewModel : ObservableObject
         private set { _isModified = value; OnPropertyChanged(); }
     }
 
+    // ─── Re-validation on inline edit ────────────────────────────────────
+    //
+    // Au moment de l'import, la détection floue marque les champs inconnus
+    // (coloration bleue). Sans re-validation, sélectionner une valeur valide
+    // dans le combo laisserait l'alerte figée. On re-vérifie donc le champ
+    // édité contre la bibliothèque et on met à jour Row.UnknownFields en direct.
+
+    /// <summary>
+    /// Re-vérifie un champ de référence après édition manuelle et efface (ou pose)
+    /// l'indicateur « inconnu » en conséquence. async void : déclenché depuis un
+    /// setter (UI thread) ; la bibliothèque est mise en cache, donc l'appel est rapide.
+    /// </summary>
+    private async void RevalidateField(string detectionFieldName, string? value)
+    {
+        if (_isFieldKnownAsync == null) return;
+
+        bool known;
+        try { known = await _isFieldKnownAsync(detectionFieldName, value ?? string.Empty); }
+        catch { return; } // re-validation best-effort : ne jamais bloquer l'édition
+
+        bool changed;
+        if (known)
+        {
+            changed = Row.UnknownFields.Remove(detectionFieldName);
+        }
+        else if (!Row.UnknownFields.Contains(detectionFieldName))
+        {
+            Row.UnknownFields.Add(detectionFieldName);
+            changed = true;
+        }
+        else
+        {
+            changed = false;
+        }
+
+        if (changed) Row.NotifyUnknownFieldsChanged();
+    }
+
     // ─── Read-only properties ────────────────────────────────────────────
 
     public int LineNumber        => Row.LineNumber;
@@ -76,7 +121,7 @@ public partial class EditionRowViewModel : ObservableObject
     public string Dci1
     {
         get => Row.Dci1;
-        set { Row.Dci1 = value; IsModified = true; }
+        set { Row.Dci1 = value; IsModified = true; RevalidateField("Dci", value); }
     }
 
     public string Dci2
@@ -100,19 +145,19 @@ public partial class EditionRowViewModel : ObservableObject
     public string DciAssociation
     {
         get => Row.DciAssociation;
-        set { Row.DciAssociation = value; IsModified = true; }
+        set { Row.DciAssociation = value; IsModified = true; RevalidateField("DciAssociation", value); }
     }
 
     public string Forme
     {
         get => Row.Forme;
-        set { Row.Forme = value; IsModified = true; }
+        set { Row.Forme = value; IsModified = true; RevalidateField("Forme", value); }
     }
 
     public string Voie
     {
         get => Row.Voie;
-        set { Row.Voie = value; IsModified = true; }
+        set { Row.Voie = value; IsModified = true; RevalidateField("Voie", value); }
     }
 
     public string Tableau
@@ -130,31 +175,31 @@ public partial class EditionRowViewModel : ObservableObject
     public string Labo
     {
         get => Row.Labo;
-        set { Row.Labo = value; IsModified = true; }
+        set { Row.Labo = value; IsModified = true; RevalidateField("Labo", value); }
     }
 
     public string Fam1
     {
         get => Row.Fam1;
-        set { Row.Fam1 = value; IsModified = true; }
+        set { Row.Fam1 = value; IsModified = true; RevalidateField("Fam1", value); }
     }
 
     public string Fam2
     {
         get => Row.Fam2;
-        set { Row.Fam2 = value; IsModified = true; }
+        set { Row.Fam2 = value; IsModified = true; RevalidateField("Fam2", value); }
     }
 
     public string Fam3
     {
         get => Row.Fam3;
-        set { Row.Fam3 = value; IsModified = true; }
+        set { Row.Fam3 = value; IsModified = true; RevalidateField("Fam3", value); }
     }
 
     public string Specialite
     {
         get => Row.Specialite;
-        set { Row.Specialite = value; IsModified = true; }
+        set { Row.Specialite = value; IsModified = true; RevalidateField("Specialite", value); }
     }
 
     public int RefPrice

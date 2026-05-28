@@ -41,18 +41,17 @@ La conséquence directe est une perte de temps sur la vérification manuelle et 
 
 #### 1.2.2.1 Étude de l'existant
 
-Le système actuel, connu sous le nom de **Medic 5X**, est une application de bureau développée en **Windows Forms (.NET Framework)**. Il a été conçu pour répondre aux besoins de gestion de la base de données médicamenteuse au sein de l'organisme. Son architecture repose sur les éléments suivants :
+Le système actuel, connu sous le nom de **AVCNA 5X**, est une application de bureau développée en **Windows Forms (.NET Framework)**. Il a été conçu pour répondre aux besoins de gestion de la base de données médicamenteuse au sein de l'organisme. Son architecture repose sur les éléments suivants :
 
 - **Base de données locale au format `.dbf`** (dBASE) : les données sont stockées dans des fichiers plats sur le poste de l'utilisateur, sans serveur centralisé.
 - **Interface WinForms** : l'interface graphique utilise les composants standards de Windows Forms, avec des grilles de données, des formulaires de saisie et des menus classiques.
-- **Export Excel au format `.xls`** : les données sont exportées vers des fichiers Excel pour transmission à la CNAM (Caisse Nationale d'Assurance Maladie), utilisés comme support officiel d'échange.
 - **Mise à jour par FTP** : les nouvelles versions de la base de données sont distribuées sous forme de fichiers `.dbf` déposés sur un serveur FTP. L'utilisateur doit manuellement télécharger et remplacer les fichiers locaux.
 
 Ce système assure les fonctions de base — consultation, recherche, édition et export des médicaments. Toutefois, son architecture monolithique et sa dépendance aux fichiers locaux limitent fortement ses capacités d'évolution.
 
 #### 1.2.2.2 Critiques de l'existant
 
-L'analyse du système **Medic 5X** met en évidence plusieurs limites structurelles :
+L'analyse du système **AVCNA 5X** met en évidence plusieurs limites structurelles :
 
 | Axe | Limite identifiée |
 |-----|-------------------|
@@ -65,9 +64,9 @@ L'analyse du système **Medic 5X** met en évidence plusieurs limites structurel
 
 #### 1.2.2.3 Solution proposée
 
-La solution retenue est le développement d'un nouveau système de gestion de la base de données, **Medic 6X (AVCNDB)**, qui remplace intégralement Medic 5X. Les axes de modernisation sont les suivants :
+La solution retenue est le développement d'un nouveau système de gestion de la base de données, **AVCNA 6X (AVCNDB)**, qui remplace intégralement AVCNA 5X. Les axes de modernisation sont les suivants :
 
-| Axe | Solution apportée par Medic 6X |
+| Axe | Solution apportée par AVCNA 6X |
 |-----|-------------------------------|
 | **Base de données centralisée** | Migration vers **MySQL/MariaDB** déployé via **Docker**, avec un schéma relationnel complet (clés étrangères, contraintes, index). Accès aux données via **Entity Framework Core** et le pattern **Repository**. |
 | **Interface moderne** | Réécriture complète en **WPF (.NET 8)** avec **Material Design In XAML**, offrant une expérience utilisateur fluide, moderne et personnalisable (thèmes, DataGrid interactif, filtres dynamiques, ComboBox filtrables). |
@@ -314,4 +313,3 @@ Plan prudent recommandé :
 ## Conclusion du Chapitre II
 
 La préparation du projet consolide une base technique robuste et exploitable immédiatement. L'architecture actuelle répond aux besoins opérationnels de gestion de base médicamenteuse, tout en ouvrant un chemin réaliste vers des fonctionnalités AI/ML explicables, contrôlées et utiles en pratique.
-

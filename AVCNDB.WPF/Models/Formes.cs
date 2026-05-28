@@ -30,11 +30,13 @@ public class Formes : ITrackable, ISoftDeletable
     [StringLength(230)]
     public string abname { get; set; } = string.Empty;
 
-    [StringLength(30)]
-    public string posoform { get; set; } = string.Empty;
-
-    [StringLength(30)]
-    public string posoname { get; set; } = string.Empty;
+    /// <summary>
+    /// Abréviation libre servant à l'auto-génération de la dénomination
+    /// de posologie côté dialogue Médicament (ex. « appl. » pour Pommade).
+    /// Champ purement applicatif, ne participe pas à la FK Poso → Forme.
+    /// </summary>
+    [StringLength(50)]
+    public string? posoform { get; set; }
 
     public DateTime? addedat { get; set; }
     public DateTime? updatedat { get; set; }

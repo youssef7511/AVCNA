@@ -18,9 +18,6 @@
   <Setting Name="DatabaseUser" Type="System.String" Scope="User">
     <Value Profile="(Default)">root</Value>
   </Setting>
-  <Setting Name="StockAlertThreshold" Type="System.Int32" Scope="User">
-    <Value Profile="(Default)">10</Value>
-  </Setting>
   <Setting Name="ExpiryAlertDays" Type="System.Int32" Scope="User">
     <Value Profile="(Default)">30</Value>
   </Setting>

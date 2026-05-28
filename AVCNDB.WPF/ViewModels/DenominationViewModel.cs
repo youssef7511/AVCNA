@@ -79,11 +79,18 @@ public partial class DenominationViewModel : ViewModelBase
         _labosRepository = labosRepository;
         _dialogService = dialogService;
 
-        // Refresh ComboBox lists when library data changes
+        // Refresh when library data changes or another view modifies Medic
         WeakReferenceMessenger.Default.Register<DataChangedMessage>(this, (r, m) =>
         {
-            var entityType = m.Value.EntityType;
-            if (entityType is "Formes" or "Presents" or "Labos")
+            var info = m.Value;
+            if (info.EntityType == "Medic")
+            {
+                if (!HasUnsavedChanges)
+                {
+                    App.Current.Dispatcher.InvokeAsync(async () => await LoadDataAsync());
+                }
+            }
+            else if (info.EntityType is "Formes" or "Presents" or "Labos")
             {
                 App.Current.Dispatcher.InvokeAsync(async () => await LoadLibraryListsAsync());
             }
@@ -370,6 +377,9 @@ public partial class DenominationViewModel : ViewModelBase
             HasUnsavedChanges = false;
             MedicsView?.Refresh();
             UpdateComputedDenomination();
+
+            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                new DataChangeInfo("Medic", ChangeOperation.BulkUpdated)));
 
             await _dialogService.ShowSuccessAsync(
                 "Sauvegarde réussie",

@@ -19,12 +19,12 @@
     <Color x:Key="InkMuteColor">#8A7F72</Color>        <!-- texte tertiaire / hint -->
     <Color x:Key="HairlineColor">#1F1A14</Color>       <!-- bordures (avec opacité) -->
 
-    <Color x:Key="BotanicalColor">#1F3A2E</Color>      <!-- vert apothicaire (primaire) -->
-    <Color x:Key="BotanicalDarkColor">#142821</Color>
-    <Color x:Key="BotanicalLightColor">#E4ECE5</Color> <!-- fond doux primaire -->
+    <Color x:Key="BotanicalColor">#1E1E1E</Color>      <!-- sleek dark grey -->
+    <Color x:Key="BotanicalDarkColor">#2D2D2D</Color>
+    <Color x:Key="BotanicalLightColor">#EAEAEA</Color> <!-- sleek light grey -->
 
     <!-- Sidebar : couleur dédiée — reste sombre dans les deux thèmes -->
-    <Color x:Key="SidebarBgColor">#142821</Color>
+    <Color x:Key="SidebarBgColor">#1E1E1E</Color>
 
     <!-- Info surface : panneau d'information bleuté (clair) / bleu profond (sombre) -->
     <Color x:Key="InfoSurfaceColor">#EBF0FB</Color>
@@ -50,9 +50,9 @@
     ============================================ -->
 
     <!-- Primaires : encre bleue → vert botanique -->
-    <Color x:Key="PrimaryColor">#1F3A2E</Color>
-    <Color x:Key="PrimaryDarkColor">#142821</Color>
-    <Color x:Key="PrimaryLightColor">#E4ECE5</Color>
+    <Color x:Key="PrimaryColor">#1E1E1E</Color>
+    <Color x:Key="PrimaryDarkColor">#2D2D2D</Color>
+    <Color x:Key="PrimaryLightColor">#EAEAEA</Color>
 
     <!-- Secondaires : vert santé → ocre (pour différencier des primaires) -->
     <Color x:Key="SecondaryColor">#B5853A</Color>
@@ -71,7 +71,7 @@
     <!-- Texte -->
     <Color x:Key="TextPrimaryColor">#141312</Color>
     <Color x:Key="TextSecondaryColor">#5C544B</Color>
-    <Color x:Key="TextOnPrimaryColor">#FBF8F2</Color>
+    <Color x:Key="TextOnPrimaryColor">#FFFFFF</Color>
     <Color x:Key="TextOnSecondaryColor">#141312</Color>
 
     <!-- Statuts -->

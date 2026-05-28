@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
@@ -12,7 +13,6 @@ namespace AVCNDB.WPF.ViewModels;
 public partial class FormesListViewModel : ViewModelBase
 {
     private readonly IRepository<Formes> _repository;
-    private readonly IRepository<Poso> _posoRepository;
     private readonly IDialogService _dialogService;
     private readonly MedicSyncService _syncService;
 
@@ -40,28 +40,22 @@ public partial class FormesListViewModel : ViewModelBase
     [ObservableProperty]
     private string _editAbName = string.Empty;
 
+    /// <summary>
+    /// Abréviation libre utilisée par le dialogue Médicament pour générer
+    /// la dénomination de posologie (« appl. x 3 / jour » au lieu de
+    /// « Pommade x 3 / jour »).
+    /// </summary>
     [ObservableProperty]
     private string _editPosoForm = string.Empty;
-
-    [ObservableProperty]
-    private string _editPosoName = string.Empty;
-
-    [ObservableProperty]
-    private ObservableCollection<string> _posoFormOptions = new();
-
-    [ObservableProperty]
-    private ObservableCollection<string> _posoNameOptions = new();
 
     private string? _originalItemName;
 
     public FormesListViewModel(
         IRepository<Formes> repository,
-        IRepository<Poso> posoRepository,
         IDialogService dialogService,
         MedicSyncService syncService)
     {
         _repository = repository;
-        _posoRepository = posoRepository;
         _dialogService = dialogService;
         _syncService = syncService;
 
@@ -79,27 +73,12 @@ public partial class FormesListViewModel : ViewModelBase
         {
             var items = string.IsNullOrWhiteSpace(SearchText)
                 ? await _repository.GetAllAsync()
-                : await _repository.FindAsync(f => f.itemname.Contains(SearchText));
+                : await _repository.FindAsync(f =>
+                    f.itemname.Contains(SearchText) ||
+                    (f.abname != null && f.abname.Contains(SearchText)));
 
             Formes = new ObservableCollection<Formes>(items.OrderBy(f => f.itemname));
-            await LoadPosoLookupsAsync();
         }, "Chargement des formes...");
-    }
-
-    private async Task LoadPosoLookupsAsync()
-    {
-        var posos = await _posoRepository.GetAllAsync();
-        PosoFormOptions = new ObservableCollection<string>(
-            posos.Select(p => p.posoform)
-                .Where(v => !string.IsNullOrWhiteSpace(v))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(v => v));
-
-        PosoNameOptions = new ObservableCollection<string>(
-            posos.Select(p => p.nameformul)
-                .Where(v => !string.IsNullOrWhiteSpace(v))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(v => v));
     }
 
     [RelayCommand]
@@ -114,7 +93,6 @@ public partial class FormesListViewModel : ViewModelBase
         EditFormGroup = string.Empty;
         EditAbName = string.Empty;
         EditPosoForm = string.Empty;
-        EditPosoName = string.Empty;
         IsEditing = true;
     }
 
@@ -128,8 +106,7 @@ public partial class FormesListViewModel : ViewModelBase
         EditSubValue = forme.subvalue;
         EditFormGroup = forme.formgroup;
         EditAbName = forme.abname;
-        EditPosoForm = forme.posoform;
-        EditPosoName = forme.posoname;
+        EditPosoForm = forme.posoform ?? string.Empty;
         _originalItemName = forme.itemname;
         IsEditing = true;
     }
@@ -143,28 +120,15 @@ public partial class FormesListViewModel : ViewModelBase
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(EditPosoForm))
+        // Anti-doublon sur création : comparaison canonique (insensible à la casse
+        // et aux accents) — empêche la coexistence de « comprimé » et « Comprimé ».
+        if (SelectedForme == null)
         {
-            var posoFormExists = await _posoRepository.ExistsAsync(
-                p => p.posoform == EditPosoForm);
-            if (!posoFormExists)
+            var all = await _repository.GetAllAsync();
+            if (all.Any(f => NameNormalizer.AreSame(f.itemname, EditItemName)))
             {
-                await _dialogService.ShowWarningAsync(
-                    "Validation",
-                    "Poso form doit exister dans la table Poso.");
-                return;
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(EditPosoName))
-        {
-            var posoNameExists = await _posoRepository.ExistsAsync(
-                p => p.nameformul == EditPosoName);
-            if (!posoNameExists)
-            {
-                await _dialogService.ShowWarningAsync(
-                    "Validation",
-                    "Poso name doit exister dans la table Poso (Nom formule).");
+                await _dialogService.ShowWarningAsync("Doublon",
+                    $"« {EditItemName.Trim()} » existe déjà (comparaison insensible à la casse et aux accents).");
                 return;
             }
         }
@@ -185,8 +149,7 @@ public partial class FormesListViewModel : ViewModelBase
                 SelectedForme.subvalue = EditSubValue;
                 SelectedForme.formgroup = EditFormGroup;
                 SelectedForme.abname = EditAbName;
-                SelectedForme.posoform = EditPosoForm;
-                SelectedForme.posoname = EditPosoName;
+                SelectedForme.posoform = string.IsNullOrWhiteSpace(EditPosoForm) ? null : EditPosoForm.Trim();
                 await _repository.UpdateAsync(SelectedForme);
 
                 // Propagate rename to medic.forme field
@@ -208,8 +171,7 @@ public partial class FormesListViewModel : ViewModelBase
                     subvalue = EditSubValue,
                     formgroup = EditFormGroup,
                     abname = EditAbName,
-                    posoform = EditPosoForm,
-                    posoname = EditPosoName
+                    posoform = string.IsNullOrWhiteSpace(EditPosoForm) ? null : EditPosoForm.Trim()
                 });
             }
 

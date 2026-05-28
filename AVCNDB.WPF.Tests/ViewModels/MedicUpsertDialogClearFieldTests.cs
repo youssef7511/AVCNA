@@ -34,6 +34,7 @@ public class MedicUpsertDialogClearFieldTests
         var presentRepo = new Mock<IRepository<Presents>>();
         var voieRepo    = new Mock<IRepository<Voies>>();
         var specialiteRepo = new Mock<IRepository<Specialites>>();
+        var posoRepo    = new Mock<IRepository<Poso>>();
         var interactRepo = new Mock<IRepository<Interact>>();
         var openRouter  = new Mock<IOpenRouterService>();
         var mlPfeService = new Mock<IMLPfeService>();
@@ -64,7 +65,9 @@ public class MedicUpsertDialogClearFieldTests
             openRouter.Object,
             mlPfeService.Object,
             dialog.Object,
-            syncService);
+            syncService,
+            new FormePosoAbbreviationService(formeRepo.Object),
+            new PosoLookupService(posoRepo.Object));
     }
 
     [Fact]
@@ -99,7 +102,8 @@ public class MedicUpsertDialogClearFieldTests
             fam2     = null,                  // cleared — the value the fixed control produces
             dci1     = "PARACETAMOL",         // Required — must be non-empty
             voie     = "Orale",
-            labo     = "SANOFI"
+            labo     = "SANOFI",
+            specialite = "ANTALGIQUES"        // Required in edit mode — must be non-empty
         };
 
         // Use reflection to set IsEditMode and Medic.
@@ -115,5 +119,142 @@ public class MedicUpsertDialogClearFieldTests
         // defensively coalesced to string.Empty before UpdateAsync.
         captured.Should().NotBeNull("UpdateAsync should have been called in edit mode");
         captured!.fam2.Should().BeEmpty("null famille must be converted to empty string to satisfy database constraints");
+    }
+
+    [Fact]
+    public void SettingSpecialite_InEditMode_ClearsRequiredErrorAndEnablesSave()
+    {
+        var vm = BuildVm(out _, out _);
+
+        // ABILICARE-style edit: every required field filled EXCEPT specialite,
+        // which is empty in the DB. In edit mode specialite is Required.
+        var medic = new Medic
+        {
+            recordid   = 7,
+            itemname   = "ABILICARE 15 MG COMP BT 30",
+            pctcode    = "302501",
+            fam1       = "Antibiotiques",
+            dci1       = "ARIPIPRAZOLE",
+            voie       = "Orale",
+            labo       = "Sanofi",
+            specialite = ""               // empty → required error in edit mode
+        };
+        vm.GetType().GetProperty("IsEditMode")!.SetValue(vm, true);
+        vm.Medic = medic;
+
+        // Precondition: the empty specialite blocks save.
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeFalse("an empty required Spécialité must block save after load");
+
+        // Act: user selects a value via the Spécialité combo, which binds to the
+        // Specialite proxy. No other field is touched afterwards.
+        vm.Specialite = "Dermatologie";
+
+        // Assert: selecting a Spécialité re-validates on its own and unblocks save.
+        vm.Specialite.Should().Be("Dermatologie");
+        vm.Medic.specialite.Should().Be("Dermatologie");
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeTrue("selecting a Spécialité must re-run validation and clear its required error");
+    }
+
+    [Fact]
+    public void SettingLaboratoire_InEditMode_RevalidatesLikeSpecialite()
+    {
+        var vm = BuildVm(out _, out _);
+
+        var medic = new Medic
+        {
+            recordid   = 7,
+            itemname   = "ABILICARE 15 MG COMP BT 30",
+            pctcode    = "302501",
+            fam1       = "Antibiotiques",
+            dci1       = "ARIPIPRAZOLE",
+            voie       = "Orale",
+            labo       = "",              // empty → required error in edit mode
+            specialite = "Dermatologie"
+        };
+        vm.GetType().GetProperty("IsEditMode")!.SetValue(vm, true);
+        vm.Medic = medic;
+
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeFalse("an empty required Laboratoire must block save after load");
+
+        vm.Laboratoire = "Sanofi";
+
+        vm.Laboratoire.Should().Be("Sanofi");
+        vm.Medic.labo.Should().Be("Sanofi");
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeTrue("selecting a Laboratoire must re-run validation and clear its required error");
+    }
+
+    [Fact]
+    public void UpdateDenomination_PreservesAndPrependsTypedBrandName()
+    {
+        var vm = BuildVm(out _, out _);
+        var medic = new Medic
+        {
+            specialite = "ABILIFY",
+            dose1 = "10",
+            u1 = "MG",
+            forme = "Comprimé",
+            present = "Boîte 30",
+            basename = "ABILIFY" // user typed
+        };
+        vm.Medic = medic;
+
+        // Run UpdateDenomination
+        vm.UpdateDenominationCommand.Execute(null);
+
+        // Verification: brand is preserved and computed denomination is appended
+        vm.Medic.basename.Should().Be("ABILIFY 10 MG Comprimé Boîte 30");
+
+        // Running it again should NOT duplicate the computed denomination
+        vm.UpdateDenominationCommand.Execute(null);
+        vm.Medic.basename.Should().Be("ABILIFY 10 MG Comprimé Boîte 30");
+
+        // Changing the commercial name to a different brand replaces the old one.
+        // Convention: only the first word (before the first space) is the free
+        // commercial name; the remainder is the recomputed denomination.
+        vm.Medic.basename = "DAFALGAN";
+        vm.UpdateDenominationCommand.Execute(null);
+        vm.Medic.basename.Should().Be("DAFALGAN 10 MG Comprimé Boîte 30");
+    }
+
+    [Fact]
+    public async Task SaveAsync_TransfersBasenameToItemnameBeforeValidation()
+    {
+        var vm = BuildVm(out var medicRepo, out var dialog);
+
+        dialog.Setup(d => d.ShowConfirmAsync(It.IsAny<string>(), It.IsAny<string>()))
+              .ReturnsAsync(true);
+        dialog.Setup(d => d.ShowSuccessAsync(It.IsAny<string>(), It.IsAny<string>()))
+              .Returns(Task.CompletedTask);
+
+        Medic? captured = null;
+        medicRepo
+            .Setup(r => r.AddAsync(It.IsAny<Medic>()))
+            .Callback<Medic>(m => captured = m)
+            .ReturnsAsync((Medic m) => m);
+
+        var medic = new Medic
+        {
+            itemname = "", // empty! Would trigger validation error if not updated first
+            basename = "ABILIFY 10 MG Comprimé Boîte 30",
+            pctcode  = "12345",
+            fam1     = "ANTALGIQUE",
+            dci1     = "PARACETAMOL",
+            voie     = "Orale",
+            labo     = "SANOFI"
+        };
+
+        vm.GetType().GetProperty("IsEditMode")!.SetValue(vm, false);
+        vm.GetType().GetProperty("Medic")!.SetValue(vm, medic);
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        // Verification: Save succeeded because basename was transferred to itemname prior to validation
+        captured.Should().NotBeNull("AddAsync should have been called successfully");
+        captured!.itemname.Should().Be("ABILIFY 10 MG Comprimé Boîte 30");
+        captured.basename.Should().BeEmpty("basename must be cleared after successful persistence");
     }
 }

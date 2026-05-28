@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
@@ -107,6 +108,19 @@ public partial class FamiliesListViewModel : ViewModelBase
         {
             await _dialogService.ShowWarningAsync("Validation", "Le nom de la famille est obligatoire.");
             return;
+        }
+
+        // Anti-doublon sur création : comparaison canonique (insensible à la casse
+        // et aux accents).
+        if (SelectedFamily == null)
+        {
+            var all = await _repository.GetAllAsync();
+            if (all.Any(f => NameNormalizer.AreSame(f.itemname, EditItemName)))
+            {
+                await _dialogService.ShowWarningAsync("Doublon",
+                    $"« {EditItemName.Trim()} » existe déjà (comparaison insensible à la casse et aux accents).");
+                return;
+            }
         }
 
         await ExecuteAsync(async () =>

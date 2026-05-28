@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
@@ -117,6 +118,19 @@ public partial class PresentsListViewModel : ViewModelBase
         {
             await _dialogService.ShowWarningAsync("Validation", "itemname est obligatoire.");
             return;
+        }
+
+        // Anti-doublon sur création : comparaison canonique (insensible à la casse
+        // et aux accents).
+        if (SelectedPresent == null)
+        {
+            var all = await _repository.GetAllAsync();
+            if (all.Any(p => NameNormalizer.AreSame(p.itemname, EditItemName)))
+            {
+                await _dialogService.ShowWarningAsync("Doublon",
+                    $"« {EditItemName.Trim()} » existe déjà (comparaison insensible à la casse et aux accents).");
+                return;
+            }
         }
 
         await ExecuteAsync(async () =>

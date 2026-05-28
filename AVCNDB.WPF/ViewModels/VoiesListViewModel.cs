@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Messages;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
@@ -58,7 +59,9 @@ public partial class VoiesListViewModel : ViewModelBase
         {
             var items = string.IsNullOrWhiteSpace(SearchText)
                 ? await _repository.GetAllAsync()
-                : await _repository.FindAsync(v => v.itemname.Contains(SearchText));
+                : await _repository.FindAsync(v =>
+                    v.itemname.Contains(SearchText) ||
+                    (v.abname != null && v.abname.Contains(SearchText)));
 
             Voies = new ObservableCollection<Voies>(items.OrderBy(v => v.itemname));
         }, "Chargement des voies...");
@@ -97,6 +100,19 @@ public partial class VoiesListViewModel : ViewModelBase
         {
             await _dialogService.ShowWarningAsync("Validation", "Le nom de la voie est obligatoire.");
             return;
+        }
+
+        // Anti-doublon sur création : comparaison canonique (insensible à la casse
+        // et aux accents) — empêche la coexistence de « nasale » et « Nasale ».
+        if (SelectedVoie == null)
+        {
+            var all = await _repository.GetAllAsync();
+            if (all.Any(v => NameNormalizer.AreSame(v.itemname, EditItemName)))
+            {
+                await _dialogService.ShowWarningAsync("Doublon",
+                    $"« {EditItemName.Trim()} » existe déjà (comparaison insensible à la casse et aux accents).");
+                return;
+            }
         }
 
         await ExecuteAsync(async () =>

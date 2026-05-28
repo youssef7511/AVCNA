@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using AVCNDB.WPF.Helpers;
 
 namespace AVCNDB.WPF.Controls;
 
@@ -178,10 +179,14 @@ public class FilterableComboBox : ComboBox
         }
         else
         {
+            // Comparaison canonique : insensible à la casse ET aux accents
+            // (« peni » trouve « PÉNICILLINE », « comprime » trouve « Comprimé »).
+            var canonFilter = NameNormalizer.Canonical(filter);
             _view.Filter = item =>
             {
                 var value = GetItemDisplayValue(item, displayPath);
-                return value?.Contains(filter, StringComparison.OrdinalIgnoreCase) ?? false;
+                if (string.IsNullOrEmpty(value)) return false;
+                return NameNormalizer.Canonical(value).Contains(canonFilter);
             };
         }
 

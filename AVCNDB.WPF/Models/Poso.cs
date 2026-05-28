@@ -24,8 +24,25 @@ public class Poso : ITrackable
     [Column(TypeName = "decimal(5, 2)")]
     public decimal qty { get; set; }
 
-    [StringLength(30)]
-    public string posoform { get; set; } = string.Empty;
+    /// <summary>
+    /// Forme galénique utilisée par cette posologie (ex. « Comprimé », « Ampoule »).
+    /// Clé étrangère vers <see cref="Formes.itemname"/>, NULL si non renseignée.
+    /// La contrainte est posée au niveau MariaDB : ON UPDATE CASCADE, ON DELETE SET NULL.
+    /// </summary>
+    [StringLength(50)]
+    public string? posoform { get; set; }
+
+    /// <summary>
+    /// Verbe générique associé à la forme (ex. « avaler » pour Capsule,
+    /// « application » pour Pommade). Snapshot copié depuis
+    /// <see cref="Formes.posoform"/> au moment où l'admin sélectionne la Forme
+    /// dans le dialogue Posologie. Ce snapshot fige la valeur dans l'historique
+    /// de la posologie : modifier le verbe sur la Forme plus tard n'affecte pas
+    /// les Posologies déjà enregistrées (à recalculer explicitement via le
+    /// bouton « Rafraîchir le verbe » si souhaité).
+    /// </summary>
+    [StringLength(50)]
+    public string? posoverb { get; set; }
 
     [Column(TypeName = "decimal(7, 2)")]
     public decimal prises { get; set; }

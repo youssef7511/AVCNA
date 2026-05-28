@@ -70,4 +70,22 @@ public interface IUnknownDataDetectionService
     /// <param name="rows">Lignes du fichier d'édition</param>
     /// <returns>Liste de rapports de détection</returns>
     Task<List<DetectionReport>> DetectBatchAsync(IReadOnlyList<Models.EditionRow> rows);
+
+    /// <summary>
+    /// Re-vérifie la valeur d'un champ de référence unique contre la bibliothèque,
+    /// en réutilisant un instantané mis en cache. Sert à la re-validation lorsqu'une
+    /// cellule est éditée manuellement (sélection dans un combo). Une valeur vide est
+    /// considérée comme connue (pas d'alerte) ; un champ non soumis à détection l'est aussi.
+    /// </summary>
+    /// <param name="fieldName">Nom du champ de détection (ex: « Dci », « Forme », « Labo »).</param>
+    /// <param name="value">Nouvelle valeur saisie.</param>
+    /// <returns>True si la valeur est désormais reconnue dans la bibliothèque.</returns>
+    Task<bool> IsFieldKnownAsync(string fieldName, string? value);
+
+    /// <summary>
+    /// Invalide l'instantané de bibliothèque mis en cache. À appeler après l'ajout de
+    /// nouvelles valeurs (p.ex. approbation d'une ligne) pour que la prochaine
+    /// re-validation recharge des données fraîches.
+    /// </summary>
+    void InvalidateLibraryCache();
 }

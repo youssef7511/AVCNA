@@ -8,8 +8,8 @@ namespace AVCNDB.WPF.Services;
 /// destiné à être rendu dans la fenêtre d'aperçu (WebView2).
 ///
 /// Le rendu reproduit l'esthétique du client Medwin destiné au médecin :
-/// titre en vert, rubriques (H2) en bannière rouge, sous-titres (H3) en gras
-/// sombre, paragraphes en gris foncé sur fond blanc.
+/// titre en vert, rubriques (H2) en bannière rouge, sous-titres (H3) en bleu
+/// outremer, gras en bleu foncé, paragraphes en gris foncé sur fond blanc.
 /// </summary>
 public static class MonographieHtmlRenderer
 {
@@ -65,7 +65,7 @@ public static class MonographieHtmlRenderer
     border-radius: 2px;
   }}
   h3 {{
-    color: #424242;
+    color: #3F51B5;        /* sous-titre en bleu outremer */
     font-size: 14px;
     margin: 18px 0 6px;
     font-weight: 700;
@@ -81,7 +81,7 @@ public static class MonographieHtmlRenderer
   li {{
     margin: 3px 0;
   }}
-  strong, b {{ color: #1B5E20; }}
+  strong, b {{ color: #0D47A1; }}   /* gras en bleu foncé */
   em, i {{ color: #5D4037; }}
   blockquote {{
     border-left: 4px solid #C62828;

@@ -7,6 +7,7 @@ using ClosedXML.Excel;
 using FuzzySharp;
 using AVCNDB.WPF.Contracts.Services;
 using AVCNDB.WPF.DAL;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -94,6 +95,10 @@ public class EditionFileService : IEditionFileService
 
         return result;
     }
+
+    /// <inheritdoc />
+    public Task<bool> IsFieldKnownAsync(string fieldName, string value)
+        => _detectionService.IsFieldKnownAsync(fieldName, value);
 
     /// <inheritdoc />
     public async Task<int> ValidateAgainstLibraryAsync(List<EditionRow> rows)
@@ -193,6 +198,10 @@ public class EditionFileService : IEditionFileService
                 throw;
             }
         });
+
+        // L'approbation a pu ajouter de nouvelles valeurs aux tables de référence :
+        // invalider le cache pour que la re-validation à l'édition les reconnaisse.
+        _detectionService.InvalidateLibraryCache();
     }
 
     /// <inheritdoc />
@@ -595,12 +604,29 @@ public class EditionFileService : IEditionFileService
         {
             case "Dci":
             case "DciAssociation":
-                if (!await context.Dcis.AnyAsync(d => d.itemname == value))
+            {
+                // Une valeur composée « X+Y » est scindée en DCI distinctes
+                // (règle métier : « + » sépare deux principes actifs). On insère
+                // chaque segment séparément, en évitant les doublons canoniques.
+                var segments = DciCompositeSplitter.Split(value);
+                if (segments.Count == 0) break;
+
+                var existingDcis = await context.Dcis
+                    .Select(d => d.itemname)
+                    .ToListAsync();
+                var existingCanon = new HashSet<string>(existingDcis.Select(NameNormalizer.Canonical));
+
+                var anyAdded = false;
+                foreach (var seg in segments)
                 {
-                    context.Dcis.Add(new Dci { itemname = value });
-                    await context.SaveChangesAsync();
+                    if (existingCanon.Contains(NameNormalizer.Canonical(seg))) continue;
+                    context.Dcis.Add(new Dci { itemname = seg });
+                    existingCanon.Add(NameNormalizer.Canonical(seg));
+                    anyAdded = true;
                 }
+                if (anyAdded) await context.SaveChangesAsync();
                 break;
+            }
 
             case "Labo":
                 if (!await context.Labos.AnyAsync(l => l.itemname == value))
@@ -621,28 +647,60 @@ public class EditionFileService : IEditionFileService
                 break;
 
             case "Forme":
-                if (!await context.Formes.AnyAsync(f => f.itemname == value))
+            {
+                // Match itemname OU abname (canonical) avant d'insérer un doublon.
+                // Ex. "COMP" arrive depuis Excel : si formes.abname="COMP" existe déjà
+                // (pour la forme Comprimé), on n'ajoute PAS une nouvelle ligne "COMP".
+                var canonValue = NameNormalizer.Canonical(value);
+                var formes = await context.Formes
+                    .Select(f => new { f.itemname, f.abname })
+                    .ToListAsync();
+                var hit = formes.Any(f =>
+                    NameNormalizer.Canonical(f.itemname) == canonValue ||
+                    (!string.IsNullOrWhiteSpace(f.abname) && NameNormalizer.Canonical(f.abname) == canonValue));
+                if (!hit)
                 {
                     context.Formes.Add(new Formes { itemname = value });
                     await context.SaveChangesAsync();
                 }
                 break;
+            }
 
             case "Voie":
-                if (!await context.Voies.AnyAsync(v => v.itemname == value))
+            {
+                var canonValue = NameNormalizer.Canonical(value);
+                var voies = await context.Voies
+                    .Select(v => new { v.itemname, v.abname })
+                    .ToListAsync();
+                var hit = voies.Any(v =>
+                    NameNormalizer.Canonical(v.itemname) == canonValue ||
+                    (!string.IsNullOrWhiteSpace(v.abname) && NameNormalizer.Canonical(v.abname) == canonValue));
+                if (!hit)
                 {
                     context.Voies.Add(new Voies { itemname = value });
                     await context.SaveChangesAsync();
                 }
                 break;
+            }
 
             case "Specialite":
-                if (!await context.Specialites.AnyAsync(s => s.itemname == value))
+            {
+                // Match itemname OU abname (canonical) avant d'insérer un doublon
+                // (Spécialités porte une abréviation, comme Forme et Voie).
+                var canonValue = NameNormalizer.Canonical(value);
+                var specialites = await context.Specialites
+                    .Select(s => new { s.itemname, s.abname })
+                    .ToListAsync();
+                var hit = specialites.Any(s =>
+                    NameNormalizer.Canonical(s.itemname) == canonValue ||
+                    (!string.IsNullOrWhiteSpace(s.abname) && NameNormalizer.Canonical(s.abname) == canonValue));
+                if (!hit)
                 {
                     context.Specialites.Add(new Specialites { itemname = value });
                     await context.SaveChangesAsync();
                 }
                 break;
+            }
         }
     }
 
