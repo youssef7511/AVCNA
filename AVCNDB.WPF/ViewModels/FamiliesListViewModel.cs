@@ -267,7 +267,7 @@ public partial class FamiliesListViewModel : ViewModelBase
             await LoadDataAsync();
             await _dialogService.ShowSuccessAsync(
                 "Import Excel terminé",
-                $"Lignes lues : {result.RowCount}\nInsérés : {result.InsertedCount}\nMis à jour : {result.UpdatedCount}\nIgnorés : {result.SkippedCount}");
+                result.BuildImportSummary());
         }, "Import en cours...");
     }
 

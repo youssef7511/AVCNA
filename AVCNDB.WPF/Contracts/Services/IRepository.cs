@@ -43,7 +43,13 @@ public interface IRepository<T> where T : class
     /// Met à jour une entité existante
     /// </summary>
     Task UpdateAsync(T entity);
-    
+
+    /// <summary>
+    /// Met à jour plusieurs entités en un seul aller-retour base de données
+    /// (un seul SaveChangesAsync), au lieu d'un appel par entité.
+    /// </summary>
+    Task UpdateRangeAsync(IEnumerable<T> entities);
+
     /// <summary>
     /// Supprime une entité
     /// </summary>

@@ -27,4 +27,24 @@ public static class MedicDenominationHelper
 
         return string.Join(" ", parts);
     }
+
+    /// <summary>
+    /// Extracts the free commercial/brand name from a denomination: the first word,
+    /// unless that word is a dose (numeric) — in which case there is no brand prefix.
+    /// Mirrors the medic dialog's convention so a recomputed denomination keeps the brand
+    /// (e.g. "betadine 500 ML…" → "betadine"; "400 ML Capsule…" → "").
+    /// </summary>
+    public static string ExtractCommercialPrefix(string? denomination)
+    {
+        var s = (denomination ?? string.Empty).TrimStart();
+        if (s.Length == 0) return string.Empty;
+
+        var space = s.IndexOf(' ');
+        var first = (space > 0 ? s.Substring(0, space) : s).Trim();
+
+        return IsNumericToken(first) ? string.Empty : first;
+    }
+
+    private static bool IsNumericToken(string token) =>
+        token.Length > 0 && token.All(c => char.IsDigit(c) || c == '.' || c == ',');
 }

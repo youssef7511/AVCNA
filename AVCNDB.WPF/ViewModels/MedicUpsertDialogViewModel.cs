@@ -188,9 +188,10 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     }
 
     // ── Laboratoire / Spécialité proxies ──
-    // These bind the combos to the VM (not directly to the POCO Medic.*),
-    // so selecting a value re-runs ValidateAll() and clears the required-field
-    // error on its own — without depending on another field being edited next.
+    // Bind the combos to the VM (not directly to the POCO Medic.*) so editing them
+    // re-runs ValidateAll() immediately on every change — same instant save-button /
+    // error feedback as the DCI and Famille combos (filling unblocks at once; clearing
+    // a required field flags it and disables Enregistrer right away).
     public string Laboratoire
     {
         get => Medic?.labo ?? string.Empty;
@@ -342,6 +343,7 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
         OnPropertyChanged(nameof(Family));
         OnPropertyChanged(nameof(Laboratoire));
         OnPropertyChanged(nameof(Specialite));
+        OnPropertyChanged(nameof(MedicForme));
         OnPropertyChanged(nameof(Dci1));
         OnPropertyChanged(nameof(Dose1));
         OnPropertyChanged(nameof(U1));
@@ -1080,15 +1082,14 @@ public partial class MedicUpsertDialogViewModel : ViewModelBase, INotifyDataErro
     [RelayCommand]
     private void UpdatePosology()
     {
-        var parts = new List<string>();
+        // Same formula as the Poso table dialog (shared helper) so the medic dialog's
+        // auto-generated label is identical: "{Qté} {Forme poso} x {Prises} / {Période}".
+        // PosoForm here is the Forme's posology verb (formes.posoform), playing the same
+        // role as the Poso table's "Verbe". Conditions stay in their own field.
+        var qty    = PosoQty > 0 ? PosoQty.ToString("G29") : string.Empty;
+        var prises = PosoPrises > 0 ? PosoPrises.ToString("G29") : string.Empty;
 
-        if (PosoQty > 0) parts.Add($"{PosoQty:G29}");
-        if (!string.IsNullOrWhiteSpace(PosoForm)) parts.Add(PosoForm.Trim());
-        if (PosoPrises > 0) parts.Add($"{PosoPrises:G29} fois");
-        if (!string.IsNullOrWhiteSpace(PosoPeriode)) parts.Add(PosoPeriode.Trim());
-        if (!string.IsNullOrWhiteSpace(PosoConditions)) parts.Add($"({PosoConditions.Trim()})");
-
-        var posology = string.Join(" ", parts);
+        var posology = PosoDenominationHelper.Build(qty, PosoForm, prises, PosoPeriode);
         Medic.posology = posology;
         ComputedPosology = posology;
     }

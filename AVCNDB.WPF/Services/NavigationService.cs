@@ -10,7 +10,10 @@ namespace AVCNDB.WPF.Services;
 public class NavigationService : INavigationService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly Stack<(Type viewModelType, object? parameter)> _navigationStack = new();
+    // Cache the resolved view-model instance (not just its type) so GoBack restores the
+    // SAME previous page — preserving transient state like the current grid page, search
+    // and filters — instead of building a fresh instance from the container.
+    private readonly Stack<(Type viewModelType, object? parameter, object viewModel)> _navigationStack = new();
     private const int MaxStackDepth = 50;
     
     private object? _currentView;
@@ -39,7 +42,7 @@ public class NavigationService : INavigationService
         var viewModel = _serviceProvider.GetRequiredService<T>();
         
         // Sauvegarde dans l'historique
-        _navigationStack.Push((typeof(T), parameter));
+        _navigationStack.Push((typeof(T), parameter, viewModel));
         TrimStack();
         
         // Initialiser le ViewModel si nécessaire
@@ -59,7 +62,7 @@ public class NavigationService : INavigationService
         {
             var viewModel = _serviceProvider.GetRequiredService(viewModelType);
             
-            _navigationStack.Push((viewModelType, parameter));
+            _navigationStack.Push((viewModelType, parameter, viewModel));
             TrimStack();
 
             if (viewModel is INavigationAware navigationAware)
@@ -98,10 +101,9 @@ public class NavigationService : INavigationService
         // Retirer la page actuelle
         _navigationStack.Pop();
         
-        // Récupérer la page précédente
-        var (previousType, parameter) = _navigationStack.Peek();
-        var viewModel = _serviceProvider.GetRequiredService(previousType);
-        
+        // Récupérer la page précédente — réutiliser l'instance mémorisée (état préservé)
+        var (_, parameter, viewModel) = _navigationStack.Peek();
+
         if (viewModel is INavigationAware navigationAware)
         {
             navigationAware.OnNavigatedTo(parameter);

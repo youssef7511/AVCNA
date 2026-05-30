@@ -565,7 +565,9 @@ public class EditionFileService : IEditionFileService
             .Select(m => new { m.recordid, m.pctcode, m.medicid, m.price, m.refprice })
             .ToListAsync();
 
-        var medicLookup = existingMedics.ToDictionary(m => m.pctcode, m => m);
+        // Tolerate duplicate PCT codes in the medic table (data integrity issue) instead of
+        // crashing the whole import with "same key already added": first occurrence wins.
+        var medicLookup = existingMedics.ToFirstWinsDictionary(m => m.pctcode);
 
         foreach (var row in rows)
         {

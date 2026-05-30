@@ -60,6 +60,7 @@
                   ItemsSource="{Binding Results}"
                   SelectedItem="{Binding SelectedResult}"
                   Style="{StaticResource ModernDataGridStyle}"
+                  RowHeight="40"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   SelectionMode="Single"
@@ -68,35 +69,39 @@
                   Margin="12,8,12,0">
             <DataGrid.Columns>
                 <!-- Score -->
-                <DataGridTemplateColumn Header="Score" Width="65" SortMemberPath="Score" SortDirection="Descending">
+                <DataGridTemplateColumn Header="Score" Width="78" SortMemberPath="Score" SortDirection="Descending">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Center">
+                            <Border CornerRadius="10" Padding="12,4" MinWidth="58"
+                                    SnapsToDevicePixels="True"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="Background" Value="{StaticResource WarningLightBrush}"/>
+                                        <!-- Default = Medium (60–79) : orange tint -->
+                                        <Setter Property="Background" Value="#FFF3E0"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding Score, Converter={x:Static vm:ScoreThresholdConverter.Instance}}" Value="High">
-                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}"/>
+                                                <Setter Property="Background" Value="#E8F5E9"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Score, Converter={x:Static vm:ScoreThresholdConverter.Instance}}" Value="Low">
-                                                <Setter Property="Background" Value="{StaticResource ErrorLightBrush}"/>
+                                                <Setter Property="Background" Value="#FFEBEE"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
                                 <TextBlock Text="{Binding Score, StringFormat={}{0}%}"
-                                           FontWeight="Bold" FontSize="12"
+                                           FontWeight="Bold" FontSize="13"
+                                           TextWrapping="NoWrap" TextAlignment="Center"
                                            HorizontalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{StaticResource WarningDarkBrush}"/>
+                                            <Setter Property="Foreground" Value="#E65100"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding Score, Converter={x:Static vm:ScoreThresholdConverter.Instance}}" Value="High">
-                                                    <Setter Property="Foreground" Value="{StaticResource SuccessDarkBrush}"/>
+                                                    <Setter Property="Foreground" Value="#2E7D32"/>
                                                 </DataTrigger>
                                                 <DataTrigger Binding="{Binding Score, Converter={x:Static vm:ScoreThresholdConverter.Instance}}" Value="Low">
-                                                    <Setter Property="Foreground" Value="{StaticResource ErrorDarkBrush}"/>
+                                                    <Setter Property="Foreground" Value="#C62828"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>

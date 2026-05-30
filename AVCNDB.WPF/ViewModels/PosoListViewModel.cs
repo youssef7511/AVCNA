@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AVCNDB.WPF.Contracts.Services;
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 
@@ -62,7 +63,7 @@ public partial class PosoListViewModel : ViewModelBase
         get
         {
             var token = !string.IsNullOrWhiteSpace(EditPosoVerb) ? EditPosoVerb : EditPosoForm;
-            return $"{EditQty} {token} x {EditPrises} / {EditPeriode}".Trim();
+            return PosoDenominationHelper.Build(EditQty, token, EditPrises, EditPeriode);
         }
     }
 
@@ -418,8 +419,8 @@ public partial class PosoListViewModel : ViewModelBase
 
             await LoadDataAsync();
             await _dialogService.ShowSuccessAsync(
-                "Import Excel termine",
-                $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
+                "Import Excel terminé",
+                result.BuildImportSummary());
         }, "Import en cours...");
     }
 

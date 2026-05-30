@@ -188,6 +188,91 @@ public class MedicUpsertDialogClearFieldTests
     }
 
     [Fact]
+    public void ClearingRequiredCombo_EagerlyDisablesSave()
+    {
+        var vm = BuildVm(out _, out _);
+
+        var medic = new Medic
+        {
+            recordid   = 7,
+            itemname   = "ABILICARE 15 MG COMP BT 30",
+            pctcode    = "302501",
+            fam1       = "Antibiotiques",
+            dci1       = "ARIPIPRAZOLE",
+            voie       = "Orale",
+            labo       = "Sanofi",
+            specialite = "Dermatologie"
+        };
+        vm.GetType().GetProperty("IsEditMode")!.SetValue(vm, true);
+        vm.Medic = medic;
+
+        // All required fields filled on load → save enabled.
+        vm.SaveCommand.CanExecute(null).Should().BeTrue("all required fields are present on load");
+
+        // Clearing a required combo validates immediately (consistent with the DCI combo)
+        // and disables Enregistrer — instant feedback rather than deferred.
+        vm.Specialite = "";
+
+        vm.Medic.specialite.Should().BeEmpty();
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeFalse("clearing a required combo re-validates immediately like DCI and disables Enregistrer");
+    }
+
+    [Fact]
+    public async Task SavingWithClearedRequiredCombo_IsBlockedAtSaveTime()
+    {
+        var vm = BuildVm(out var medicRepo, out var dialog);
+
+        dialog.Setup(d => d.ShowWarningAsync(It.IsAny<string>(), It.IsAny<string>()))
+              .Returns(Task.CompletedTask);
+        dialog.Setup(d => d.ShowConfirmAsync(It.IsAny<string>(), It.IsAny<string>()))
+              .ReturnsAsync(true);
+
+        Medic? captured = null;
+        medicRepo.Setup(r => r.UpdateAsync(It.IsAny<Medic>()))
+                 .Callback<Medic>(m => captured = m)
+                 .Returns(Task.CompletedTask);
+
+        var medic = new Medic
+        {
+            recordid   = 7,
+            itemname   = "ABILICARE 15 MG COMP BT 30",
+            pctcode    = "302501",
+            fam1       = "Antibiotiques",
+            dci1       = "ARIPIPRAZOLE",
+            voie       = "Orale",
+            labo       = "Sanofi",
+            specialite = "Dermatologie"
+        };
+        vm.GetType().GetProperty("IsEditMode")!.SetValue(vm, true);
+        vm.Medic = medic;
+
+        vm.Specialite = "";   // cleared, but not eagerly flagged
+
+        await vm.SaveCommand.ExecuteAsync(null);
+
+        captured.Should().BeNull("save must be blocked at save-time when a required Spécialité is empty");
+        vm.SaveCommand.CanExecute(null).Should()
+          .BeFalse("the failed save attempt sets the required error, which then disables Enregistrer");
+    }
+
+    [Fact]
+    public void SettingMedic_NotifiesMedicForme_SoFormeComboShowsLoadedValue()
+    {
+        var vm = BuildVm(out _, out _);
+
+        var raised = new List<string?>();
+        vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        vm.Medic = new Medic { recordid = 1, itemname = "ANTISPASM", forme = "Capsule" };
+
+        vm.MedicForme.Should().Be("Capsule");
+        raised.Should().Contain(
+            nameof(MedicUpsertDialogViewModel.MedicForme),
+            "the Forme combo binds to MedicForme, so loading a medic must notify it (like the other combos) or the combo stays blank");
+    }
+
+    [Fact]
     public void UpdateDenomination_PreservesAndPrependsTypedBrandName()
     {
         var vm = BuildVm(out _, out _);

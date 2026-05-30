@@ -25,6 +25,9 @@ public partial class DenominationViewModel : ViewModelBase
 
     private ObservableCollection<Medic> _allMedics = new();
 
+    // State of each row at load — lets "Appliquer" persist only rows that actually changed.
+    private Dictionary<int, string> _denominationSnapshot = new();
+
     /// <summary>Column headers that contribute to the denomination auto-computation.</summary>
     private static readonly HashSet<string> _denominationFields = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -119,6 +122,7 @@ public partial class DenominationViewModel : ViewModelBase
 
             var medics = await _repository.GetAllAsync();
             _allMedics = new ObservableCollection<Medic>(medics);
+            _denominationSnapshot = DenominationChangeTracker.Snapshot(_allMedics);
             TotalCount = _allMedics.Count;
 
             MedicsView = CollectionViewSource.GetDefaultView(_allMedics);
@@ -199,7 +203,13 @@ public partial class DenominationViewModel : ViewModelBase
         // Auto-recompute basename when a denomination-contributing field changes
         if (editedMedic != null && columnHeader != null && _denominationFields.Contains(columnHeader))
         {
-            editedMedic.basename = BuildDenomination(editedMedic);
+            // Keep the commercial/brand name (e.g. "betadine") and recompute only the
+            // technical part — otherwise the new denomination starts at the dose.
+            var computed = BuildDenomination(editedMedic);
+            var commercial = MedicDenominationHelper.ExtractCommercialPrefix(editedMedic.itemname);
+            editedMedic.basename = string.IsNullOrEmpty(commercial)
+                ? computed
+                : $"{commercial} {computed}".Trim();
             // Deferred refresh so the DataGrid picks up the new basename value
             App.Current.Dispatcher.InvokeAsync(
                 () => MedicsView?.Refresh(),
@@ -360,31 +370,40 @@ public partial class DenominationViewModel : ViewModelBase
 
         await ExecuteAsync(async () =>
         {
+            // 1) Apply the in-memory transfer (basename → itemname) for edited rows.
             int transferred = 0;
             foreach (var m in _allMedics)
             {
-                // Transfer basename → itemname if basename has a value
                 if (!string.IsNullOrWhiteSpace(m.basename))
                 {
                     m.itemname = m.basename.Trim();
                     m.basename = string.Empty;
                     transferred++;
                 }
-
-                await _repository.UpdateAsync(m);
             }
+
+            // 2) Persist ONLY the rows that actually changed since load, in a single
+            //    batched round-trip — editing one row writes one row, not the whole table.
+            var changed = DenominationChangeTracker.GetChanged(_allMedics, _denominationSnapshot);
+            await _repository.UpdateRangeAsync(changed);
+
+            // Refresh the baseline so a subsequent "Appliquer" is a no-op until edited again.
+            _denominationSnapshot = DenominationChangeTracker.Snapshot(_allMedics);
 
             HasUnsavedChanges = false;
             MedicsView?.Refresh();
             UpdateComputedDenomination();
 
-            WeakReferenceMessenger.Default.Send(new DataChangedMessage(
-                new DataChangeInfo("Medic", ChangeOperation.BulkUpdated)));
+            if (changed.Count > 0)
+            {
+                WeakReferenceMessenger.Default.Send(new DataChangedMessage(
+                    new DataChangeInfo("Medic", ChangeOperation.BulkUpdated)));
+            }
 
             await _dialogService.ShowSuccessAsync(
                 "Sauvegarde réussie",
                 $"{transferred} dénomination(s) transférée(s) vers 'Ancienne dénomination'.\n" +
-                $"{_allMedics.Count} médicament(s) sauvegardés.");
+                $"{changed.Count} médicament(s) modifié(s) sauvegardé(s).");
         }, "Sauvegarde en cours...");
     }
 

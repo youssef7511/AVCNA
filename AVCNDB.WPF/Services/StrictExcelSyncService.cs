@@ -95,22 +95,38 @@ public class StrictExcelSyncService<T> : IStrictExcelSyncService<T> where T : cl
 
         var updatedCount = 0;
         var skippedCount = 0;
+        var canonicalDuplicates = 0;
 
         var itemNameProperty = typeof(T).GetProperty("itemname");
         var hasItemName = itemNameProperty?.PropertyType == typeof(string) && itemNameProperty.CanRead;
 
+        // Canonical de-duplication: when a row has no matching recordid, fall back to a
+        // case/accent-insensitive name match so "cardiologie" doesn't get inserted next to
+        // an existing "Cardiologie". Maps canonical(itemname) -> entity (first wins).
+        var existingByCanonical = new Dictionary<string, T>();
+        if (hasItemName)
+        {
+            foreach (var entity in await _repository.GetAllAsync())
+            {
+                var key = NameNormalizer.Canonical((string?)itemNameProperty!.GetValue(entity));
+                if (!string.IsNullOrEmpty(key) && !existingByCanonical.ContainsKey(key))
+                    existingByCanonical[key] = entity;
+            }
+        }
+        // Canonical keys already inserted/updated during THIS run — collapses in-file duplicates.
+        var seenCanonical = new HashSet<string>();
+
         foreach (var row in imported)
         {
-            if (hasItemName)
+            var name = hasItemName ? (string?)itemNameProperty!.GetValue(row) : null;
+            if (hasItemName && string.IsNullOrWhiteSpace(name))
             {
-                var name = (string?)itemNameProperty!.GetValue(row);
-                if (string.IsNullOrWhiteSpace(name))
-                {
-                    skippedCount++;
-                    continue;
-                }
+                skippedCount++;
+                continue;
             }
+            var canonical = hasItemName ? NameNormalizer.Canonical(name) : string.Empty;
 
+            // 1) Explicit recordid match → update that record.
             if (row.recordid > 0 && existingById.TryGetValue(row.recordid, out var current))
             {
                 EntityCopyHelper.CopyWritableProperties(row, current, "recordid");
@@ -118,13 +134,47 @@ public class StrictExcelSyncService<T> : IStrictExcelSyncService<T> where T : cl
                 current.addedat ??= now;
                 await _repository.UpdateAsync(current);
                 updatedCount++;
+                if (!string.IsNullOrEmpty(canonical))
+                {
+                    seenCanonical.Add(canonical);
+                    existingByCanonical[canonical] = current;
+                }
+                continue;
             }
-            else
+
+            // 2) No recordid match → canonical de-dup before inserting.
+            if (!string.IsNullOrEmpty(canonical))
             {
-                row.recordid = 0;
-                row.addedat ??= now;
-                row.updatedat = now;
-                toInsert.Add(row);
+                // Already handled this canonical value in this run → skip the duplicate.
+                if (seenCanonical.Contains(canonical))
+                {
+                    skippedCount++;
+                    canonicalDuplicates++;
+                    continue;
+                }
+                // Same canonical name already exists in the table → update it in place.
+                if (existingByCanonical.TryGetValue(canonical, out var canonicalMatch))
+                {
+                    EntityCopyHelper.CopyWritableProperties(row, canonicalMatch, "recordid");
+                    canonicalMatch.updatedat = now;
+                    canonicalMatch.addedat ??= now;
+                    await _repository.UpdateAsync(canonicalMatch);
+                    updatedCount++;
+                    canonicalDuplicates++;
+                    seenCanonical.Add(canonical);
+                    continue;
+                }
+            }
+
+            // 3) Genuinely new → insert.
+            row.recordid = 0;
+            row.addedat ??= now;
+            row.updatedat = now;
+            toInsert.Add(row);
+            if (!string.IsNullOrEmpty(canonical))
+            {
+                seenCanonical.Add(canonical);
+                existingByCanonical[canonical] = row;
             }
         }
 
@@ -136,6 +186,7 @@ public class StrictExcelSyncService<T> : IStrictExcelSyncService<T> where T : cl
         validation.InsertedCount = toInsert.Count;
         validation.UpdatedCount = updatedCount;
         validation.SkippedCount = skippedCount;
+        validation.CanonicalDuplicatesCount = canonicalDuplicates;
 
         return validation;
     }

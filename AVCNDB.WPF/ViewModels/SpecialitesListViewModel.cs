@@ -243,8 +243,8 @@ public partial class SpecialitesListViewModel : ViewModelBase
 
             await LoadDataAsync();
             await _dialogService.ShowSuccessAsync(
-                "Import Excel termine",
-                $"Lignes lues : {result.RowCount}\nInseres : {result.InsertedCount}\nMis a jour : {result.UpdatedCount}\nIgnores : {result.SkippedCount}");
+                "Import Excel terminé",
+                result.BuildImportSummary());
         }, "Import en cours...");
     }
 

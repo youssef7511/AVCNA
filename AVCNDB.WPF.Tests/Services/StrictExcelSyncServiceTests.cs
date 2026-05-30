@@ -1,3 +1,4 @@
+using AVCNDB.WPF.Helpers;
 using AVCNDB.WPF.Models;
 using AVCNDB.WPF.Services;
 using AVCNDB.WPF.Tests.Helpers;
@@ -507,6 +508,141 @@ public class StrictExcelSyncServiceTests : IDisposable
         {
             SafeDelete(path);
         }
+    }
+
+    [Fact]
+    public async Task ImportAndSyncAsync_CanonicalDuplicateOfExisting_UpdatesInsteadOfInserting()
+    {
+        var repo = new Repository<Specialites>(_context);
+        await repo.AddAsync(new Specialites
+        {
+            recordid = 1,
+            itemname = "Cardiologie",
+            abname = "CARDIO",
+            subvalue = "spec"
+        });
+
+        var excel = new ExcelService();
+        var svc = new StrictExcelSyncService<Specialites>(repo, excel);
+
+        var headers = svc.ExpectedColumns.ToList();
+        var path = CreateTempWorkbook("Specialites", ws =>
+        {
+            WriteHeaders(ws, headers);
+
+            // No recordid + canonically identical name (case differs):
+            // must match the existing row and update it, not insert a duplicate.
+            SetRow(ws, 2, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "cardiologie",
+                ["abname"] = "cardio",
+                ["subvalue"] = "spec"
+            });
+        });
+
+        try
+        {
+            var result = await svc.ImportAndSyncAsync(path, "Specialites");
+
+            result.IsValid.Should().BeTrue();
+            result.InsertedCount.Should().Be(0, "a canonically identical name must update the existing row, not insert a duplicate");
+            result.UpdatedCount.Should().Be(1);
+            result.CanonicalDuplicatesCount.Should().Be(1, "one canonical duplicate of an existing row was detected");
+
+            var matches = (await repo.GetAllAsync())
+                .Where(x => NameNormalizer.Canonical(x.itemname) == "cardiologie")
+                .ToList();
+            matches.Should().HaveCount(1, "no duplicate row should exist for the same canonical name");
+            matches[0].recordid.Should().Be(1, "the existing record is updated in place");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public async Task ImportAndSyncAsync_CanonicalDuplicateWithinFile_InsertsOnce()
+    {
+        var repo = new Repository<Specialites>(_context);
+        var excel = new ExcelService();
+        var svc = new StrictExcelSyncService<Specialites>(repo, excel);
+
+        var headers = svc.ExpectedColumns.ToList();
+        var path = CreateTempWorkbook("Specialites", ws =>
+        {
+            WriteHeaders(ws, headers);
+
+            // Two new rows, no recordid, canonically identical → collapse to one insert.
+            SetRow(ws, 2, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "Cardiologie",
+                ["abname"] = "CARDIO",
+                ["subvalue"] = "spec"
+            });
+            SetRow(ws, 3, headers, new Dictionary<string, object?>
+            {
+                ["itemname"] = "cardiologie",
+                ["abname"] = "cardio",
+                ["subvalue"] = "spec"
+            });
+        });
+
+        try
+        {
+            var result = await svc.ImportAndSyncAsync(path, "Specialites");
+
+            result.IsValid.Should().BeTrue();
+            result.InsertedCount.Should().Be(1, "two canonically identical new rows must collapse to a single insert");
+            result.CanonicalDuplicatesCount.Should().Be(1, "the second row was detected as an in-file canonical duplicate");
+
+            var matches = (await repo.GetAllAsync())
+                .Where(x => NameNormalizer.Canonical(x.itemname) == "cardiologie")
+                .ToList();
+            matches.Should().HaveCount(1, "the second canonical duplicate must not create a second row");
+        }
+        finally
+        {
+            SafeDelete(path);
+        }
+    }
+
+    [Fact]
+    public void BuildImportSummary_NoCanonicalDuplicates_OmitsDuplicateLine()
+    {
+        var result = new Contracts.Services.ExcelStrictImportResult
+        {
+            RowCount = 3,
+            InsertedCount = 2,
+            UpdatedCount = 1,
+            SkippedCount = 0,
+            CanonicalDuplicatesCount = 0
+        };
+
+        var summary = result.BuildImportSummary();
+
+        summary.Should().Contain("Lignes lues : 3");
+        summary.Should().Contain("Insérés : 2");
+        summary.Should().Contain("Mis à jour : 1");
+        summary.Should().NotContain("Doublons", "no duplicate line when none were detected");
+    }
+
+    [Fact]
+    public void BuildImportSummary_WithCanonicalDuplicates_MentionsThem()
+    {
+        var result = new Contracts.Services.ExcelStrictImportResult
+        {
+            RowCount = 2,
+            InsertedCount = 0,
+            UpdatedCount = 2,
+            SkippedCount = 0,
+            CanonicalDuplicatesCount = 2
+        };
+
+        var summary = result.BuildImportSummary();
+
+        summary.Should().Contain("Doublons");
+        summary.Should().Contain("2", "the detected duplicate count appears in the message");
     }
 
     private static string CreateTempWorkbook(string sheetName, Action<IXLWorksheet> configure)

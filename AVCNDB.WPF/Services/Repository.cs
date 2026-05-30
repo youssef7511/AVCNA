@@ -82,6 +82,26 @@ public class Repository<T> : IRepository<T> where T : class
         await _context.SaveChangesAsync();
     }
 
+    public virtual async Task UpdateRangeAsync(IEnumerable<T> entities)
+    {
+        var list = entities as IList<T> ?? entities.ToList();
+        if (list.Count == 0) return;
+
+        foreach (var entity in list)
+        {
+            var entry = _context.Entry(entity);
+            if (entry.State == EntityState.Detached)
+            {
+                DetachConflictingTrackedInstance(entity);
+                _dbSet.Attach(entity);
+            }
+            entry.State = EntityState.Modified;
+        }
+
+        // Single round-trip for the whole batch.
+        await _context.SaveChangesAsync();
+    }
+
     public virtual async Task DeleteAsync(T entity)
     {
         DetachConflictingTrackedInstance(entity);

@@ -22,6 +22,31 @@ public class RepositoryTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    [Fact]
+    public async Task UpdateRangeAsync_PersistsAllGivenEntitiesInBatch()
+    {
+        var repo = new Repository<Medic>(_context);
+        var all = (await repo.GetAllAsync()).ToList();
+        var first = all[0];
+        var second = all[1];
+        first.itemname += " (MAJ1)";
+        second.itemname += " (MAJ2)";
+
+        await repo.UpdateRangeAsync(new[] { first, second });
+
+        var reloaded = (await repo.GetAllAsync()).ToDictionary(m => m.recordid);
+        reloaded[first.recordid].itemname.Should().EndWith("(MAJ1)");
+        reloaded[second.recordid].itemname.Should().EndWith("(MAJ2)");
+    }
+
+    [Fact]
+    public async Task UpdateRangeAsync_EmptyInput_DoesNotThrow()
+    {
+        var repo = new Repository<Medic>(_context);
+        var act = async () => await repo.UpdateRangeAsync(Array.Empty<Medic>());
+        await act.Should().NotThrowAsync();
+    }
+
     #region GetAllAsync Tests
 
     [Fact]
